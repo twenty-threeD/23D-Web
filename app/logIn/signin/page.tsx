@@ -6,7 +6,7 @@ import GoogleIMG from "@/src/img/logIn/Google.svg";
 import KakaoTalkIMG from "@/src/img/logIn/kakaoTalk.svg";
 import NaverIMG from "@/src/img/logIn/naver.svg";
 
-import { InputField } from "@/src/components/inputField";
+import { InputField } from "@/components/inputField";
 
 const Page = () => {
     return (

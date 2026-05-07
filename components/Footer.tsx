@@ -11,7 +11,7 @@ export default function Footer() {
           <img src="/icon.png" alt="Logo" className="w-12" />
           <div className="flex flex-col">
             <p className="text-sm">당신의 소중한 커리어를 안전하게 증명하고</p>
-            <p className="text-sm">최적의 전문가를 이어주는 '잇다'입니다.</p>
+            <p className="text-sm">최적의 전문가를 이어주는 &apos;잇다&apos;입니다.</p>
           </div>
           <div className="flex gap-2">
             <FaInstagram className="text-zinc-500 w-10 h-10 border-2 border-zinc-500 rounded-lg p-1" />

@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { StaticImageData } from "next/image";
 
 interface InputProps {
     label: string;
     placeholder: string;
     type?: string;
-    icon?: any;
+    icon?: string | StaticImageData;
 }
 
 export const InputField = ({ label, placeholder, type = "text", icon }: InputProps) => {
