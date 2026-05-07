@@ -8,10 +8,14 @@ import NaverIMG from "@/src/img/logIn/naver.svg";
 
 import { InputField } from "@/components/inputField";
 
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+
 const Page = () => {
     return (
         <div className = "bg-[#F4F4F4]">
-            <div className="w-200 h-150  m-auto rounded-3xl flex items-left">
+            <Header />
+            <div className="w-200 h-150  m-auto rounded-3xl flex items-left mt-18.25 mb-18.25">
                 <div className="w-100 h-150 bg-linear-to-tr from-[#FF4D4D] to-[#824DFF] rounded-l-3xl flex items-center justify-center"></div>
                     <div className="w-100 h-150 bg-[#FFFFFF] rounded-r-3xl flex flex-col items-center justify-center">                    
                         <Image src={LogoImg} alt="Logo" width={80} height={40} className="mb-15.25" />
@@ -19,7 +23,7 @@ const Page = () => {
                         {/* 인풋 필드 */}
                         <div className="mb-2.5">
                             <InputField label="아이디 입력" placeholder="아이디를 입력해주세요" type="text" />
-                            <InputField label="비밀번호 입력" placeholder="비밀번호를 입력해주세요" type="password" icon={ShowPassWD} />
+                            <InputField label="비밀번호 입력" placeholder="비밀번호를 입력해주세요" type="password" showIcon={true} />
                         </div>
 
                         {/* 로그인 버튼과 링크 */}
@@ -55,6 +59,7 @@ const Page = () => {
                         </div>
                     </div>
             </div>
+            <Footer />
         </div>
     )
 };

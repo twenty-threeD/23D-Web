@@ -1,17 +1,16 @@
 'use client';
 
 import { useState } from "react";
-import Image from "next/image";
-import { StaticImageData } from "next/image";
+import { IoMdEye, IoMdEyeOff } from "react-icons/io"; // 필요한 것들만 임포트
 
 interface InputProps {
     label: string;
     placeholder: string;
     type?: string;
-    icon?: string | StaticImageData;
+    showIcon?: boolean; // 이미지 파일 대신 "아이콘을 보여줄지 여부"만 받게 수정
 }
 
-export const InputField = ({ label, placeholder, type = "text", icon }: InputProps) => {
+export const InputField = ({ label, placeholder, type = "text", showIcon }: InputProps) => {
   const [inputType, setInputType] = useState(type);
 
   const togglePassword = () => {
@@ -36,12 +35,15 @@ export const InputField = ({ label, placeholder, type = "text", icon }: InputPro
                     pr-10"
         />
 
-        {icon && (
+        {/* showIcon이 true일 때만 아이콘 표시. 
+            inputType에 따라 눈 뜬 모양/감은 모양 전환 
+        */}
+        {showIcon && (
           <div 
-            className="absolute right-2 bottom-1.5 cursor-pointer hover:opacity-70"
+            className="absolute right-2 bottom-1.5 cursor-pointer text-gray-500 hover:text-[#FE6A4C] transition-colors text-xl"
             onClick={togglePassword}
           >
-            <Image src={icon} alt="toggle visibility" width={20} height={20} />
+            {inputType === "password" ? <IoMdEyeOff /> : <IoMdEye />}
           </div>
         )}
       </div>
