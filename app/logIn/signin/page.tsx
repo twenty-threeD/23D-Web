@@ -1,7 +1,7 @@
 import Image from "next/image";
+import Link from "next/link";
 
 import LogoImg from "@/src/img/Logo.svg";
-import ShowPassWD from "@/src/img/logIn/showPassWD.svg";
 import GoogleIMG from "@/src/img/logIn/Google.svg";
 import KakaoTalkIMG from "@/src/img/logIn/kakaoTalk.svg";
 import NaverIMG from "@/src/img/logIn/naver.svg";
@@ -32,13 +32,15 @@ const Page = () => {
                             로그인
                         </button>
                         <div className="flex justify-between w-75 mt-2.5">
-                            <a href="#" className="text-[10px] text-[#666666] underline">
+                            <Link href="#" className="text-[10px] text-[#666666] underline">
                                 비밀번호를 잊으셨나요?
-                            </a>
+                            </Link>
 
                             <div className="flex gap-1 text-[10px] text-[#666666]">
                                 <span>계정이 없으신가요?</span>
-                                <a href="#" className="underline">회원가입</a>
+                                <Link href="/logIn/signup" className="underline">
+                                    회원가입
+                                </Link>
                             </div>
                         </div>
 
