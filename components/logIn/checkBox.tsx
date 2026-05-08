@@ -11,7 +11,7 @@ interface CheckBoxProps {
 
 export const CheckBox = ({ isEssential, label, link = "#", checked, onChange }: CheckBoxProps) => {
     return (
-        <label className="text-[12px] text-[#2F303F] ml-4.75 flex items-center justify-between cursor-pointer py-1 w-62.5 group">
+        <label className="text-xs text-slate-800 ml-4.75 flex items-center justify-between cursor-pointer py-1 w-62.5 group">
             <div className="flex items-center">
                 <input 
                     type="checkbox" 

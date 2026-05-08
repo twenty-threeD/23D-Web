@@ -33,11 +33,11 @@ const Page = () => {
     };
 
     return (
-        <div className="bg-[#F4F4F4] min-h-screen">
+        <div className="bg-zinc-100 min-h-screen">
             <Header />
             <div className="w-200 h-150 m-auto rounded-3xl flex items-start mt-18.25 mb-18.25 shadow-lg">
-                <div className="w-100 h-150 bg-linear-to-tr from-[#FF4D4D] to-[#824DFF] rounded-l-3xl flex items-center justify-center"></div>
-                <div className="w-100 h-150 bg-[#FFFFFF] rounded-r-3xl flex flex-col items-center justify-center">                    
+                <div className="w-100 h-150 bg-linear-to-tr from-rose-500 to-indigo-500 rounded-l-3xl flex items-center justify-center"></div>
+                <div className="w-100 h-150 bg-white rounded-r-3xl flex flex-col items-center justify-center">                    
                     <Image src={LogoImg} alt="Logo" width={80} height={40} className="mb-15.25" />
 
                     {/* 인풋 필드 영역 */}
@@ -73,10 +73,10 @@ const Page = () => {
                     </button>
 
                     <div className="flex justify-between w-75 mt-2.5">
-                        <Link href="#" className="text-[10px] text-[#666666] underline">
+                        <Link href="#" className="text-[10px] text-gray-500 underline">
                             비밀번호를 잊으셨나요?
                         </Link>
-                        <div className="flex gap-1 text-[10px] text-[#666666]">
+                        <div className="flex gap-1 text-[10px] text-gray-500">
                             <span>계정이 없으신가요?</span>
                             <Link href="/login/signup" className="underline">
                                 회원가입
@@ -91,7 +91,7 @@ const Page = () => {
                             { src: KakaoTalkIMG, alt: "KakaoTalk" },
                             { src: NaverIMG, alt: "Naver" }
                         ].map((social, index) => (
-                            <button key={index} className="w-10 h-10 bg-[#FFFFFF] rounded-full flex items-center justify-center border border-[#D9D9D9] hover:border-[#FE6A4C] transition-colors shadow-sm">
+                            <button key={index} className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-gray-300 hover:border-[#FE6A4C] transition-colors">
                                 <Image src={social.src} alt={social.alt} width={20} height={20} />
                             </button>
                         ))}

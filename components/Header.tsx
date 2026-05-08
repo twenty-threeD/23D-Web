@@ -13,7 +13,7 @@ export default function Header() {
           <li><Link href="/" className="text-zinc-500 text-sm font-semibold">커뮤니티</Link></li>
         </ul>
       </div>
-      <Link href="/login" className="text-zinc-500 text-sm font-semibold">
+      <Link href="/login/signin" className="text-zinc-500 text-sm font-semibold">
         로그인 / 회원가입
       </Link>
     </div>
