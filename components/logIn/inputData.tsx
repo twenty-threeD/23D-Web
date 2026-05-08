@@ -39,6 +39,9 @@ const InputData = ({ formData, setFormData }: InputDataProps) => {
         passwordRegex.test(formData.password) && // 정규식을 통과해야 함
         formData.password === formData.passwordConfirm;
 
+    // ID 영문 검사
+    const isIdValid = /^[A-Za-z0-9]+$/.test(formData.id);
+
     return (
         <div className="mt-5">
             <InputField 
@@ -49,7 +52,8 @@ const InputData = ({ formData, setFormData }: InputDataProps) => {
                 onChange={(e) => handleChange("name", e.target.value)}
             />
             <InputField 
-                label="아이디 입력" 
+                label={!isIdValid && formData.id.length > 0 ? "아이디 입력 · 영문 또는 숫자만 가능합니다" : "아이디 입력"} 
+                isError={!isIdValid && formData.id.length > 0} // 영문이 아닐 때 에러 상태
                 placeholder="아이디를 입력해주세요" 
                 isEssential={true}
                 value={formData.id}
