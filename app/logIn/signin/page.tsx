@@ -78,7 +78,7 @@ const Page = () => {
                         </Link>
                         <div className="flex gap-1 text-[10px] text-[#666666]">
                             <span>계정이 없으신가요?</span>
-                            <Link href="/logIn/signup" className="underline">
+                            <Link href="/login/signup" className="underline">
                                 회원가입
                             </Link>
                         </div>
