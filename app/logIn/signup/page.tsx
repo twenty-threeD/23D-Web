@@ -7,8 +7,8 @@ import LogoImg from "@/src/img/Logo.svg";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
-import TermsAgreement from "@/components/logIn/termsAgreement";
-import InputData from "@/components/logIn/inputData";
+import TermsAgreement from "@/components/login/termsAgreement";
+import InputData from "@/components/login/inputData";
 
 const Page = () => {
     const [step, setStep] = useState(1);
@@ -62,7 +62,7 @@ const Page = () => {
                     )}
                 </div>
             </main>
-            
+
             <Footer />
         </div>
     );

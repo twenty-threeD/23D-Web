@@ -1,6 +1,6 @@
 'use client';
 import { useState } from "react";
-import { CheckBox } from "@/components/logIn/checkBox";
+import { CheckBox } from "@/components/login/checkBox";
 
 interface TermsAgreementProps {
     onNext: () => void; // 다음 단계로 넘어갈 때 실행할 함수
