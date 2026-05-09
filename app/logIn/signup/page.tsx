@@ -7,8 +7,9 @@ import LogoImg from "@/src/img/Logo.svg";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
-import TermsAgreement from "@/components/login/termsAgreement";
-import InputData from "@/components/login/inputData";
+import TermsAgreement from "@/components/login/TermsAgreement";
+import InputData from "@/components/login/InputData";
+import InputEmail from "@/components/login/InputEmail";
 
 const Page = () => {
     const [step, setStep] = useState(1);
@@ -18,13 +19,16 @@ const Page = () => {
         id: "",
         password: "",
         passwordConfirm: "",
+        email: "",
+        emailVerification: ""
     });
 
     const getHeight = () => {
         switch (step) {
             case 1: return "515px"; 
             case 2: return "621px";
-            case 3: return "400px";
+            case 3: return "521px";
+            case 4: return "518px";
             default: return "515px";
         }
     };
@@ -57,7 +61,20 @@ const Page = () => {
                     {step === 2 && (
                         <>
                             <h1 className="font-bold text-lg">회원가입 절차를 시작할게요</h1>
-                            <InputData formData={formData} setFormData={setFormData} />
+                            <InputData formData={formData} setFormData={setFormData} onNext={handleNextStep} />
+                        </>
+                    )}
+                    {step === 3 && (
+                        <>
+                            <h1 className="font-bold text-lg">시작하기전, <span className="text-[#FF884D]">이메일 인증</span>이 필요해요</h1>
+                            <InputEmail formData={formData} setFormData={setFormData} onNext={handleNextStep} />
+                        </>
+                    )}
+                    {step === 4 && (
+                        <>
+                            <h1 className="font-bold text-lg">사람들과 <span className="text-[#FF884D]">채팅을 하기 위해서</span>는</h1>
+                            <h1 className="font-bold text-lg"> <span className="text-[#FF884D]">전화번호</span>가 필요해요</h1>
+                            
                         </>
                     )}
                 </div>

@@ -7,21 +7,24 @@ interface SignUpFormData {
     id: string;
     password: string;
     passwordConfirm: string;
+    email: string;
+    emailVerification: string;
 }
 
 interface InputDataProps {
     formData: SignUpFormData;
     setFormData: React.Dispatch<React.SetStateAction<SignUpFormData>>;
+    onNext: () => void;
 }
 
-const InputData = ({ formData, setFormData }: InputDataProps) => {
+const InputData = ({ formData, setFormData, onNext }: InputDataProps) => {
     
     const handleChange = (key: keyof SignUpFormData, value: string) => {
         setFormData((prev) => ({ ...prev, [key]: value }));
     };
 
     // 1. 비밀번호 유효성 검사 로직 수정
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,20}$/;
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d!@#$%^&*()_+~`\-={}[\]:;"'<>,.?/]{8,20}$/;
     
     // 비밀번호가 입력되었는데, 정규식을 통과하지 못했을 때 (에러 메시지용)
     const isInvalidPassword = 
@@ -84,6 +87,7 @@ const InputData = ({ formData, setFormData }: InputDataProps) => {
 
             <button 
                 disabled={!isAllValid}
+                onClick={onNext}
                 className={`w-75 h-10 mt-12.5 rounded-lg text-lg font-bold transition-colors 
                 ${isAllValid
                     ? 'bg-[#FE6A4C] text-white hover:bg-[#FE6A4C]/90' 
