@@ -1,15 +1,7 @@
 'use client';
 
 import { InputField } from "@/components/inputField";
-
-interface SignUpFormData {
-    name: string;
-    id: string;
-    password: string;
-    passwordConfirm: string;
-    email: string;
-    emailVerification: string;
-}
+import { SignUpFormData } from "@/type/authData";
 
 interface InputDataProps {
     formData: SignUpFormData;

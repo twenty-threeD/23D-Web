@@ -3,23 +3,17 @@
 import { useState } from "react";
 import { InputField } from "@/components/inputField";
 
-interface EmailFormData {
-    name: string;
-    id: string;
-    password: string;
-    passwordConfirm: string;
-    email: string;
-    emailVerification: string;
-}
+import { SignUpFormData } from "@/type/authData";
 
-interface InputDataProps {
-    formData: EmailFormData;
-    setFormData: React.Dispatch<React.SetStateAction<EmailFormData>>;
+
+interface InputEmailProps {
+    formData: SignUpFormData;
+    setFormData: React.Dispatch<React.SetStateAction<SignUpFormData>>;
     onNext: () => void;
 }
 
-const InputEmail = ({ formData, setFormData, onNext }: InputDataProps) => {
-    const handleChange = (key: keyof EmailFormData, value: string) => {
+const InputEmail = ({ formData, setFormData, onNext }: InputEmailProps) => {
+    const handleChange = (key: keyof SignUpFormData, value: string) => {
         setFormData((prev) => ({ ...prev, [key]: value }));
     };
 
@@ -29,7 +23,7 @@ const InputEmail = ({ formData, setFormData, onNext }: InputDataProps) => {
 
     const [showVerification, setShowVerification] = useState(false);
 
-    const VerificationCode = "123456"; // 실제로는 서버에서 받아와야 함
+    const VerificationCode = "123456"; // 실제로는 서버에서 받아와야 함. 임시
 
     return (
         <div className="mt-5">
