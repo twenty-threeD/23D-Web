@@ -18,7 +18,7 @@ export default function Home() {
   return (
     <div>
       <Header/>
-      <div className="h-[92vh] flex flex-col relative items-center justify-center bg-linear-to-b from-white to-[#FFC4BA]">
+      <div className="h-[calc(100vh-64px)] flex flex-col relative items-center justify-center bg-linear-to-b from-white to-[#FFC4BA]">
         <div className="flex flex-col items-center justify-center gap-4 pb-20">
           <div className="flex flex-col items-center gap-2">
             <div className="flex gap-2">
@@ -30,7 +30,7 @@ export default function Home() {
               <h1 className="text-4xl font-bold text-[#FE6A4C]">쉽고 안전하게</h1>
             </div>
           </div>
-          <Link href="/" className="bg-[#FE6A4C] py-2 px-6 rounded-full">
+          <Link href="/main" className="bg-[#FE6A4C] py-2 px-6 rounded-full">
             <p className="text-white font-bold">무료로 시작하기 →</p>
           </Link>
         </div>
