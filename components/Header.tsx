@@ -4,7 +4,7 @@ export default function Header() {
   return (
     <div className="bg-white flex items-center justify-between h-16 px-20">
       <div className="flex gap-8 items-center">
-        <Link href="/">
+        <Link href="/main">
           <img src="/icon.png" alt="Logo" className="h-7"/>
         </Link>
         <ul className="flex gap-4">
