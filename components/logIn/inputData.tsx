@@ -1,27 +1,22 @@
 'use client';
 
 import { InputField } from "@/components/inputField";
-
-interface SignUpFormData {
-    name: string;
-    id: string;
-    password: string;
-    passwordConfirm: string;
-}
+import { SignUpFormData } from "@/type/authData";
 
 interface InputDataProps {
     formData: SignUpFormData;
     setFormData: React.Dispatch<React.SetStateAction<SignUpFormData>>;
+    onNext: () => void;
 }
 
-const InputData = ({ formData, setFormData }: InputDataProps) => {
+const InputData = ({ formData, setFormData, onNext }: InputDataProps) => {
     
     const handleChange = (key: keyof SignUpFormData, value: string) => {
         setFormData((prev) => ({ ...prev, [key]: value }));
     };
 
     // 1. 비밀번호 유효성 검사 로직 수정
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,20}$/;
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d!@#$%^&*()_+~`\-={}[\]:;"'<>,.?/]{8,20}$/;
     
     // 비밀번호가 입력되었는데, 정규식을 통과하지 못했을 때 (에러 메시지용)
     const isInvalidPassword = 
@@ -39,6 +34,9 @@ const InputData = ({ formData, setFormData }: InputDataProps) => {
         passwordRegex.test(formData.password) && // 정규식을 통과해야 함
         formData.password === formData.passwordConfirm;
 
+    // ID 영문 검사
+    const isIdValid = /^[A-Za-z0-9]+$/.test(formData.id);
+
     return (
         <div className="mt-5">
             <InputField 
@@ -49,7 +47,8 @@ const InputData = ({ formData, setFormData }: InputDataProps) => {
                 onChange={(e) => handleChange("name", e.target.value)}
             />
             <InputField 
-                label="아이디 입력" 
+                label={!isIdValid && formData.id.length > 0 ? "아이디 입력 · 영문 또는 숫자만 가능합니다" : "아이디 입력"} 
+                isError={!isIdValid && formData.id.length > 0} // 영문이 아닐 때 에러 상태
                 placeholder="아이디를 입력해주세요" 
                 isEssential={true}
                 value={formData.id}
@@ -80,6 +79,7 @@ const InputData = ({ formData, setFormData }: InputDataProps) => {
 
             <button 
                 disabled={!isAllValid}
+                onClick={onNext}
                 className={`w-75 h-10 mt-12.5 rounded-lg text-lg font-bold transition-colors 
                 ${isAllValid
                     ? 'bg-[#FE6A4C] text-white hover:bg-[#FE6A4C]/90' 
