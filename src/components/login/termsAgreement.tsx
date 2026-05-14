@@ -59,7 +59,7 @@ const TermsAgreement = ({ onNext }: TermsAgreementProps) => {
             <button 
                 onClick={onNext}
                 disabled={!isEssentialAgreed} 
-                className={`w-75 h-10 text-white rounded-lg text-lg font-bold transition-colors 
+                className={`w-75 h-10 mt-10 text-white rounded-lg text-lg font-bold transition-colors 
                 ${isEssentialAgreed ? 'bg-[#FE6A4C] hover:bg-[#FE6A4C]/90' : 'bg-gray-400 cursor-not-allowed'}`}
             >
                 다음
