@@ -4,16 +4,9 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-import LogoImg from "@/src/img/Logo.svg";
-import GoogleIMG from "@/src/img/logIn/Google.svg";
-import KakaoTalkIMG from "@/src/img/logIn/kakaoTalk.svg";
-import NaverIMG from "@/src/img/logIn/naver.svg";
+import { InputField } from "@/src/components/InputField"
 
-import { InputField } from "@/src/components/inputField";
-import Header from "@/src/components/Header";
-import Footer from "@/src/components/Footer";
-
-const Page = () => {
+export default function Page() {
     // 1. 입력값 상태 관리
     const [formData, setFormData] = useState({
         id: "",
@@ -33,12 +26,11 @@ const Page = () => {
     };
 
     return (
-        <div className="bg-zinc-100 min-h-screen">
-            <Header />
-            <div className="w-200 h-150 m-auto rounded-3xl flex items-start mt-18.25 mb-18.25 shadow-lg">
+        <div className="flex justify-center items-center bg-zinc-100 h-full">
+            <div className="w-200 h-150 rounded-3xl flex items-center mt-18.25 mb-18.25 shadow-lg">
                 <div className="w-100 h-150 bg-linear-to-tr from-rose-500 to-indigo-500 rounded-l-3xl flex items-center justify-center"></div>
                 <div className="w-100 h-150 bg-white rounded-r-3xl flex flex-col items-center justify-center">                    
-                    <Image src={LogoImg} alt="Logo" width={80} height={40} className="mb-15.25" />
+                    <Image src="/icon.png" alt="Logo" width={80} height={40} className="mb-15.25" />
 
                     {/* 인풋 필드 영역 */}
                     <div className="mb-2.5">
@@ -87,9 +79,9 @@ const Page = () => {
                     {/* 소셜 로그인 */}
                     <div className="flex gap-4 mt-5">
                         {[
-                            { src: GoogleIMG, alt: "Google" },
-                            { src: KakaoTalkIMG, alt: "KakaoTalk" },
-                            { src: NaverIMG, alt: "Naver" }
+                            { src: "/login/google.svg", alt: "Google" },
+                            { src: "/login/kakao.svg", alt: "KakaoTalk" },
+                            { src: "/login/naver.svg", alt: "Naver" }
                         ].map((social, index) => (
                             <button key={index} className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-gray-300 hover:border-[#FE6A4C] transition-colors">
                                 <Image src={social.src} alt={social.alt} width={20} height={20} />
@@ -98,9 +90,6 @@ const Page = () => {
                     </div>
                 </div>
             </div>
-            <Footer />
         </div>
     );
 };
-
-export default Page;

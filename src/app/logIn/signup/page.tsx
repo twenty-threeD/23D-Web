@@ -2,18 +2,15 @@
 import { useState } from "react";
 
 import Image from "next/image";
-import LogoImg from "@/src/img/Logo.svg";
 
-import Header from "@/src/components/Header";
-import Footer from "@/src/components/Footer";
-
-import TermsAgreement from "@/components/login/TermsAgreement";
-import InputData from "@/components/login/InputData";
-import InputEmail from "@/components/login/InputEmail";
-import InputPhone from "@/components/login/InputPhone";
+import TermsAgreement from "@/src/components/login/TermsAgreement";
+import InputData from "@/src/components/login/InputData";
+import InputEmail from "@/src/components/login/InputEmail";
+import InputPhone from "@/src/components/login/InputPhone";
 import Link from "next/link";
 
-const Page = () => {
+
+export default function Page() {
     const [step, setStep] = useState(1);
 
     const [formData, setFormData] = useState({
@@ -43,20 +40,18 @@ const Page = () => {
     };
 
     return (
-        <div className="bg-gray-100">
-            <Header />
-            
+        <div className="flex justify-center items-center bg-zinc-100 h-full">            
             <main 
                 style={{ height: getHeight() }}
                 className={`
-                    w-106 m-auto rounded-3xl border border-gray-300 bg-white 
-                    mb-28.75 mt-28.75 flex flex-col items-center justify-center
+                    w-106 py-16 rounded-3xl border border-gray-300 bg-white 
+                    flex flex-col items-center justify-center
                     transition-[height] duration-500 ease-in-out overflow-hidden
                 `}
             >
-                <Image src={LogoImg} alt="Logo" width={80} height={40} className="mb-5" />
+                <Image src="/icon.png" alt="Logo" width={80} height={40} className="mb-5" />
                 
-                <div className="w-full flex flex-col items-center transition-opacity duration-300">
+                <div className="w-full flex flex-col gap-3 items-center transition-opacity duration-300">
                     {step === 1 && (
                         <>
                             <h1 className="font-bold text-lg">잠깐, 이용하기 전에 동의가 필요해요</h1>
@@ -98,10 +93,6 @@ const Page = () => {
                     )}
                 </div>
             </main>
-
-            <Footer />
         </div>
     );
 };
-
-export default Page;
