@@ -17,11 +17,12 @@ const InputPhone = ({ formData, setFormData, onNext }: InputPhoneProps) => {
         setFormData((prev) => ({ ...prev, [key]: value }));
     };
 
+    const [showVerification, setShowVerification] = useState(false);
+
     const isAllValid = 
         formData.phone.trim() !== "" &&
-        /^010\d{8}$/.test(formData.phone); 
-
-    const [showVerification, setShowVerification] = useState(false);
+        /^010\d{8}$/.test(formData.phone) &&
+        (!showVerification || formData.phoneVerification.trim() !== "");
 
     const VerificationCode = "123456"; // 실제로는 서버에서 받아와야 함. 임시
 
