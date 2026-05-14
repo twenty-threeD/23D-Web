@@ -10,6 +10,8 @@ import Footer from "@/components/Footer";
 import TermsAgreement from "@/components/login/TermsAgreement";
 import InputData from "@/components/login/InputData";
 import InputEmail from "@/components/login/InputEmail";
+import InputPhone from "@/components/login/InputPhone";
+import Link from "next/link";
 
 const Page = () => {
     const [step, setStep] = useState(1);
@@ -20,7 +22,9 @@ const Page = () => {
         password: "",
         passwordConfirm: "",
         email: "",
-        emailVerification: ""
+        emailVerification: "",
+        phone: "",
+        phoneVerification: ""
     });
 
     const getHeight = () => {
@@ -29,6 +33,7 @@ const Page = () => {
             case 2: return "621px";
             case 3: return "521px";
             case 4: return "518px";
+            case 5: return "380px";
             default: return "515px";
         }
     };
@@ -74,7 +79,21 @@ const Page = () => {
                         <>
                             <h1 className="font-bold text-lg">사람들과 <span className="text-[#FF884D]">채팅을 하기 위해서</span>는</h1>
                             <h1 className="font-bold text-lg"> <span className="text-[#FF884D]">전화번호</span>가 필요해요</h1>
-                            
+                            <InputPhone formData={formData} setFormData={setFormData} onNext={handleNextStep} />
+                        </>
+                    )}
+                    {step === 5 && (
+                        <>
+                            <h1 className="font-bold text-lg">{formData.name}님, 이제 
+                                <span className="text-[#FF884D]"> 사람과 사람을 이으러 </span> 
+                                가볼까요?</h1>
+                            <Link href="/main">
+                                <button 
+                                    className="w-75 h-10 mt-12.5 rounded-lg text-lg font-bold transition-colors bg-[#FE6A4C] text-white hover:bg-[#FE6A4C]/90"
+                                >
+                                    시작하기
+                                </button>
+                            </Link>
                         </>
                     )}
                 </div>
