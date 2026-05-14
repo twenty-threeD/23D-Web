@@ -33,24 +33,25 @@ export const InputField = ({
   return (
     <div className="mb-4">
       <div className="group flex flex-col relative">
-        <h1 className={`text-[10px] font-light ${isError ? 'text-[#FF0000]' : 'text-black'} focus:text-[#FE6A4C] transition-colors`}> 
-          {label}
-          {/* 필수 항목일 경우 빨간 별표 표시 */}
-          {isEssential && <span className={`${isError ? 'text-[#FF0000]' : 'text-[#FE6A4C]'} ml-0.5`}>*</span>}
-        </h1>
-        
-        <input 
-          type={inputType}
-          placeholder={placeholder} 
-          value={value} // 제어 컴포넌트화
-          onChange={onChange} // 값 변경 감지
-          className={`w-75 h-9.5 border-b-2 ${isError ? 'border-[#FF0000]' : 'border-black'} outline-none px-3
-                    ${isError ? 'text-[#FF0000]' : 'text-black'} focus:text-[#FE6A4C] 
-                    focus:border-[#FE6A4C]
-                    ${isError ? 'border-[#FF0000]' : ''}
-                    placeholder:text-[14px] transition-colors
-                    pr-10`}
-        />
+        <div className="relative w-75">
+          <input
+            type={inputType}
+            placeholder=" "
+            value={value}
+            onChange={onChange}
+            className={`peer w-full border-b-2 ${isError ? 'border-[#FF0000]' : 'border-zinc-400'} 
+                      outline-none p-2 pt-3 bg-transparent
+                      ${isError ? 'text-[#FF0000]' : 'text-black'} 
+                      focus:text-[#FE6A4C] focus:border-[#FE6A4C]
+                      transition-colors`}
+          />
+          <label className={`absolute left-0 top-3 text-sm transition-all pointer-events-none
+                            peer-focus:-top-1 peer-focus:text-xs peer-focus:text-[#FE6A4C]
+                            peer-not-placeholder-shown:-top-1 peer-not-placeholder-shown:text-xs
+                            ${isError ? 'text-[#FF0000]' : 'text-zinc-400'}`}>
+            {placeholder}
+          </label>
+        </div>
 
         {showIcon && (
           <div 

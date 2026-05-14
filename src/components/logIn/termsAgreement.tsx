@@ -1,6 +1,6 @@
 'use client';
 import { useState } from "react";
-import { CheckBox } from "@/components/login/CheckBox";
+import { CheckBox } from "./CheckBox";
 
 interface TermsAgreementProps {
     onNext: () => void; // 다음 단계로 넘어갈 때 실행할 함수
@@ -59,7 +59,7 @@ const TermsAgreement = ({ onNext }: TermsAgreementProps) => {
             <button 
                 onClick={onNext}
                 disabled={!isEssentialAgreed} 
-                className={`w-75 h-10 mt-12.5 text-white rounded-lg text-lg font-bold transition-colors 
+                className={`w-75 h-10 text-white rounded-lg text-lg font-bold transition-colors 
                 ${isEssentialAgreed ? 'bg-[#FE6A4C] hover:bg-[#FE6A4C]/90' : 'bg-gray-400 cursor-not-allowed'}`}
             >
                 다음

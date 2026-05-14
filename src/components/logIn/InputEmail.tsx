@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from "react";
-import { InputField } from "@/src/components/inputField";
+import { InputField } from "@/src/components/InputField";
 
 import { SignUpFormData } from "@/type/authData";
 
@@ -52,7 +52,7 @@ const InputEmail = ({ formData, setFormData, onNext }: InputEmailProps) => {
                         }
                     }
                 }}
-                className={`w-75 h-10 mt-12.5 rounded-lg text-lg font-bold transition-colors 
+                className={`w-75 h-10 mt-10 rounded-lg text-lg font-bold transition-colors 
                 ${isAllValid
                     ? 'bg-[#FE6A4C] text-white hover:bg-[#FE6A4C]/90' 
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}

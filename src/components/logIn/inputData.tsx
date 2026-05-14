@@ -1,6 +1,6 @@
 'use client';
 
-import { InputField } from "@/src/components/inputField";
+import { InputField } from "@/src/components/InputField";
 import { SignUpFormData } from "@/type/authData";
 
 interface InputDataProps {
@@ -38,7 +38,7 @@ const InputData = ({ formData, setFormData, onNext }: InputDataProps) => {
     const isIdValid = /^[A-Za-z0-9]+$/.test(formData.id);
 
     return (
-        <div className="mt-5">
+        <div className="flex flex-col items-center">
             <InputField 
                 label="이름 입력" 
                 placeholder="이름을 입력해주세요" 
@@ -80,7 +80,7 @@ const InputData = ({ formData, setFormData, onNext }: InputDataProps) => {
             <button 
                 disabled={!isAllValid}
                 onClick={onNext}
-                className={`w-75 h-10 mt-12.5 rounded-lg text-lg font-bold transition-colors 
+                className={`w-75 mt-10 h-10 rounded-lg text-lg font-bold transition-colors 
                 ${isAllValid
                     ? 'bg-[#FE6A4C] text-white hover:bg-[#FE6A4C]/90' 
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
