@@ -1,7 +1,7 @@
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import Header from "@/src/components/Header";
+import Footer from "@/src/components/Footer";
 
-import { Estimate } from "@/components/pay/Estimate";
+import { Estimate } from "@/src/components/pay/Estimate";
 
 const Page = () => {
     return (

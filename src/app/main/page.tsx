@@ -1,7 +1,7 @@
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import PremiumCard from "@/components/PremiumCard";
-import NormalCard from "@/components/NormalCard";
+import Header from "@/src/components/Header";
+import Footer from "@/src/components/Footer";
+import PremiumCard from "@/src/components/PremiumCard";
+import NormalCard from "@/src/components/NormalCard";
 
 export default function Page() {
   return (

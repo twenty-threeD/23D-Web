@@ -9,9 +9,9 @@ import GoogleIMG from "@/src/img/logIn/Google.svg";
 import KakaoTalkIMG from "@/src/img/logIn/kakaoTalk.svg";
 import NaverIMG from "@/src/img/logIn/naver.svg";
 
-import { InputField } from "@/components/inputField";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { InputField } from "@/src/components/inputField";
+import Header from "@/src/components/Header";
+import Footer from "@/src/components/Footer";
 
 const Page = () => {
     // 1. 입력값 상태 관리

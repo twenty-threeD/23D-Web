@@ -2,8 +2,8 @@
 
 import { useRef, useEffect } from 'react'
 import Link from 'next/link';
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import Header from "@/src/components/Header";
+import Footer from "@/src/components/Footer";
 
 export default function Home() {
   const handle = useRef<HTMLImageElement>(null);

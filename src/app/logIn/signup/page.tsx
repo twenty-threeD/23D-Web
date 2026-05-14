@@ -4,8 +4,8 @@ import { useState } from "react";
 import Image from "next/image";
 import LogoImg from "@/src/img/Logo.svg";
 
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import Header from "@/src/components/Header";
+import Footer from "@/src/components/Footer";
 
 import TermsAgreement from "@/components/login/TermsAgreement";
 import InputData from "@/components/login/InputData";

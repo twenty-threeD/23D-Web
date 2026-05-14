@@ -1,6 +1,6 @@
 'use client';
 
-import { InputField } from "@/components/inputField";
+import { InputField } from "@/src/components/inputField";
 import { SignUpFormData } from "@/type/authData";
 
 interface InputDataProps {
