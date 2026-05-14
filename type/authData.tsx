@@ -5,4 +5,6 @@ export interface SignUpFormData {
     passwordConfirm: string;
     email: string;
     emailVerification: string;
+    phone: string;
+    phoneVerification: string;
 }
