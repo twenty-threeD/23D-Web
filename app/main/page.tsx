@@ -77,8 +77,7 @@ export default function Page() {
         {/* 탭 1 */}
         <div className="w-full flex gap-8 justify-between">
           <h2 className="text-2xl font-bold">이웃들이<br/>많이 찾아요</h2>
-          <div className="flex gap-6">
-            <NormalCard />
+          <div className="flex gap-4">
             <NormalCard />
             <NormalCard />
             <NormalCard />
@@ -89,8 +88,7 @@ export default function Page() {
         {/* 탭 2 */}
         <div className="w-full flex gap-8 justify-between">
           <h2 className="text-2xl font-bold">재방문율이<br/>높아요</h2>
-          <div className="flex gap-6">
-            <NormalCard />
+          <div className="flex gap-4">
             <NormalCard />
             <NormalCard />
             <NormalCard />
