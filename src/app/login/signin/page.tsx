@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-import { InputField } from "@/src/components/InputField"
+import { InputField } from "@/src/components/inputField";
 
 export default function Page() {
     // 1. 입력값 상태 관리
