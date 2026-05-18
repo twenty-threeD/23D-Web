@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from "react";
-import { InputField } from "@/src/components/InputField";
+import { InputField } from "@/src/components/inputField";
 
 import { SignUpFormData } from "@/type/authData";
 
