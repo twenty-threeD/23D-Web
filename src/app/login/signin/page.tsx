@@ -3,13 +3,18 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-
+import { useRouter } from "next/navigation";
 import { InputField } from "@/src/components/InputField";
+import { login } from '@/src/lib/auth'
+import { useAuthStore } from '@/src/store/authStore'
 
 export default function Page() {
+    const router = useRouter()
+    const setToken = useAuthStore((s) => s.setToken)
+
     // 1. 입력값 상태 관리
     const [formData, setFormData] = useState({
-        id: "",
+        username: "",
         password: "",
     });
 
@@ -17,12 +22,18 @@ export default function Page() {
         setFormData((prev) => ({ ...prev, [key]: value }));
     };
 
-    const canLogin = formData.id.trim() !== "" && formData.password.trim() !== "";
+    const canLogin = formData.username.trim() !== "" && formData.password.trim() !== "";
 
-    const handleLogin = () => {
+    const handleLogin = async () => {
         if (!canLogin) return;
         console.log("로그인 시도:", formData);
-        // 여기에 로그인 API 호출 로직 추가
+        try {
+            const data = await login(formData.username, formData.password);
+            setToken(data.accessToken);   // AT 저장
+            router.push('/');             // 로그인 후 이동
+        } catch (e) {
+            alert('로그인 실패');
+        }
     };
 
     return (
@@ -38,8 +49,8 @@ export default function Page() {
                             label="아이디 입력" 
                             placeholder="아이디를 입력해주세요" 
                             isEssential={true} 
-                            value={formData.id}
-                            onChange={(e) => handleChange("id", e.target.value)}
+                            value={formData.username}
+                            onChange={(e) => handleChange("username", e.target.value)}
                         />
                         <InputField 
                             label="비밀번호 입력" 

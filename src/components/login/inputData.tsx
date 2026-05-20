@@ -30,12 +30,12 @@ const InputData = ({ formData, setFormData, onNext }: InputDataProps) => {
     // 3. 전체 유효성 검사 (버튼 활성화 조건)
     const isAllValid = 
         formData.name.trim() !== "" &&
-        formData.id.trim() !== "" &&
+        formData.username.trim() !== "" &&
         passwordRegex.test(formData.password) && // 정규식을 통과해야 함
         formData.password === formData.passwordConfirm;
 
     // ID 영문 검사
-    const isIdValid = /^[A-Za-z0-9]+$/.test(formData.id);
+    const isIdValid = /^[A-Za-z0-9]+$/.test(formData.username);
 
     return (
         <div className="flex flex-col items-center">
@@ -47,12 +47,12 @@ const InputData = ({ formData, setFormData, onNext }: InputDataProps) => {
                 onChange={(e) => handleChange("name", e.target.value)}
             />
             <InputField 
-                label={!isIdValid && formData.id.length > 0 ? "아이디 입력 · 영문 또는 숫자만 가능합니다" : "아이디 입력"} 
-                isError={!isIdValid && formData.id.length > 0} // 영문이 아닐 때 에러 상태
+                label={!isIdValid && formData.username.length > 0 ? "아이디 입력 · 영문 또는 숫자만 가능합니다" : "아이디 입력"} 
+                isError={!isIdValid && formData.username.length > 0} // 영문이 아닐 때 에러 상태
                 placeholder="아이디를 입력해주세요" 
                 isEssential={true}
-                value={formData.id}
-                onChange={(e) => handleChange("id", e.target.value)}
+                value={formData.username}
+                onChange={(e) => handleChange("username", e.target.value)}
             />
             <InputField 
                 // 수정된 에러 판단 변수(isInvalidPassword) 사용
