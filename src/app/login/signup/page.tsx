@@ -49,7 +49,10 @@ export default function Page() {
     }
 
     return (
-        <div className="flex justify-center items-center bg-zinc-100 h-full">            
+        <div className="flex justify-center items-center bg-zinc-100 h-full">
+            <button onClick={() => router.back()} className="absolute left-4 top-4 text-2xl text-gray-500 w-10 h-10 flex items-center justify-center rounded-full hover:bg-zinc-300 transition-colors">
+                ←
+            </button>
             <main 
                 style={{ height: getHeight() }}
                 className={`
@@ -58,8 +61,9 @@ export default function Page() {
                     transition-[height] duration-500 ease-in-out overflow-hidden
                 `}
             >
-                <Image src="/icon.png" alt="Logo" width={80} height={40} className="mb-5" />
-                
+                <Link href="/main">
+                    <Image src="/icon.png" alt="Logo" width={80} height={40} className="mb-5" />
+                </Link>
                 <div className="w-full flex flex-col gap-3 items-center transition-opacity duration-300">
                     {step === 1 && (
                         <>

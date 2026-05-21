@@ -36,9 +36,21 @@ export async function signup(
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, username, email, password, ...(phone && { phone }) }),
+    body: JSON.stringify({
+      name, 
+      username, 
+      email, 
+      password, 
+      phone,
+      role: 'USER',
+      provider: 'AUTH'
+    }),
   })
-  if (!res.ok) throw new Error('회원가입 실패')
+  if (!res.ok) {
+    const err = await res.json()
+    console.log('회원가입 에러:', err) // 이거 콘솔에서 확인
+    throw new Error('회원가입 실패')
+  }
   return res.json()
 }
 
@@ -51,7 +63,8 @@ export async function login(username: string, password: string) {
     body: JSON.stringify({ username, password }),
   })
   if (!res.ok) throw new Error('로그인 실패')
-  return res.json()
+  const json = await res.json()
+  return json.data
 }
 
 // 로그아웃

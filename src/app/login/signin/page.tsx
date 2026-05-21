@@ -29,19 +29,27 @@ export default function Page() {
         console.log("로그인 시도:", formData);
         try {
             const data = await login(formData.username, formData.password);
-            setToken(data.accessToken);   // AT 저장
-            router.push('/');             // 로그인 후 이동
+            setToken(data.accessToken);
+            console.log(data)
+            setToken(data.accessToken)
+            router.push('/');
         } catch (e) {
             alert('로그인 실패');
         }
     };
 
+
     return (
         <div className="flex justify-center items-center bg-zinc-100 h-full">
+            <button onClick={() => router.back()} className="absolute left-4 top-4 text-2xl text-gray-500 w-10 h-10 flex items-center justify-center rounded-full hover:bg-zinc-300 transition-colors">
+                ←
+            </button>
             <div className="w-200 h-150 rounded-3xl flex items-center mt-18.25 mb-18.25 shadow-lg">
                 <div className="w-100 h-150 bg-linear-to-tr from-rose-500 to-indigo-500 rounded-l-3xl flex items-center justify-center"></div>
                 <div className="w-100 h-150 bg-white rounded-r-3xl flex flex-col items-center justify-center">                    
-                    <Image src="/icon.png" alt="Logo" width={80} height={40} className="mb-15.25" />
+                    <a href="/main">
+                        <Image src="/icon.png" alt="Logo" width={80} height={40} className="mb-15.25" />
+                    </a>
 
                     {/* 인풋 필드 영역 */}
                     <div className="mb-2.5">

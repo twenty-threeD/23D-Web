@@ -16,7 +16,7 @@ const InputData = ({ formData, setFormData, onNext }: InputDataProps) => {
     };
 
     // 1. 비밀번호 유효성 검사 로직 수정
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d!@#$%^&*()_+~`\-={}[\]:;"'<>,.?/]{8,20}$/;
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])[A-Za-z\d!@#$%^&*(),.?":{}|<>]{8,32}$/;
     
     // 비밀번호가 입력되었는데, 정규식을 통과하지 못했을 때 (에러 메시지용)
     const isInvalidPassword = 
@@ -56,7 +56,7 @@ const InputData = ({ formData, setFormData, onNext }: InputDataProps) => {
             />
             <InputField 
                 // 수정된 에러 판단 변수(isInvalidPassword) 사용
-                label={isInvalidPassword ? "비밀번호 입력 · 8~20자 영문, 숫자를 포함해야 합니다" : "비밀번호 입력"}
+                label={isInvalidPassword ? "비밀번호 입력 · 대소문자, 숫자, 특수문자를 포함해야 합니다" : "비밀번호 입력"}
                 isError={isInvalidPassword} // 에러 상태 전달
                 placeholder="비밀번호를 입력해주세요" 
                 type="password" 
