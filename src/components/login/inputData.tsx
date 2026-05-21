@@ -56,7 +56,7 @@ const InputData = ({ formData, setFormData, onNext }: InputDataProps) => {
             />
             <InputField 
                 // 수정된 에러 판단 변수(isInvalidPassword) 사용
-                label={isInvalidPassword ? "비밀번호 입력 · 대소문자, 숫자, 특수문자를 포함해야 합니다" : "비밀번호 입력"}
+                label={isInvalidPassword ? "비밀번호 입력 · 8자 이상, 대소문자, 숫자, 특수문자를 포함해야 합니다" : "비밀번호 입력"}
                 isError={isInvalidPassword} // 에러 상태 전달
                 placeholder="비밀번호를 입력해주세요" 
                 type="password" 
