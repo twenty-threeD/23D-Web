@@ -2,6 +2,7 @@ import Header from "@/src/components/Header";
 import Footer from "@/src/components/Footer";
 import Banner from "@/src/components/Banner";
 import Portfolio from "@/src/components/Portfolio";
+import PriceCard from "@/src/components/PriceCard";
 
 export default async function Page({
   params,
@@ -61,18 +62,7 @@ export default async function Page({
         </div>
 
         {/* right content */}
-        <div className="grow flex flex-col gap-6 border border-zinc-300 rounded-lg sticky top-24 self-start">
-          <div className="flex border-b border-zinc-300 text-zinc-400 font-semibold">
-            <button className="w-1/3 py-2">에어컨 청소</button>
-            <button className="w-1/3 py-2">설치 / 철거</button>
-            <button className="w-1/3 py-2">냉매 보충</button>
-          </div>
-          <div className="flex flex-col gap-2 p-4">
-            <h3 className="text-xl font-semibold">150,000원</h3>
-            <h4 className="text-lg font-semibold">에어컨 청소 (1회기준)</h4>
-            <span className="text-sm text-zinc-400">실외기 실내기 고압세척<br />필터 교체/세척</span>
-          </div>
-        </div>
+        <PriceCard />
       </div>
       <Footer />
     </div>
