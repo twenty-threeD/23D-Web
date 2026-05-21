@@ -16,7 +16,7 @@ const InputData = ({ formData, setFormData, onNext }: InputDataProps) => {
     };
 
     // 1. 비밀번호 유효성 검사 로직 수정
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d!@#$%^&*()_+~`\-={}[\]:;"'<>,.?/]{8,20}$/;
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])[A-Za-z\d!@#$%^&*(),.?":{}|<>]{8,32}$/;
     
     // 비밀번호가 입력되었는데, 정규식을 통과하지 못했을 때 (에러 메시지용)
     const isInvalidPassword = 
@@ -30,12 +30,12 @@ const InputData = ({ formData, setFormData, onNext }: InputDataProps) => {
     // 3. 전체 유효성 검사 (버튼 활성화 조건)
     const isAllValid = 
         formData.name.trim() !== "" &&
-        formData.id.trim() !== "" &&
+        formData.username.trim() !== "" &&
         passwordRegex.test(formData.password) && // 정규식을 통과해야 함
         formData.password === formData.passwordConfirm;
 
     // ID 영문 검사
-    const isIdValid = /^[A-Za-z0-9]+$/.test(formData.id);
+    const isIdValid = /^[A-Za-z0-9]+$/.test(formData.username);
 
     return (
         <div className="flex flex-col items-center">
@@ -47,16 +47,16 @@ const InputData = ({ formData, setFormData, onNext }: InputDataProps) => {
                 onChange={(e) => handleChange("name", e.target.value)}
             />
             <InputField 
-                label={!isIdValid && formData.id.length > 0 ? "아이디 입력 · 영문 또는 숫자만 가능합니다" : "아이디 입력"} 
-                isError={!isIdValid && formData.id.length > 0} // 영문이 아닐 때 에러 상태
+                label={!isIdValid && formData.username.length > 0 ? "아이디 입력 · 영문 또는 숫자만 가능합니다" : "아이디 입력"} 
+                isError={!isIdValid && formData.username.length > 0} // 영문이 아닐 때 에러 상태
                 placeholder="아이디를 입력해주세요" 
                 isEssential={true}
-                value={formData.id}
-                onChange={(e) => handleChange("id", e.target.value)}
+                value={formData.username}
+                onChange={(e) => handleChange("username", e.target.value)}
             />
             <InputField 
                 // 수정된 에러 판단 변수(isInvalidPassword) 사용
-                label={isInvalidPassword ? "비밀번호 입력 · 8~20자 영문, 숫자를 포함해야 합니다" : "비밀번호 입력"}
+                label={isInvalidPassword ? "비밀번호 입력 · 8자 이상, 대소문자, 숫자, 특수문자를 포함해야 합니다" : "비밀번호 입력"}
                 isError={isInvalidPassword} // 에러 상태 전달
                 placeholder="비밀번호를 입력해주세요" 
                 type="password" 
