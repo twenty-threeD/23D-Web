@@ -4,7 +4,7 @@ import { useState } from "react";
 import { InputField } from "@/src/components/InputField";
 
 import { SignUpFormData } from "@/type/authData";
-
+import { sendVerifyCode, checkVerifyCode } from '@/src/lib/auth'
 
 interface InputEmailProps {
     formData: SignUpFormData;
@@ -23,7 +23,21 @@ const InputEmail = ({ formData, setFormData, onNext }: InputEmailProps) => {
 
     const [showVerification, setShowVerification] = useState(false);
 
-    const VerificationCode = "123456"; // 실제로는 서버에서 받아와야 함. 임시
+    // 인증코드 발송
+    const handleSendCode = async () => {
+        await sendVerifyCode(formData.email)
+        setShowVerification(true)
+    }
+
+    // 인증코드 확인
+    const handleVerify = async () => {
+        try {
+            await checkVerifyCode(formData.email, formData.emailVerification)
+            onNext()
+        } catch (e) {
+            alert("인증번호가 일치하지 않습니다.")
+        }
+    }
 
     return (
         <div className="mt-5">
@@ -43,13 +57,9 @@ const InputEmail = ({ formData, setFormData, onNext }: InputEmailProps) => {
                 disabled={!isAllValid}
                 onClick={() => {
                     if (!showVerification) {
-                        setShowVerification(true);
+                        handleSendCode();
                     } else {
-                        if (formData.emailVerification === VerificationCode) {
-                            onNext();
-                        } else {
-                            alert("인증번호가 일치하지 않습니다.");
-                        }
+                        handleVerify();
                     }
                 }}
                 className={`w-75 h-10 mt-10 rounded-lg text-lg font-bold transition-colors 
@@ -64,7 +74,7 @@ const InputEmail = ({ formData, setFormData, onNext }: InputEmailProps) => {
             {showVerification && (
                 <div className="flex items-center justify-center">
                     <button
-                        onClick={() => { alert("인증번호가 재발송되었습니다."); }}
+                        onClick={() => { handleSendCode(); alert("인증번호가 재발송되었습니다."); }}
                         className="w-auto h-3 text-xs mt-2.5 font-normal
                         text-gray-500 hover:text-[#FE6A4C] transition-colors"
                     >

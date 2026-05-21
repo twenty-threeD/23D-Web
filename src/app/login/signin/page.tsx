@@ -3,13 +3,18 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-
+import { useRouter } from "next/navigation";
 import { InputField } from "@/src/components/InputField";
+import { login } from '@/src/lib/auth'
+import { useAuthStore } from '@/src/store/authStore'
 
 export default function Page() {
+    const router = useRouter()
+    const setToken = useAuthStore((s) => s.setToken)
+
     // 1. 입력값 상태 관리
     const [formData, setFormData] = useState({
-        id: "",
+        username: "",
         password: "",
     });
 
@@ -17,20 +22,34 @@ export default function Page() {
         setFormData((prev) => ({ ...prev, [key]: value }));
     };
 
-    const canLogin = formData.id.trim() !== "" && formData.password.trim() !== "";
+    const canLogin = formData.username.trim() !== "" && formData.password.trim() !== "";
 
-    const handleLogin = () => {
+    const handleLogin = async () => {
         if (!canLogin) return;
         console.log("로그인 시도:", formData);
-        // 여기에 로그인 API 호출 로직 추가
+        try {
+            const data = await login(formData.username, formData.password);
+            setToken(data.accessToken);
+            console.log(data)
+            setToken(data.accessToken)
+            router.push('/');
+        } catch (e) {
+            alert('로그인 실패');
+        }
     };
+
 
     return (
         <div className="flex justify-center items-center bg-zinc-100 h-full">
+            <button onClick={() => router.back()} className="absolute left-4 top-4 text-2xl text-gray-500 w-10 h-10 flex items-center justify-center rounded-full hover:bg-zinc-300 transition-colors">
+                ←
+            </button>
             <div className="w-200 h-150 rounded-3xl flex items-center mt-18.25 mb-18.25 shadow-lg">
                 <div className="w-100 h-150 bg-linear-to-tr from-rose-500 to-indigo-500 rounded-l-3xl flex items-center justify-center"></div>
                 <div className="w-100 h-150 bg-white rounded-r-3xl flex flex-col items-center justify-center">                    
-                    <Image src="/icon.png" alt="Logo" width={80} height={40} className="mb-15.25" />
+                    <a href="/main">
+                        <Image src="/icon.png" alt="Logo" width={80} height={40} className="mb-15.25" />
+                    </a>
 
                     {/* 인풋 필드 영역 */}
                     <div className="mb-2.5">
@@ -38,8 +57,8 @@ export default function Page() {
                             label="아이디 입력" 
                             placeholder="아이디를 입력해주세요" 
                             isEssential={true} 
-                            value={formData.id}
-                            onChange={(e) => handleChange("id", e.target.value)}
+                            value={formData.username}
+                            onChange={(e) => handleChange("username", e.target.value)}
                         />
                         <InputField 
                             label="비밀번호 입력" 

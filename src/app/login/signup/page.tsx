@@ -1,25 +1,28 @@
 'use client';
 import { useState } from "react";
-
 import Image from "next/image";
-
+import { useRouter } from "next/navigation";
 import TermsAgreement from "@/src/components/login/TermsAgreement";
 import InputData from "@/src/components/login/InputData";
 import InputEmail from "@/src/components/login/InputEmail";
 import InputPhone from "@/src/components/login/InputPhone";
 import Link from "next/link";
 
+import { signup } from '@/src/lib/auth'
+
 
 export default function Page() {
+    const router = useRouter();
+
     const [step, setStep] = useState(1);
 
     const [formData, setFormData] = useState({
         name: "",
-        id: "",
-        password: "",
-        passwordConfirm: "",
+        username: "",
         email: "",
         emailVerification: "",
+        password: "",
+        passwordConfirm: "",
         phone: "",
         phoneVerification: ""
     });
@@ -39,8 +42,17 @@ export default function Page() {
         setStep((prev) => prev + 1);
     };
 
+    // 회원가입
+    const handleSignup = async () => {
+    await signup(formData.name, formData.username, formData.email, formData.password, formData.phone)
+    router.push('/login/signin')
+    }
+
     return (
-        <div className="flex justify-center items-center bg-zinc-100 h-full">            
+        <div className="flex justify-center items-center bg-zinc-100 h-full">
+            <button onClick={() => router.back()} className="absolute left-4 top-4 text-2xl text-gray-500 w-10 h-10 flex items-center justify-center rounded-full hover:bg-zinc-300 transition-colors">
+                ←
+            </button>
             <main 
                 style={{ height: getHeight() }}
                 className={`
@@ -49,8 +61,9 @@ export default function Page() {
                     transition-[height] duration-500 ease-in-out overflow-hidden
                 `}
             >
-                <Image src="/icon.png" alt="Logo" width={80} height={40} className="mb-5" />
-                
+                <Link href="/main">
+                    <Image src="/icon.png" alt="Logo" width={80} height={40} className="mb-5" />
+                </Link>
                 <div className="w-full flex flex-col gap-3 items-center transition-opacity duration-300">
                     {step === 1 && (
                         <>
@@ -82,13 +95,12 @@ export default function Page() {
                             <h1 className="font-bold text-lg">{formData.name}님, 이제 
                                 <span className="text-[#FF884D]"> 사람과 사람을 이으러 </span> 
                                 가볼까요?</h1>
-                            <Link href="/main">
-                                <button 
-                                    className="w-75 h-10 mt-12.5 rounded-lg text-lg font-bold transition-colors bg-[#FE6A4C] text-white hover:bg-[#FE6A4C]/90"
-                                >
-                                    시작하기
-                                </button>
-                            </Link>
+                            <button 
+                                className="w-75 h-10 mt-12.5 rounded-lg text-lg font-bold transition-colors bg-[#FE6A4C] text-white hover:bg-[#FE6A4C]/90"
+                                onClick={handleSignup}
+                            >
+                                시작하기
+                            </button>
                         </>
                     )}
                 </div>
