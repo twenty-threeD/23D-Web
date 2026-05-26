@@ -1,4 +1,4 @@
-import Button from "./Button";
+import Button from "./LinkButton";
 import Link from "next/link";
 
 export default function NormalCard() {
