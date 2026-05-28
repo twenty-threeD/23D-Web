@@ -4,6 +4,7 @@ import Header from "@/src/components/Header";
 import Footer from "@/src/components/Footer";
 
 import UploadFile from "@/src/components/write/UploadPicture";
+import WriteSection from "@/src/components/write/WriteSection";
 import Preview from "@/src/components/write/Preview";
 
 export default function Page() {
@@ -12,6 +13,7 @@ export default function Page() {
             <Header />
             <main className="flex justify-between gap-4 px-20">
                 <UploadFile />
+                <WriteSection />
                 <Preview />
             </main>
             <Footer />
