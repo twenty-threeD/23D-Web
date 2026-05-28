@@ -1,7 +1,7 @@
 import { CiCamera } from "react-icons/ci";
 import Image from "next/image";
 
-export const UploadFile = () => {
+export default function UploadFile() {
   return (
     <div className="w-82 h-109 rounded-lg flex flex-col gap-9.5">
         <div className="h-82 flex flex-col items-center justify-center border border-zinc-300 rounded-lg bg-zinc-50">
