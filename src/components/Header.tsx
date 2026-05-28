@@ -22,7 +22,7 @@ export default function Header() {
         <ul className="flex gap-4">
           <li><Link href="/" className="text-zinc-500 text-sm font-semibold ">견적요청</Link></li>
           <li><Link href="/" className="text-zinc-500 text-sm font-semibold">능력자 찾기</Link></li>
-          <li><Link href="/" className="text-zinc-500 text-sm font-semibold">커뮤니티</Link></li>
+          <li><Link href="/community" className="text-zinc-500 text-sm font-semibold">커뮤니티</Link></li>
         </ul>
       </div>
       <Link href="/login/signin" className="text-zinc-500 text-sm font-semibold">
