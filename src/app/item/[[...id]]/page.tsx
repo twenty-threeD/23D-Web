@@ -10,6 +10,7 @@ import DoButton from "@/src/components/DoButton";
 import Review from "@/src/components/Review";
 import StarRating from "@/src/components/StarRating";
 import NormalCard from "@/src/components/NormalCard";
+import { IoIosArrowUp } from "react-icons/io";
 import { FaStar } from "react-icons/fa";
 
 export default function Page({
@@ -55,7 +56,7 @@ export default function Page({
                 <div className="w-1/3 flex flex-col gap-2 text-center border-x border-zinc-300">
                   <span className="text-sm text-zinc-400">리뷰</span>
                   <div className="flex items-baseline justify-center gap-1">
-                    <FaStar className="text-[#FE6A4C] size-5"/>
+                    <FaStar className="text-main size-5"/>
                     <h3 className="text-2xl font-semibold">{review}</h3>
                     <span className="text-sm text-zinc-500">({reviewCount})</span>
                   </div>
@@ -143,20 +144,24 @@ export default function Page({
           </div>
         </div>
 
-      <div className="w-full flex gap-8 justify-between">
-        <h2 className="text-2xl font-bold">재방문율이<br/>높아요</h2>
-        <div className="flex gap-4">
-          <NormalCard />
-          <NormalCard />
-          <NormalCard />
-          <NormalCard />
+        <div className="w-full flex gap-8 justify-between">
+          <h2 className="text-2xl font-bold">재방문율이<br/>높아요</h2>
+          <div className="flex gap-4">
+            <NormalCard />
+            <NormalCard />
+            <NormalCard />
+            <NormalCard />
+          </div>
         </div>
       </div>
-
-      </div>
-
-      
-
+      <button
+        type="button"
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        className="fixed bottom-6 right-6 z-20 flex items-center justify-center rounded-full bg-main p-3 text-white shadow-lg hover:bg-orange-600"
+        aria-label="맨위로 이동"
+      >
+        <IoIosArrowUp className="text-2xl" />
+      </button>
       <Footer />
     </div>
   );

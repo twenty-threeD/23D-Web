@@ -2,6 +2,7 @@ import Header from "@/src/components/Header";
 import Footer from "@/src/components/Footer";
 import PremiumCard from "@/src/components/PremiumCard";
 import NormalCard from "@/src/components/NormalCard";
+import Search from "@/src/components/Search";
 
 export default function Page() {
   return (
@@ -16,9 +17,11 @@ export default function Page() {
               <h1 className="text-3xl font-semibold">능력자가 필요한 순간,</h1>
               <h1 className="text-3xl font-semibold whitespace-nowrap">좋은 능력자를 바로바로 잇다에서!</h1>
             </div>
-            <div className="w-full px-4 py-2 border border-zinc-300 rounded-lg">
+            <Search />
+
+            {/* <div className="w-full px-4 py-2 border border-zinc-300 rounded-lg">
               <input className="text-lg font-semibold focus:outline-none w-full" placeholder="무슨 능력자가 필요한가요?" />
-            </div>
+            </div> */}
 
             {/* select tap */}
             <div className="flex w-full gap-3">

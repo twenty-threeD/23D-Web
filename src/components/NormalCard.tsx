@@ -4,7 +4,7 @@ import Link from "next/link";
 export default function NormalCard() {
   return (
     <div className="flex flex-col w-64 gap-2 p-3 rounded-lg hover:scale-105 hover:shadow-lg transition-transform duration-300">
-      <Link href="/item" className="">
+      <Link href="/item">
         {/* 이미지 */}
         <div className="h-48 rounded-lg bg-zinc-300 overflow-hidden">
           <img
@@ -14,7 +14,7 @@ export default function NormalCard() {
           />
         </div>
         {/* 내용 */}
-        <h3 className="text-xl font-semibold">민에어컨</h3>
+        <h3 className="text-xl pt-2 font-semibold">민에어컨</h3>
         <div className="flex justify-between items-center text-zinc-500">
           <p>4.9 (123)</p>
           <p className="font-medium">100,000원 ~</p>

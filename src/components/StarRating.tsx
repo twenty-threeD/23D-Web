@@ -12,12 +12,12 @@ export default function StarRating({ rating, size = "md" }: StarRatingProps) {
     <div className="flex">
       {[1, 2, 3, 4, 5].map((star) => {
         if (rating >= star) {
-          return <FaStar key={star} className={`text-[#FE6A4C] ${cls}`} />;
+          return <FaStar key={star} className={`text-main ${cls}`} />;
         } else if (rating >= star - 0.5) {
           return (
             <span key={star} className={`relative ${cls}`}>
               <FaStar className={`text-zinc-300 ${cls}`} />
-              <FaStarHalf className={`text-[#FE6A4C] ${cls} absolute top-0 left-0`} />
+              <FaStarHalf className={`text-main ${cls} absolute top-0 left-0`} />
             </span>
           );
         } else {

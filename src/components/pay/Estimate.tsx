@@ -36,7 +36,7 @@ export const Estimate = ({ imgPath, title, avgRating, reviewCount,
                     <div className="flex flex-col gap-3">
                         <h1 className="text-2xl font-bold">{title}</h1>
                         <div className="flex items-center gap-1">
-                            <FaStar className="text-[#FE6A4C] size-5"/>
+                            <FaStar className="text-main size-5"/>
                             <h1 className="text-lg">{avgRating?.toFixed(1) || "5.0"}</h1>
                             <p className="text-sm text-zinc-400">({reviewCount?.toLocaleString() || "123"})</p>
                         </div>

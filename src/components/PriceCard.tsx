@@ -56,7 +56,7 @@ export default function PriceCard() {
           {/* 문의하기 버튼 */}
           <Link
             href="/"
-            className="w-full py-2 border text-center bg-[#FE6A4C] border-zinc-300 text-white font-semibold rounded-md"
+            className="w-full py-2 border text-center bg-main border-zinc-300 text-white font-semibold rounded-md"
           >
             문의하기
           </Link>

@@ -42,12 +42,12 @@ export const InputField = ({
             className={`peer w-full border-b-2 ${isError ? "border-[#FF0000]" : "border-zinc-400"} 
                   outline-none p-2 pt-3 bg-transparent
                   ${isError ? "text-[#FF0000]" : "text-black"} 
-                  focus:text-[#FE6A4C] focus:border-[#FE6A4C]
+                  focus:text-main focus:border-[#FE6A4C]
                   transition-colors`}
           />
           <label
             className={`absolute left-0 top-3 text-sm transition-all pointer-events-none
-                        peer-focus:-top-1 peer-focus:text-xs peer-focus:text-[#FE6A4C]
+                        peer-focus:-top-1 peer-focus:text-xs peer-focus:text-main
                         peer-not-placeholder-shown:-top-1 peer-not-placeholder-shown:text-xs
                         ${isError ? "text-[#FF0000]" : "text-zinc-400"}`}
           >
@@ -57,7 +57,7 @@ export const InputField = ({
 
         {showIcon && (
           <div
-            className="absolute right-2 bottom-1.5 cursor-pointer text-black hover:text-[#FE6A4C] transition-colors text-xl"
+            className="absolute right-2 bottom-1.5 cursor-pointer text-black hover:text-main transition-colors text-xl"
             onClick={togglePassword}
           >
             {inputType === "password" ? <IoMdEyeOff /> : <IoMdEye />}

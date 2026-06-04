@@ -52,7 +52,7 @@ export const OnClickPay = ({ isAgree, price, orderName, orderCustomerName }: OnC
         disabled={!isAgree}
         className={`w-87.5 mt-5 py-3 rounded-lg text-lg font-bold transition-colors
           ${isAgree
-            ? "bg-[#FE6A4C] text-white hover:bg-[#FE6A4C]/90 cursor-pointer"
+            ? "bg-main text-white hover:bg-main/90 cursor-pointer"
             : "bg-zinc-300 text-zinc-500 cursor-not-allowed"
           }`}
       >

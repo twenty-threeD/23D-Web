@@ -34,8 +34,8 @@ export const FinalBill = ({ defaultAmount, additionalAmount, travelCost, pointUs
             <hr className="my-5 text-gray-300"/>
 
             <div className="flex items-baseline justify-between">
-                <p className="text-[#FE6A4C] font-bold">총 결제 예정 금액</p>
-                <p className="text-2xl text-[#FE6A4C]  font-bold">
+                <p className="text-main font-bold">총 결제 예정 금액</p>
+                <p className="text-2xl text-main  font-bold">
                     {(defaultAmount + (additionalAmount || 0) + (travelCost || 0)).toLocaleString()}원
                 </p>
             </div>

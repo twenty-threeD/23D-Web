@@ -23,14 +23,14 @@ export default function Home() {
           <div className="flex flex-col items-center gap-2">
             <div className="flex gap-2">
               <h1 className="text-4xl font-bold">사람과 사람을</h1>
-              <h1 className="text-4xl font-bold text-[#FE6A4C]">잇다</h1>
+              <h1 className="text-4xl font-bold text-main">잇다</h1>
             </div>
             <div className="flex gap-2">
               <h1 className="text-4xl font-bold">잇다에서</h1>
-              <h1 className="text-4xl font-bold text-[#FE6A4C]">쉽고 안전하게</h1>
+              <h1 className="text-4xl font-bold text-main">쉽고 안전하게</h1>
             </div>
           </div>
-          <Link href="/main" className="bg-[#FE6A4C] py-2 px-6 rounded-full">
+          <Link href="/main" className="bg-main py-2 px-6 rounded-full">
             <p className="text-white font-bold">무료로 시작하기 →</p>
           </Link>
         </div>
@@ -41,7 +41,7 @@ export default function Home() {
           <p>내 모든 커리어를 투명하게 증명하고, 믿을수 있는 파트너를 만나세요.</p>
           <div className="flex items-baseline justify-center">
             <p className="mr-1">조작 불가능한</p>
-            <p className="text-[#FE6A4C] font-black text-2xl">블록체인</p>
+            <p className="text-main font-black text-2xl">블록체인</p>
             <p>으로 완성된 가장 안전한 매칭 서비스,</p>
           </div>
           <p>잇다와 함께라면 당신의 비지니스가 더 단단해질 거에요.</p>
