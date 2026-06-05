@@ -5,7 +5,7 @@ import { IoIosArrowDown } from "react-icons/io";
 import { IoIosArrowUp } from "react-icons/io";
 import Header from "@/src/components/Header";
 import Footer from "@/src/components/Footer";
-import CommunityMenu from "@/src/components/CommunityMenu";
+import CommunityMenu from "@/src/components/CommunitySideBar";
 import PostItem from "@/src/components/PostItem";
 import Search from "@/src/components/Search";
 
@@ -18,7 +18,7 @@ export default function Page() {
   return (
     <div>
       <Header />
-      <div className="flex items-start justify-between px-20 py-16 gap-16 divide-x divide-zinc-300">
+      <div className="flex items-start justify-between px-20 py-8 gap-16 divide-x divide-zinc-300">
         {/* 메뉴바 */}
         <CommunityMenu />
 

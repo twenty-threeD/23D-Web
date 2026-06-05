@@ -2,9 +2,12 @@
 
 import Header from "@/src/components/Header"
 import Footer from "@/src/components/Footer"
-import CommunityMenu from "@/src/components/CommunityMenu";
-import { IoIosArrowUp } from "react-icons/io";
+import CommunityMenu from "@/src/components/CommunitySideBar";
+import Comment from "@/src/components/Comment";
+import { IoIosArrowUp, IoMdHeart, IoMdHeartEmpty } from "react-icons/io";
+import { IoChatboxOutline } from "react-icons/io5";
 import MDEditor from '@uiw/react-md-editor'
+import Image from "next/image";
 
 export default function Page() {
   const content = `
@@ -28,7 +31,7 @@ export default function Page() {
   return (
     <div>
       <Header />
-      <div className="flex items-start justify-between px-20 py-16 gap-16 divide-x divide-zinc-300">
+      <div className="flex items-start justify-between px-20 py-8 gap-16 divide-x divide-zinc-300">
         {/* 메뉴바 */}
         <CommunityMenu />
 
@@ -42,14 +45,21 @@ export default function Page() {
             </div>
             {/* 프로필 */}
             <div className="flex gap-2">
-              <div className="w-12 h-12 bg-zinc-400 rounded-full overflow-hidden border border-zinc-300">
-                <img src="https://placehold.co/200x200" alt="프로필사진" className="object-cover" />
+              <div className="w-12 h-12 bg-zinc-400 rounded-full overflow-hidden border border-zinc-300 shrink-0">
+                <Image src="/profile.png" alt="프로필사진" className="object-cover" width={48} height={48} />
               </div>
-              <div className="flex flex-col justify-center">
+              <div className="flex flex-col justify-center w-full">
                 <h3 className="text-sm font-medium">권민기</h3>
-                <div className="flex gap-2">
-                  <span className="text-sm font-medium text-zinc-400">2026.06.04. 17:25</span>
-                  <span className="text-sm font-medium text-zinc-400">조회 1,521</span>
+                <div className="flex justify-between">
+                  <div className="flex gap-2">
+                    <span className="text-sm font-medium text-zinc-400">2026.06.04. 17:25</span>
+                    <span className="text-sm font-medium text-zinc-400">조회 1,521</span>
+                  </div >
+                  <div className="flex items-center gap-1">
+                    <IoChatboxOutline className="text-xl" />
+                    <span className="text-zinc-500 text-sm font-semibold">댓글</span>
+                    <p className="text-sm font-semibold">20</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -66,8 +76,30 @@ export default function Page() {
               display: none !important;
             }
           `}</style>
-          <div data-color-mode="light">
+          <div data-color-mode="light" className="flex flex-col gap-8 py-2">
             <MDEditor.Markdown source={content} />
+            <div className="flex gap-4">
+              <div className="flex items-center gap-1">
+                <IoMdHeartEmpty className="text-2xl text-main" />
+                <span className="text-zinc-500 text-sm font-semibold">좋아요</span>
+                <p className="text-sm font-semibold">20</p>
+              </div>
+              <div className="flex items-center gap-1">
+                <IoChatboxOutline className="text-xl" />
+                <span className="text-zinc-500 text-sm font-semibold">댓글</span>
+                <p className="text-sm font-semibold">20</p>
+              </div>
+            </div>
+          </div>
+
+          <hr className="text-zinc-300" />
+
+          {/* 댓글 */}
+          <div className="flex flex-col divide-zinc-200 divide-y">
+            <Comment />
+            <Comment />
+            <Comment />
+            <Comment />
           </div>
         </main>
       </div>

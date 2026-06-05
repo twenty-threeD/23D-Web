@@ -30,7 +30,7 @@ export default function Page({
     <div>
       <Header />
       <Banner />
-      <div className="flex flex-col px-20  py-16 gap-16">
+      <div className="flex flex-col px-20 py-8 gap-16">
         <div className="flex gap-16 justify-between items-start">
           {/* left content */}
           <div className="flex flex-1 flex-col gap-6 min-w-0">

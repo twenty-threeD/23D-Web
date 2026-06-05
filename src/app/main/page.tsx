@@ -8,7 +8,7 @@ export default function Page() {
   return (
     <div>
       <Header />
-      <div className="flex flex-col items-center justify-center px-20 py-16 gap-16">
+      <div className="flex flex-col items-center justify-center px-20 py-8 gap-16">
         {/* 1 */}
         <div className="flex items-center justify-center gap-16 w-full">
           {/* Left tap */}
