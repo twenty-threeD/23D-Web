@@ -96,7 +96,7 @@ export default function Page() {
                                 <span className="text-[#FF884D]"> 사람과 사람을 이으러 </span> 
                                 가볼까요?</h1>
                             <button 
-                                className="w-75 h-10 mt-12.5 rounded-lg text-lg font-bold transition-colors bg-[#FE6A4C] text-white hover:bg-[#FE6A4C]/90"
+                                className="w-75 h-10 mt-12.5 rounded-lg text-lg font-bold transition-colors bg-main text-white hover:bg-main/90"
                                 onClick={handleSignup}
                             >
                                 시작하기

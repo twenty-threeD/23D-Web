@@ -17,7 +17,7 @@ const Page = () => {
     return (
         <div>
             <Header />
-            <main className="flex flex-col gap-4 justify-center py-16 px-20">
+            <main className="flex flex-col gap-4 justify-center py-8 px-20">
                 <div className="w-full">
                     <h1 className="text-[24px] font-bold">견적서 확인</h1>
                 </div>

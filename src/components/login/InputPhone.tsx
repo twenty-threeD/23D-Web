@@ -55,7 +55,7 @@ const InputPhone = ({ formData, setFormData, onNext }: InputPhoneProps) => {
                 }}
                 className={`w-75 h-10 mt-12.5 rounded-lg text-lg font-bold transition-colors 
                 ${isAllValid
-                    ? 'bg-[#FE6A4C] text-white hover:bg-[#FE6A4C]/90' 
+                    ? 'bg-main text-white hover:bg-main/90' 
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
             >
                 <span>{showVerification ? "다음" : "인증번호 발송"}</span>
@@ -67,7 +67,7 @@ const InputPhone = ({ formData, setFormData, onNext }: InputPhoneProps) => {
                     <button
                         onClick={() => { alert("인증번호가 재발송되었습니다."); }}
                         className="w-auto h-3 text-xs mt-2.5 font-normal
-                        text-gray-500 hover:text-[#FE6A4C] transition-colors"
+                        text-gray-500 hover:text-main transition-colors"
                     >
                         인증번호 재발송
                     </button>
@@ -78,7 +78,7 @@ const InputPhone = ({ formData, setFormData, onNext }: InputPhoneProps) => {
                 <button
                     onClick={() => { onNext(); }}
                     className="w-auto h-3 text-xs mt-2.5 font-normal
-                    text-gray-500 hover:text-[#FE6A4C] transition-colors"
+                    text-gray-500 hover:text-main transition-colors"
                 >
                     나중에 하기
                 </button>

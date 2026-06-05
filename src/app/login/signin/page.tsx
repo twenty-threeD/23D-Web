@@ -77,7 +77,7 @@ export default function Page() {
                         disabled={!canLogin}
                         className={`w-75 h-10 rounded-lg text-lg font-bold transition-colors 
                         ${canLogin 
-                            ? 'bg-[#FE6A4C] text-white hover:bg-[#FE6A4C]/90' 
+                            ? 'bg-main text-white hover:bg-main/90' 
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
                     >
                         로그인

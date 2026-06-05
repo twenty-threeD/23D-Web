@@ -58,10 +58,10 @@ export default function Footer() {
         </div>
       </div>
       <div className="w-full h-0.5 bg-zinc-200"></div>
-      <p className="text-zinc-300">
+      <small className="text-zinc-300">
         © 2026 ITDA. All rights reserved. ITDA and all associated logos are
         trademarks and/or service marks of ITDA.
-      </p>
+      </small>
     </div>
   );
 }

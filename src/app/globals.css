@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@theme {
+	--color-main: #FE6A4C;
+}
+
 html,
 body {
 	height: 100%;
