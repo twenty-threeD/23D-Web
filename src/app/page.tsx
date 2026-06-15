@@ -1,20 +1,8 @@
-"use client"
-
-import { useRef, useEffect } from 'react'
 import Link from 'next/link';
 import Header from "@/src/components/Header";
 import Footer from "@/src/components/Footer";
 
 export default function Home() {
-  const handle = useRef<HTMLImageElement>(null);
-  useEffect(() => {
-    const interval = setInterval(() => {
-      handle.current?.style && (handle.current.style.transform = `translateY(${Math.sin(Date.now() / 300) * 10}px)`)
-    }, 16)
-
-    return () => clearInterval(interval)
-  }, [])
-
   return (
     <div>
       <Header/>
@@ -35,7 +23,7 @@ export default function Home() {
           </Link>
         </div>
 
-        <img src="/handle.png" alt="" ref={handle} className="absolute bottom-10 transition-transform duration-16 ease-in"/>
+        <img src="/handle.png" alt="" className="absolute bottom-10 w-10 animate-bounce"/>
       </div>
       <div className="px-20 py-40 flex flex-col font-semibold text-xl text-center">
           <p>내 모든 커리어를 투명하게 증명하고, 믿을수 있는 파트너를 만나세요.</p>
