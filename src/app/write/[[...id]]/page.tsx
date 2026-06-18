@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { IoIosArrowBack } from "react-icons/io";
 import Header from "@/src/components/Header";
 import Footer from "@/src/components/Footer";
 
@@ -9,6 +11,7 @@ import WriteSection from "@/src/components/write/WriteSection";
 import Preview from "@/src/components/write/Preview";
 
 export default function Page() {
+  const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -27,6 +30,15 @@ export default function Page() {
   return (
     <div>
       <Header />
+      <div className="px-20 py-4">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-2 p-2 hover:bg-zinc-100 rounded-lg transition"
+        >
+          <IoIosArrowBack className="size-6" />
+          <span className="text-sm font-medium">뒤로가기</span>
+        </button>
+      </div>
       <main className="flex justify-between gap-4 px-20">
         <UploadFile />
         <WriteSection
