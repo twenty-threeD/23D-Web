@@ -1,17 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { IoIosArrowBack } from "react-icons/io";
 import Header from "@/src/components/Header";
 import Footer from "@/src/components/Footer";
+import BackButton from "@/src/components/BackButton";
 
 import UploadFile from "@/src/components/write/UploadPicture";
 import WriteSection from "@/src/components/write/WriteSection";
 import Preview from "@/src/components/write/Preview";
 
 export default function Page() {
-  const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -31,12 +29,7 @@ export default function Page() {
     <div>
       <Header />
       <div className="px-20 py-4">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 p-2 hover:bg-zinc-100 rounded-full transition"
-        >
-          <IoIosArrowBack className="size-6" />
-        </button>
+        <BackButton />
       </div>
       <main className="flex justify-between gap-4 px-20">
         <UploadFile />
