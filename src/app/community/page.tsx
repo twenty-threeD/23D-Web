@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { IoIosArrowDown } from "react-icons/io";
 import { IoIosArrowUp } from "react-icons/io";
 import Header from "@/src/components/Header";
@@ -11,14 +11,24 @@ import Search from "@/src/components/Search";
 
 export default function Page() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isTop, setIsTop] = useState(true);
   const [selected, setSelected] = useState("필터");
-
+  
   const options = ["전체", "이거 궁금해요", "전문가 추천", "견적 궁금해요", "동네 주민"];
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsTop(window.scrollY === 0);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
     <div>
       <Header />
-      <div className="flex items-start justify-between px-20 py-8 gap-16 divide-x divide-zinc-300">
+      <div className="flex items-start justify-between px-20 py-8 gap-8">
         {/* 메뉴바 */}
         <CommunityMenu />
 
@@ -72,7 +82,7 @@ export default function Page() {
       <button
         type="button"
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className="fixed bottom-6 right-6 z-20 flex items-center justify-center rounded-full bg-main p-3 text-white shadow-lg hover:bg-orange-600"
+        className={isTop ? "hidden" : "fixed bottom-6 right-6 z-20 flex items-center justify-center rounded-full bg-main p-3 text-white shadow-lg hover:bg-orange-600"}
         aria-label="맨위로 이동"
       >
         <IoIosArrowUp className="text-2xl" />

@@ -15,9 +15,9 @@ export default function CommunitySidebar() {
   ]
 
   return (
-    <div className="flex flex-col min-h-screen w-48 shrink-0 gap-6 pr-4">
+    <div className="flex flex-col w-48 shrink-0 gap-6 sticky top-20 self-start">
       <h1 className="text-xl pb-1 font-semibold border-b-2">커뮤니티</h1>
-      <div className="flex flex-col">
+      <div className="flex flex-col h-full">
         {CATEGORIES.map((cat) => (
           <button
             key={cat.value}
