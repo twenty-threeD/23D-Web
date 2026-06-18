@@ -3,7 +3,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import TermsAgreement from "@/src/components/login/TermsAgreement";
-import InputData from "@/src/components/login/InputData";
+import InputData from "@/src/components/login/inputData";
 import InputEmail from "@/src/components/login/InputEmail";
 import InputPhone from "@/src/components/login/InputPhone";
 import Link from "next/link";
