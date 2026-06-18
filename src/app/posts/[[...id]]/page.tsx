@@ -8,6 +8,7 @@ import { IoIosArrowUp, IoMdHeart, IoMdHeartEmpty } from "react-icons/io";
 import { IoChatboxOutline } from "react-icons/io5";
 import MDEditor from '@uiw/react-md-editor'
 import Image from "next/image";
+import PostItem from "@/src/components/PostItem";
 
 export default function Page() {
   const content = `
@@ -31,75 +32,101 @@ export default function Page() {
   return (
     <div>
       <Header />
-      <div className="flex items-start justify-between px-20 py-8 gap-16 divide-x divide-zinc-300">
+      <div className="flex items-start justify-between px-20 py-8 gap-8">
         {/* 메뉴바 */}
-        <CommunityMenu />
+        <CommunityMenu/>
 
         {/* 게시물 리스트 */}
-        <main className="flex flex-col gap-4 w-full">
-          {/* 헤더 */}
-          <header className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1">
-              <span className="text-xs text-main">이거 궁금해요 &gt;</span>
-              <h1 className="text-2xl font-medium">입문 7개월차 나름? 가성비 뉴비의 심리그 소개</h1>
-            </div>
-            {/* 프로필 */}
-            <div className="flex gap-2">
-              <div className="w-12 h-12 bg-zinc-400 rounded-full overflow-hidden border border-zinc-300 shrink-0">
-                <Image src="/profile.png" alt="프로필사진" className="object-cover" width={48} height={48} />
+        <main className="flex flex-col gap-8 w-full">
+          <div className="flex flex-col gap-4 w-full border-zinc-200 border rounded-lg p-8">
+            {/* 헤더 */}
+            <header className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-main">이거 궁금해요 &gt;</span>
+                <h1 className="text-2xl font-medium">입문 7개월차 나름? 가성비 뉴비의 심리그 소개</h1>
               </div>
-              <div className="flex flex-col justify-center w-full">
-                <h3 className="text-sm font-medium">권민기</h3>
-                <div className="flex justify-between">
-                  <div className="flex gap-2">
-                    <span className="text-sm font-medium text-zinc-400">2026.06.04. 17:25</span>
-                    <span className="text-sm font-medium text-zinc-400">조회 1,521</span>
-                  </div >
-                  <div className="flex items-center gap-1">
-                    <IoChatboxOutline className="text-xl" />
-                    <span className="text-zinc-500 text-sm font-semibold">댓글</span>
-                    <p className="text-sm font-semibold">20</p>
+              {/* 프로필 */}
+              <div className="flex gap-2">
+                <div className="w-12 h-12 bg-zinc-400 rounded-full overflow-hidden border border-zinc-300 shrink-0">
+                  <Image src="/profile.png" alt="프로필사진" className="object-cover" width={48} height={48} />
+                </div>
+                <div className="flex flex-col justify-center w-full">
+                  <h3 className="text-sm font-medium">권민기</h3>
+                  <div className="flex justify-between">
+                    <div className="flex gap-2">
+                      <span className="text-sm font-medium text-zinc-400">2026.06.04. 17:25</span>
+                      <span className="text-sm font-medium text-zinc-400">조회 1,521</span>
+                    </div >
+                    <div className="flex items-center gap-1">
+                      <IoChatboxOutline className="text-xl" />
+                      <span className="text-zinc-500 text-sm font-semibold">댓글</span>
+                      <p className="text-sm font-semibold">20</p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </header>
+            </header>
 
-          <hr className="text-zinc-300" />
+            <hr className="text-zinc-300" />
 
-          {/* 게시물 내용 */}
-          <style>{`
-            .wmde-markdown h1 {
-              border-bottom: none !important;
-            }
-            .wmde-markdown h1 .anchor {
-              display: none !important;
-            }
-          `}</style>
-          <div data-color-mode="light" className="flex flex-col gap-8 py-2">
-            <MDEditor.Markdown source={content} />
-            <div className="flex gap-4">
-              <div className="flex items-center gap-1">
-                <IoMdHeartEmpty className="text-2xl text-main" />
-                <span className="text-zinc-500 text-sm font-semibold">좋아요</span>
-                <p className="text-sm font-semibold">20</p>
+            {/* 게시물 내용 */}
+            <style>{`
+              .wmde-markdown h1 {
+                border-bottom: none !important;
+              }
+              .wmde-markdown h1 .anchor {
+                display: none !important;
+              }
+            `}</style>
+            <div data-color-mode="light" className="flex flex-col gap-8 py-2">
+              <MDEditor.Markdown source={content} />
+              <div className="flex gap-4">
+                <div className="flex items-center gap-1">
+                  <IoMdHeartEmpty className="text-2xl text-main" />
+                  <span className="text-zinc-500 text-sm font-semibold">좋아요</span>
+                  <p className="text-sm font-semibold">20</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <IoChatboxOutline className="text-xl" />
+                  <span className="text-zinc-500 text-sm font-semibold">댓글</span>
+                  <p className="text-sm font-semibold">20</p>
+                </div>
               </div>
-              <div className="flex items-center gap-1">
-                <IoChatboxOutline className="text-xl" />
-                <span className="text-zinc-500 text-sm font-semibold">댓글</span>
-                <p className="text-sm font-semibold">20</p>
+            </div>
+
+            <hr className="text-zinc-300" />
+
+            {/* 댓글 */}
+            <div className="flex flex-col gap-2 divide-zinc-200 divide-y">
+              <Comment />
+              <Comment />
+              <Comment />
+              <Comment />
+              {/* 댓글 달기 */}
+              <div className="flex items-start gap-4 pt-4">
+                <div className="flex flex-col gap-2 w-full p-6 border border-zinc-300 rounded-lg">
+                  <h3 className="text-md font-bold">권민기</h3>
+                  <textarea
+                    placeholder="댓글을 입력하세요..."
+                    className="w-full h-24 focus:outline-none resize-none"
+                  />
+                  <button className="self-end px-4 py-2 bg-main text-white font-semibold rounded-lg hover:bg-orange-600">
+                    등록
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          <hr className="text-zinc-300" />
-
-          {/* 댓글 */}
-          <div className="flex flex-col divide-zinc-200 divide-y">
-            <Comment />
-            <Comment />
-            <Comment />
-            <Comment />
+          {/* 관련 게시물 */}
+          <div className="flex flex-col gap-2">
+            <h2 className="text-xl font-bold">관련 게시물</h2>
+            <div className="flex flex-col divide-y divide-zinc-300">
+              <PostItem/>
+              <PostItem/>
+              <PostItem/>
+              <PostItem/>
+            </div>
           </div>
         </main>
       </div>
