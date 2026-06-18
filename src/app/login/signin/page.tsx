@@ -49,7 +49,7 @@ export default function Page() {
       <div className="w-200 h-150 rounded-3xl flex items-center mt-18.25 mb-18.25 shadow-lg">
         <div className="w-100 h-150 bg-linear-to-tr from-rose-500 to-indigo-500 rounded-l-3xl flex items-center justify-center"></div>
         <div className="w-100 h-150 bg-white rounded-r-3xl flex flex-col items-center justify-center">
-          <a href="/main">
+          <Link href="/main">
             <Image
               src="/icon.png"
               alt="Logo"
@@ -57,7 +57,7 @@ export default function Page() {
               height={40}
               className="mb-15.25"
             />
-          </a>
+          </Link>
 
           {/* 인풋 필드 영역 */}
           <div className="mb-2.5">
@@ -83,7 +83,7 @@ export default function Page() {
           <button
             onClick={handleLogin}
             disabled={!canLogin}
-            className={`w-75 h-10 rounded-lg text-lg font-semibold transition-colors 
+            className={`w-75 h-10 rounded-lg text-lg font-bold transition-colors cursor-pointer
                         ${
                           canLogin
                             ? "bg-main text-white hover:bg-main/90"
@@ -94,12 +94,12 @@ export default function Page() {
           </button>
 
           <div className="flex justify-between w-75 mt-2.5">
-            <Link href="#" className="text-[10px] text-zinc-500 underline underline-offset-2">
+            <Link href="#" className="text-[10px] text-zinc-500 underline underline-offset-2  hover:text-main transition-colors duration-100">
               비밀번호를 잊으셨나요?
             </Link>
             <div className="flex gap-1 text-[10px] text-zinc-500">
               <span>계정이 없으신가요?</span>
-              <Link href="/login/signup" className=" underline underline-offset-2">
+              <Link href="/login/signup" className="underline underline-offset-2 hover:text-main transition-colors duration-100">
                 회원가입
               </Link>
             </div>
@@ -114,7 +114,7 @@ export default function Page() {
             ].map((social, index) => (
               <button
                 key={index}
-                className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-gray-300 hover:border-main transition-colors"
+                className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-zinc-300 hover:border-main transition-colors"
               >
                 <Image
                   src={social.src}

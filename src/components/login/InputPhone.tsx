@@ -56,7 +56,7 @@ const InputPhone = ({ formData, setFormData, onNext }: InputPhoneProps) => {
                 className={`w-75 h-10 mt-12.5 rounded-lg text-lg font-bold transition-colors 
                 ${isAllValid
                     ? 'bg-main text-white hover:bg-main/90' 
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                    : 'bg-zinc-300 text-zinc-500 cursor-not-allowed'}`}
             >
                 <span>{showVerification ? "다음" : "인증번호 발송"}</span>
             </button>
@@ -66,8 +66,8 @@ const InputPhone = ({ formData, setFormData, onNext }: InputPhoneProps) => {
                 <div className="flex items-center justify-center">
                     <button
                         onClick={() => { alert("인증번호가 재발송되었습니다."); }}
-                        className="w-auto h-3 text-xs mt-2.5 font-normal
-                        text-gray-500 hover:text-main transition-colors"
+                        className="w-auto h-3 text-xs mt-2.5 font-normal cursor-pointer
+                        text-zinc-500 underline underline-offset-2 hover:text-main transition-colors"
                     >
                         인증번호 재발송
                     </button>
@@ -77,8 +77,8 @@ const InputPhone = ({ formData, setFormData, onNext }: InputPhoneProps) => {
             <div className="flex items-center justify-center">
                 <button
                     onClick={() => { onNext(); }}
-                    className="w-auto h-3 text-xs mt-2.5 font-normal
-                    text-gray-500 hover:text-main transition-colors"
+                    className="w-auto h-3 text-xs mt-2.5 font-normal cursor-pointer
+                    text-zinc-500 underline underline-offset-2 hover:text-main transition-colors"
                 >
                     나중에 하기
                 </button>

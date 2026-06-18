@@ -62,10 +62,10 @@ const InputEmail = ({ formData, setFormData, onNext }: InputEmailProps) => {
                         handleVerify();
                     }
                 }}
-                className={`w-75 h-10 mt-10 rounded-lg text-lg font-bold transition-colors 
+                className={`w-75 h-10 mt-10 rounded-lg text-lg font-bold transition-colors cursor-pointer
                 ${isAllValid
                     ? 'bg-main text-white hover:bg-main/90' 
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                    : 'bg-zinc-300 text-zinc-500 cursor-not-allowed'}`}
             >
                 <span>{showVerification ? "다음" : "인증번호 발송"}</span>
             </button>
@@ -76,7 +76,7 @@ const InputEmail = ({ formData, setFormData, onNext }: InputEmailProps) => {
                     <button
                         onClick={() => { handleSendCode(); alert("인증번호가 재발송되었습니다."); }}
                         className="w-auto h-3 text-xs mt-2.5 font-normal
-                        text-gray-500 hover:text-main transition-colors"
+                        text-zinc-500 underline underline-offset-2 hover:text-main transition-colors"
                     >
                         인증번호 재발송
                     </button>

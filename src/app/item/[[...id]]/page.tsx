@@ -39,7 +39,7 @@ export default function Page({
 
               <div className="w-full flex items-start justify-between min-w-0">
                 <div className="flex gap-4">
-                  <div className="w-20 h-20 rounded-full bg-gray-300" />
+                  <div className="w-20 h-20 rounded-full bg-zinc-300" />
                   <div className="flex flex-col justify-between py-1">
                     <span className="font-bold text-xl">오늘의 에어컨</span>
                     <span className="text-sm text-zinc-400">“전문가”의 꼼꼼한 시공/최고의 퀄리티!/<br/>대표 직접 시공!!24시간문의 환영입니다!</span>

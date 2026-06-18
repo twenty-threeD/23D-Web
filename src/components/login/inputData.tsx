@@ -83,7 +83,7 @@ const InputData = ({ formData, setFormData, onNext }: InputDataProps) => {
                 className={`w-75 mt-10 h-10 rounded-lg text-lg font-bold transition-colors 
                 ${isAllValid
                     ? 'bg-main text-white hover:bg-main/90' 
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                    : 'bg-zinc-300 text-zinc-500 cursor-not-allowed'}`}
             >
                 다음
             </button>

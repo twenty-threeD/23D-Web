@@ -9,6 +9,7 @@ import InputPhone from "@/src/components/login/InputPhone";
 import Link from "next/link";
 
 import { signup } from '@/src/lib/auth'
+import BackButton from "@/src/components/BackButton";
 
 
 export default function Page() {
@@ -50,13 +51,13 @@ export default function Page() {
 
     return (
         <div className="flex justify-center items-center bg-zinc-100 h-full">
-            <button onClick={() => router.back()} className="absolute left-4 top-4 text-2xl text-gray-500 w-10 h-10 flex items-center justify-center rounded-full hover:bg-zinc-300 transition-colors">
-                ←
-            </button>
+            <div className="flex fixed left-4 top-4 px-4 py-4">
+                <BackButton />
+            </div>
             <main 
                 style={{ height: getHeight() }}
                 className={`
-                    w-106 py-16 rounded-3xl border border-gray-300 bg-white 
+                    w-106 py-16 rounded-3xl border border-zinc-300 bg-white 
                     flex flex-col items-center justify-center
                     transition-[height] duration-500 ease-in-out overflow-hidden
                 `}

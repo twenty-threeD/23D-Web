@@ -24,7 +24,7 @@ export const CheckBox = ({ isEssential, label, link = "#", checked, onChange }: 
                 {isEssential ? (
                     <span className="text-main mr-1">(필수)</span>
                 ) : (
-                    <span className="text-gray-400 mr-1">(선택)</span>
+                    <span className="text-zinc-400 mr-1">(선택)</span>
                 )}
                 
                 <span>{label}</span>
@@ -33,7 +33,7 @@ export const CheckBox = ({ isEssential, label, link = "#", checked, onChange }: 
             <Link 
                 href={link} 
                 onClick={(e) => e.stopPropagation()} 
-                className="text-gray-400 text-lg hover:text-main transition-colors"
+                className="text-zinc-400 text-lg hover:text-main transition-colors"
             >
                 <MdChevronRight />
             </Link>
