@@ -33,10 +33,9 @@ export default function Page() {
       <div className="px-20 py-4">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 p-2 hover:bg-zinc-100 rounded-lg transition"
+          className="flex items-center gap-2 p-2 hover:bg-zinc-100 rounded-full transition"
         >
           <IoIosArrowBack className="size-6" />
-          <span className="text-sm font-medium">뒤로가기</span>
         </button>
       </div>
       <main className="flex justify-between gap-4 px-20">
