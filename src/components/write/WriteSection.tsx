@@ -1,13 +1,13 @@
-import WriteInputField from "@/src/components/write/WriteInputField";
+import WriteInputField from "@/src/components/write/WriteInputField"
 
 interface WriteSectionProps {
-  title: string;
-  onTitleChange: (value: string) => void;
-  description: string;
-  onDescriptionChange: (value: string) => void;
-  price: string;
-  onPriceChange: (value: string) => void;
-  onSubmit?: () => void;
+  title: string
+  onTitleChange: (value: string) => void
+  description: string
+  onDescriptionChange: (value: string) => void
+  price: string
+  onPriceChange: (value: string) => void
+  onSubmit?: () => void
 }
 
 export default function WriteSection({
@@ -49,5 +49,5 @@ export default function WriteSection({
         등록하기
       </button>
     </div>
-  );
+  )
 }

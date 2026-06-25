@@ -16,12 +16,7 @@ export default function Page() {
   const [imageUrl, setImageUrl] = useState("/path/to/image.jpg");
 
   const handleSubmit = () => {
-    console.log({
-      title,
-      description,
-      price,
-      imageUrl,
-    });
+    console.log({ title, description, price, imageUrl });
     // 여기에 API 호출 또는 다른 로직 추가
   };
 
@@ -32,7 +27,7 @@ export default function Page() {
         <BackButton />
       </div>
       <main className="flex justify-between gap-4 px-20">
-        <UploadFile />
+        <UploadFile onUpload={setImageUrl} />
         <WriteSection
           title={title}
           onTitleChange={setTitle}

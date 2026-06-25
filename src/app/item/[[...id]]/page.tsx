@@ -12,12 +12,9 @@ import StarRating from "@/src/components/StarRating";
 import NormalCard from "@/src/components/NormalCard";
 import { IoIosArrowUp } from "react-icons/io";
 import { FaStar } from "react-icons/fa";
+import TopButton from "@/src/components/TopButton";
 
-export default function Page({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default function Page() {
   const reviewCount = 24;
   const review = 4.5;
   const [isExpanded, setIsExpanded] = useState(false);
@@ -154,14 +151,7 @@ export default function Page({
           </div>
         </div>
       </div>
-      <button
-        type="button"
-        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className="fixed bottom-6 right-6 z-20 flex items-center justify-center rounded-full bg-main p-3 text-white shadow-lg hover:bg-orange-600"
-        aria-label="맨위로 이동"
-      >
-        <IoIosArrowUp className="text-2xl" />
-      </button>
+      <TopButton />
       <Footer />
     </div>
   );

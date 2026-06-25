@@ -18,6 +18,7 @@ const InputPhone = ({ formData, setFormData, onNext }: InputPhoneProps) => {
     };
 
     const [showVerification, setShowVerification] = useState(false);
+    const [isWaiting, setIsWaiting] = useState(false);
 
     const isAllValid = 
         formData.phone.trim() !== "" &&
@@ -40,25 +41,32 @@ const InputPhone = ({ formData, setFormData, onNext }: InputPhoneProps) => {
                 />
             )}
 
-            <button 
-                disabled={!isAllValid}
-                onClick={() => {
+            <button
+                disabled={!isAllValid || isWaiting}
+                onClick={async () => {
                     if (!showVerification) {
-                        setShowVerification(true);
+                        setIsWaiting(true)
+                        setShowVerification(true)
+                        setIsWaiting(false)
                     } else {
-                        if (formData.phoneVerification === VerificationCode) {
-                            onNext();
-                        } else {
-                            alert("인증번호가 일치하지 않습니다.");
+                        setIsWaiting(true)
+                        try {
+                            if (formData.phoneVerification === VerificationCode) {
+                                onNext()
+                            } else {
+                                alert("인증번호가 일치하지 않습니다.")
+                            }
+                        } finally {
+                            setIsWaiting(false)
                         }
                     }
                 }}
-                className={`w-75 h-10 mt-12.5 rounded-lg text-lg font-bold transition-colors 
-                ${isAllValid
-                    ? 'bg-main text-white hover:bg-main/90' 
+                className={`w-75 h-10 mt-12.5 rounded-lg text-lg font-bold transition-colors
+                ${isAllValid && !isWaiting
+                    ? 'bg-main text-white hover:bg-main/90'
                     : 'bg-zinc-300 text-zinc-500 cursor-not-allowed'}`}
             >
-                <span>{showVerification ? "다음" : "인증번호 발송"}</span>
+                {isWaiting ? "처리 중..." : showVerification ? "다음" : "인증번호 발송"}
             </button>
             
             {/* 인증번호 재발송 버튼 */}

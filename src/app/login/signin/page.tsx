@@ -35,9 +35,15 @@ export default function Page() {
       setToken(data.accessToken);
       console.log(data);
       setToken(data.accessToken);
-      router.push("/");
+      router.push("/main");
     } catch (e) {
       alert("로그인 실패");
+    }
+  };
+
+  const enterLogin = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && canLogin) {
+      handleLogin();
     }
   };
 
@@ -76,6 +82,7 @@ export default function Page() {
               isEssential={true}
               value={formData.password}
               onChange={(e) => handleChange("password", e.target.value)}
+              onKeyDown={enterLogin}
             />
           </div>
 
@@ -84,11 +91,11 @@ export default function Page() {
             onClick={handleLogin}
             disabled={!canLogin}
             className={`w-75 h-10 rounded-lg text-lg font-bold transition-colors cursor-pointer
-                        ${
-                          canLogin
-                            ? "bg-main text-white hover:bg-main/90"
-                            : "bg-zinc-100 text-zinc-500 cursor-not-allowed"
-                        }`}
+            ${
+              canLogin
+                ? "bg-main text-white hover:bg-main/90"
+                : "bg-zinc-100 text-zinc-500 cursor-not-allowed"
+            }`}
           >
             로그인
           </button>

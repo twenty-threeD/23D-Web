@@ -16,6 +16,7 @@ export default function Page() {
     const router = useRouter();
 
     const [step, setStep] = useState(1);
+    const [isWaiting, setIsWaiting] = useState(false);
 
     const [formData, setFormData] = useState({
         name: "",
@@ -43,10 +44,16 @@ export default function Page() {
         setStep((prev) => prev + 1);
     };
 
-    // 회원가입
     const handleSignup = async () => {
-    await signup(formData.name, formData.username, formData.email, formData.password, formData.phone)
-    router.push('/login/signin')
+        setIsWaiting(true)
+        try {
+            await signup(formData.name, formData.username, formData.email, formData.password, formData.phone)
+            router.push('/login/signin')
+        } catch {
+            alert("회원가입에 실패했습니다.")
+        } finally {
+            setIsWaiting(false)
+        }
     }
 
     return (
@@ -96,11 +103,13 @@ export default function Page() {
                             <h1 className="font-bold text-lg">{formData.name}님, 이제 
                                 <span className="text-[#FF884D]"> 사람과 사람을 이으러 </span> 
                                 가볼까요?</h1>
-                            <button 
-                                className="w-75 h-10 mt-12.5 rounded-lg text-lg font-bold transition-colors bg-main text-white hover:bg-main/90"
+                            <button
+                                disabled={isWaiting}
                                 onClick={handleSignup}
+                                className={`w-75 h-10 mt-12.5 rounded-lg text-lg font-bold transition-colors
+                                ${isWaiting ? 'bg-zinc-300 text-zinc-500 cursor-not-allowed' : 'bg-main text-white hover:bg-main/90'}`}
                             >
-                                시작하기
+                                {isWaiting ? "처리 중..." : "시작하기"}
                             </button>
                         </>
                     )}

@@ -22,20 +22,27 @@ const InputEmail = ({ formData, setFormData, onNext }: InputEmailProps) => {
         /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email); 
 
     const [showVerification, setShowVerification] = useState(false);
+    const [isWaiting, setIsWaiting] = useState(false);
 
-    // 인증코드 발송
     const handleSendCode = async () => {
-        await sendVerifyCode(formData.email)
-        setShowVerification(true)
+        setIsWaiting(true)
+        try {
+            await sendVerifyCode(formData.email)
+            setShowVerification(true)
+        } finally {
+            setIsWaiting(false)
+        }
     }
 
-    // 인증코드 확인
     const handleVerify = async () => {
+        setIsWaiting(true)
         try {
             await checkVerifyCode(formData.email, formData.emailVerification)
             onNext()
-        } catch (e) {
+        } catch {
             alert("인증번호가 일치하지 않습니다.")
+        } finally {
+            setIsWaiting(false)
         }
     }
 
@@ -53,21 +60,15 @@ const InputEmail = ({ formData, setFormData, onNext }: InputEmailProps) => {
                 />
             )}
 
-            <button 
-                disabled={!isAllValid}
-                onClick={() => {
-                    if (!showVerification) {
-                        handleSendCode();
-                    } else {
-                        handleVerify();
-                    }
-                }}
+            <button
+                disabled={!isAllValid || isWaiting}
+                onClick={() => { showVerification ? handleVerify() : handleSendCode() }}
                 className={`w-75 h-10 mt-10 rounded-lg text-lg font-bold transition-colors cursor-pointer
-                ${isAllValid
-                    ? 'bg-main text-white hover:bg-main/90' 
+                ${isAllValid && !isWaiting
+                    ? 'bg-main text-white hover:bg-main/90'
                     : 'bg-zinc-300 text-zinc-500 cursor-not-allowed'}`}
             >
-                <span>{showVerification ? "다음" : "인증번호 발송"}</span>
+                {isWaiting ? "처리 중..." : showVerification ? "다음" : "인증번호 발송"}
             </button>
             
             {/* 인증번호 재발송 버튼 */}
