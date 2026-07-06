@@ -18,9 +18,10 @@ const DEFAULT_PLAN: PriceCardPlan = {
 interface PriceCardProps {
   username?: string
   plan?: PriceCardPlan
+  postId?: number
 }
 
-export default function PriceCard({ username, plan = DEFAULT_PLAN }: PriceCardProps) {
+export default function PriceCard({ username, plan = DEFAULT_PLAN, postId }: PriceCardProps) {
   const router = useRouter()
   const token = useAuthStore((s) => s.accessToken)
   const handleError = useHandleError()
@@ -77,7 +78,7 @@ export default function PriceCard({ username, plan = DEFAULT_PLAN }: PriceCardPr
 
         <div className="flex flex-col gap-2">
           <Link
-            href="/pay"
+            href={postId ? `/pay/${postId}` : "/pay"}
             className="w-full py-2 border text-center border-zinc-300 font-semibold rounded-md"
           >
             견적서 요청

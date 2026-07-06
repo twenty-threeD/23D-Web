@@ -166,7 +166,7 @@ export default function Page() {
           {/* right content */}
           <div className="flex flex-col gap-4">
             <div className="w-100 shrink-0">
-              <PriceCard username={post?.member?.username} plan={plan} />
+              <PriceCard username={post?.member?.username} plan={plan} postId={postId ?? undefined} />
             </div>
             <div className="bg-zinc-100 p-4 rounded-lg">
               <ul className="flex flex-col gap-1 list-disc list-inside">
