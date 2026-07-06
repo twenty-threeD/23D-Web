@@ -14,8 +14,8 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
-        source: '/connect',
-        destination: `${API_URL}/connect`,
+        source: '/ws-stomp/:path*',
+        destination: `${API_URL}/ws-stomp/:path*`,
       },
       {
         source: '/api/:path*',

@@ -1,8 +1,8 @@
 {
   "rewrites": [
     {
-      "source": "/connect",
-      "destination": "http://13.125.161.66:8080/connect"
+      "source": "/ws-stomp/:path*",
+      "destination": "http://13.125.161.66:8080/ws-stomp/:path*"
     },
     {
       "source": "/api/:path*",

@@ -10,6 +10,8 @@ import { HiDotsHorizontal } from "react-icons/hi"
 import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment } from "react-icons/md"
 import { useAuthStore } from "@/src/store/authStore"
 import { getChatRooms, getChatMessages } from "@/src/lib/chat"
+import { Client } from "@stomp/stompjs"
+import SockJS from "sockjs-client"
 
 type Tab = "received" | "sent" | "done"
 
@@ -35,6 +37,7 @@ export default function Page() {
   const params = useParams()
   const router = useRouter()
   const token = useAuthStore((s) => s.accessToken)
+  const myUsername = useAuthStore((s) => s.username)
   const selectedId = params.id ? Number(Array.isArray(params.id) ? params.id[0] : params.id) : null
 
   const [tab, setTab] = useState<Tab>("received")
@@ -45,7 +48,7 @@ export default function Page() {
   const [messages, setMessages] = useState<Message[]>([])
   const [loadingRooms, setLoadingRooms] = useState(true)
   const [loadingMessages, setLoadingMessages] = useState(false)
-  const wsRef = useRef<WebSocket | null>(null)
+  const stompClientRef = useRef<Client | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -55,22 +58,29 @@ export default function Page() {
   useEffect(() => {
     if (!selectedId || !token) return
 
-    const wsUrl = window.location.protocol === "https:"
-      ? `wss://${window.location.host}/connect?token=${token}`
-      : `${(process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080").replace(/^http/, "ws")}/connect?token=${token}`
-    const ws = new WebSocket(wsUrl)
-    wsRef.current = ws
+    const sockjsUrl = `${window.location.protocol}//${window.location.host}/ws-stomp`
 
-    ws.onmessage = (event) => {
-      try {
-        const msg: Message = JSON.parse(event.data)
-        setMessages((prev) => [...prev, msg])
-      } catch {}
-    }
+    const client = new Client({
+      webSocketFactory: () => new SockJS(sockjsUrl),
+      connectHeaders: {
+        Authorization: `Bearer ${token}`,
+      },
+      onConnect: () => {
+        client.subscribe(`/user/queue/chat`, (frame) => {
+          try {
+            const msg: Message = JSON.parse(frame.body)
+            setMessages((prev) => [...prev, msg])
+          } catch {}
+        })
+      },
+    })
+
+    client.activate()
+    stompClientRef.current = client
 
     return () => {
-      ws.close()
-      wsRef.current = null
+      client.deactivate()
+      stompClientRef.current = null
     }
   }, [selectedId, token])
 
@@ -92,8 +102,12 @@ export default function Page() {
     setLoadingMessages(true)
     try {
       const res = await getChatMessages(token, selectedId as number)
-      setMessages(res.data ?? [])
-    } catch {
+      console.log("[chat] getChatMessages response:", res)
+      const raw = res.data ?? res
+      const list: Message[] = Array.isArray(raw) ? raw : (raw?.content ?? [])
+      setMessages(list)
+    } catch (e) {
+      console.error("[chat] getChatMessages error:", e)
       setMessages([])
     } finally {
       setLoadingMessages(false)
@@ -111,15 +125,29 @@ export default function Page() {
     { key: "done", label: "완료된 거래" },
   ]
 
-  const myUsername = useAuthStore((s) => s.username)
   const filteredRooms = rooms.filter((r) => r.participantName.includes(search))
-
 
   function handleSend() {
     if (!message.trim()) return
-    const ws = wsRef.current
-    if (!ws || ws.readyState !== WebSocket.OPEN) return
-    ws.send(JSON.stringify({ roomId: selectedId, message }))
+    const client = stompClientRef.current
+    if (!client?.connected) return
+
+    const optimistic: Message = {
+      messageId: -Date.now(),
+      roomId: selectedId ?? 0,
+      senderUsername: myUsername ?? "",
+      senderName: myUsername ?? "",
+      message,
+      createdAt: new Date().toISOString(),
+      attachedFileUrls: [],
+    }
+    setMessages((prev) => [...prev, optimistic])
+
+    client.publish({
+      destination: "/app/chat/send",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ roomId: selectedId, message }),
+    })
     setMessage("")
   }
 
@@ -134,7 +162,7 @@ export default function Page() {
     <div className="flex flex-col h-screen">
       <Header />
 
-      <div className="flex flex-1 px-20 py-8 overflow-hidden">
+      <div className="flex flex-1 px-20 pt-8 overflow-hidden">
         {/* 왼쪽 채팅 목록 */}
         <div className="flex flex-col w-120 pr-4 shrink-0 border-r border-zinc-200">
           {/* 탭 */}
@@ -143,9 +171,9 @@ export default function Page() {
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`flex-1 py-4 text-sm font-semibold border-b-2 transition-colors cursor-pointer ${
+                className={`flex-1 py-4 text-lg font-semibold border-b-2 transition-colors cursor-pointer ${
                   tab === t.key
-                    ? "border-zinc-800 text-zinc-800"
+                    ? "border-zinc-800 text-zinc-800 font-bold"
                     : "border-transparent text-zinc-400"
                 }`}
               >
@@ -160,10 +188,10 @@ export default function Page() {
           </div>
 
           {/* 채팅 목록 */}
-          <div className="flex flex-col flex-1 overflow-y-auto">
+          <div className="flex flex-col flex-1 overflow-y-auto rounded-md">
             {loadingRooms ? (
               Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-3 px-4 py-3 animate-pulse">
+                <div key={i} className="flex items-center gap-3 px-4 animate-pulse">
                   <div className="w-12 h-12 rounded-full bg-zinc-200 shrink-0" />
                   <div className="flex flex-col gap-2 flex-1">
                     <div className="h-3 w-24 bg-zinc-200 rounded" />
@@ -286,7 +314,7 @@ export default function Page() {
                     </button>
                     <span className="text-xs text-zinc-500">문서</span>
                   </div>
-                  <div className="flex flex-col items-center gap-1">
+                  <div className="flex flex-col items items-center gap-1">
                     <button className="w-12 h-12 rounded-full bg-yellow-400 flex items-center justify-center cursor-pointer">
                       <MdOutlineAssignment className="text-white text-2xl" />
                     </button>
@@ -295,7 +323,7 @@ export default function Page() {
                 </div>
               )}
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 p-2 rounded-lg border border-zinc-200">
                 <button
                   onClick={() => setShowAttach((v) => !v)}
                   className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 cursor-pointer ${
@@ -309,7 +337,7 @@ export default function Page() {
                   placeholder="메시지 입력"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleSend() }}
                 />
                 <button
                   onClick={handleSend}
