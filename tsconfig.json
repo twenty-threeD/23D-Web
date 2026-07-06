@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-  ],
+, "type/authData.tsx"  ],
   "exclude": ["node_modules"]
 }
