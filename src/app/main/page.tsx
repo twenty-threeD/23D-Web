@@ -9,17 +9,19 @@ import NormalCard from "@/src/components/NormalCard";
 import NormalCardSkeleton from "@/src/components/NormalCardSkeleton";
 import Search from "@/src/components/Search";
 import { getPosts, type Post } from "@/src/lib/post";
+import { useAuthStore } from "@/src/store/authStore";
 
 export default function Page() {
+  const token = useAuthStore((s) => s.accessToken);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getPosts()
+    getPosts(token)
       .then((list) => setPosts(list))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [token]);
 
   const premiumPosts = posts.slice(0, 3);
   const popularPosts = posts.slice(0, 4);

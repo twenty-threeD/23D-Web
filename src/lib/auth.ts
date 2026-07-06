@@ -37,11 +37,11 @@ export async function signup(
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      name, 
-      username, 
-      email, 
-      password, 
-      phone,
+      name,
+      username,
+      email,
+      password,
+      ...(phone ? { phone } : {}),
       role: 'USER',
       provider: 'AUTH'
     }),

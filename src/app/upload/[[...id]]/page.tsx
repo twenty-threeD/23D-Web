@@ -44,8 +44,7 @@ export default function Page() {
     try {
       const effectivePlan = { ...plan, price: plan.price || price };
       const content = JSON.stringify({ description, plan: effectivePlan });
-      const fileUrls = imageUrl ? [imageUrl] : [];
-      const res = await createPost(token, { title, content, fileUrls });
+      const res = await createPost(token, { title, content, fileUrl: imageUrl || undefined });
       const postId = res.data?.id;
       if (postId) router.push(`/item/${postId}`);
     } catch (e) {

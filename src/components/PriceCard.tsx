@@ -42,7 +42,7 @@ export default function PriceCard({ username, plan = DEFAULT_PLAN }: PriceCardPr
   }
 
   const displayPrice = plan.price
-    ? `${Number(plan.price).toLocaleString()}원`
+    ? `${Number(plan.price.replace(/,/g, '')).toLocaleString()}원`
     : "가격 미정"
 
   return (

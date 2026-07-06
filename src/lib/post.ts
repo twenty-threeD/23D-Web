@@ -8,18 +8,26 @@ function authHeaders(token?: string | null) {
 
 import { throwApiError } from './apiError'
 
+export interface PostMember {
+  username: string
+  name: string
+  email: string
+}
+
 export interface Post {
   id: number
   title: string
   content: string
   fileUrls?: string[]
-  username?: string
   viewCount?: number
   updatedAt?: string
+  member?: PostMember
 }
 
-export async function getPosts() {
-  const res = await fetch(`${BASE}/api/post`)
+export async function getPosts(token?: string | null) {
+  const res = await fetch(`${BASE}/api/post?page=0&size=1`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
   if (!res.ok) await throwApiError(res)
   const json = await res.json()
   const raw = json?.data ?? json
@@ -27,15 +35,17 @@ export async function getPosts() {
   return list
 }
 
-export async function getPost(postId: number) {
-  const res = await fetch(`${BASE}/api/post/${postId}`)
+export async function getPost(postId: number, token?: string | null) {
+  const res = await fetch(`${BASE}/api/post/${postId}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
   if (!res.ok) await throwApiError(res)
   const json = await res.json()
   const post: Post = json?.data ?? json
   return { data: post }
 }
 
-export async function createPost(token: string, data: { title: string; content: string; fileUrls?: string[] }) {
+export async function createPost(token: string, data: { title: string; content: string; fileUrl?: string }) {
   const res = await fetch(`${BASE}/api/post`, {
     method: 'POST',
     headers: authHeaders(token),
@@ -45,7 +55,7 @@ export async function createPost(token: string, data: { title: string; content: 
   return res.json() as Promise<{ data: Post }>
 }
 
-export async function updatePost(token: string, data: { id: number; title: string; content: string; fileUrls?: string[] }) {
+export async function updatePost(token: string, data: { id: number; title: string; content: string; fileUrl?: string }) {
   const res = await fetch(`${BASE}/api/post`, {
     method: 'PATCH',
     headers: authHeaders(token),
@@ -68,5 +78,8 @@ export async function searchPosts(title: string, page = 0, size = 20) {
   const params = new URLSearchParams({ title, page: String(page), size: String(size) })
   const res = await fetch(`${BASE}/api/post/search?${params}`)
   if (!res.ok) await throwApiError(res)
-  return res.json() as Promise<{ data: Post[] }>
+  const json = await res.json()
+  const raw = json?.data ?? json
+  const list: Post[] = Array.isArray(raw) ? raw : (raw?.content ?? [])
+  return list
 }

@@ -15,6 +15,7 @@ import TopButton from "@/src/components/TopButton";
 import { FaStar } from "react-icons/fa";
 import { getPost, getPosts, type Post } from "@/src/lib/post"
 import { type PriceCardPlan } from "@/src/types/priceCard";
+import { useAuthStore } from "@/src/store/authStore";
 
 function parsePlan(content: string): { description: string; plan?: PriceCardPlan } {
   try {
@@ -28,6 +29,7 @@ export default function Page() {
   const params = useParams();
   const postId = params.id ? Number(Array.isArray(params.id) ? params.id[0] : params.id) : null;
 
+  const token = useAuthStore((s) => s.accessToken);
   const reviewCount = 24;
   const review = 4.5;
   const [isExpanded, setIsExpanded] = useState(false);
@@ -38,14 +40,14 @@ export default function Page() {
   useEffect(() => {
     if (!postId) return;
     setLoading(true);
-    getPost(postId)
+    getPost(postId, token)
       .then((res) => setPost(res.data ?? null))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [postId]);
+  }, [postId, token]);
 
   useEffect(() => {
-    getPosts().then((list) => setRelatedPosts(list)).catch(() => {});
+    getPosts(token).then((list) => setRelatedPosts(list)).catch(() => {});
   }, []);
 
   const { description, plan } = post ? parsePlan(post.content) : { description: "" };
@@ -75,7 +77,7 @@ export default function Page() {
                 <div className="flex gap-4">
                   <div className="w-20 h-20 rounded-full bg-zinc-300" />
                   <div className="flex flex-col justify-between py-1">
-                    <span className="font-bold text-xl">{post?.username ?? "오늘의 에어컨"}</span>
+                    <span className="font-bold text-xl">{post?.member?.name ?? post?.member?.username ?? "오늘의 에어컨"}</span>
                     <span className="text-sm text-zinc-400">{post?.title ?? "전문가의 꼼꼼한 시공"}</span>
                   </div>
                 </div>
@@ -164,7 +166,7 @@ export default function Page() {
           {/* right content */}
           <div className="flex flex-col gap-4">
             <div className="w-100 shrink-0">
-              <PriceCard username={post?.username} plan={plan} />
+              <PriceCard username={post?.member?.username} plan={plan} />
             </div>
             <div className="bg-zinc-100 p-4 rounded-lg">
               <ul className="flex flex-col gap-1 list-disc list-inside">

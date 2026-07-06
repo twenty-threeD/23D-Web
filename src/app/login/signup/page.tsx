@@ -107,7 +107,7 @@ export default function Page() {
                     )}
                     {step === 5 && (
                         <>
-                            <h1 className="font-bold text-lg">{formData.name}님, 이제 
+                            <h1 className="font-bold text-lg">{formData.name || formData.username}님, 이제
                                 <span className="text-[#FF884D]"> 사람과 사람을 이으러 </span> 
                                 가볼까요?</h1>
                             <button
