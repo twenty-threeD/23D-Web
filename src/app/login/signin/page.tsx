@@ -123,7 +123,7 @@ export default function Page() {
                 key={index}
                 className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-zinc-300 hover:border-main transition-colors"
               >
-                <Image
+                <img
                   src={social.src}
                   alt={social.alt}
                   width={20}
