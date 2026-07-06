@@ -12,6 +12,7 @@ import { useAuthStore } from "@/src/store/authStore"
 import { getChatRooms, getChatMessages } from "@/src/lib/chat"
 import { Client } from "@stomp/stompjs"
 import SockJS from "sockjs-client"
+import ContractModal from "@/src/components/chat/ContractModal"
 
 type Tab = "received" | "sent" | "done"
 
@@ -44,6 +45,7 @@ export default function Page() {
   const [search, setSearch] = useState("")
   const [message, setMessage] = useState("")
   const [showAttach, setShowAttach] = useState(false)
+  const [showContract, setShowContract] = useState(false)
   const [rooms, setRooms] = useState<ChatRoom[]>([])
   const [messages, setMessages] = useState<Message[]>([])
   const [loadingRooms, setLoadingRooms] = useState(true)
@@ -58,7 +60,7 @@ export default function Page() {
   useEffect(() => {
     if (!selectedId || !token) return
 
-    const sockjsUrl = `${window.location.protocol}//${window.location.host}/ws-stomp`
+    const sockjsUrl = `${window.location.protocol}//${window.location.host}/ws-stomp?token=${token}`
 
     const client = new Client({
       webSocketFactory: () => new SockJS(sockjsUrl),
@@ -66,7 +68,7 @@ export default function Page() {
         Authorization: `Bearer ${token}`,
       },
       onConnect: () => {
-        client.subscribe(`/user/queue/chat`, (frame) => {
+        client.subscribe(`/topic/chat/rooms/${selectedId}`, (frame) => {
           try {
             const msg: Message = JSON.parse(frame.body)
             setMessages((prev) => [...prev, msg])
@@ -102,7 +104,6 @@ export default function Page() {
     setLoadingMessages(true)
     try {
       const res = await getChatMessages(token, selectedId as number)
-      console.log("[chat] getChatMessages response:", res)
       const raw = res.data ?? res
       const list: Message[] = Array.isArray(raw) ? raw : (raw?.content ?? [])
       setMessages(list)
@@ -132,21 +133,11 @@ export default function Page() {
     const client = stompClientRef.current
     if (!client?.connected) return
 
-    const optimistic: Message = {
-      messageId: -Date.now(),
-      roomId: selectedId ?? 0,
-      senderUsername: myUsername ?? "",
-      senderName: myUsername ?? "",
-      message,
-      createdAt: new Date().toISOString(),
-      attachedFileUrls: [],
-    }
-    setMessages((prev) => [...prev, optimistic])
-
+    const body = JSON.stringify({ roomId: selectedId, message, fileUrls: [] })
     client.publish({
-      destination: "/app/chat/send",
+      destination: "/app/chat.send",
       headers: { Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ roomId: selectedId, message }),
+      body,
     })
     setMessage("")
   }
@@ -161,6 +152,21 @@ export default function Page() {
   return (
     <div className="flex flex-col h-screen">
       <Header />
+      {showContract && selectedRoom && (
+        <ContractModal
+          roomId={selectedId ?? 0}
+          client={{ name: selectedRoom.participantName, items: [{ label: "아이디", value: selectedRoom.participantUsername }] }}
+          professional={{ name: myUsername ?? "", items: [{ label: "아이디", value: myUsername ?? "" }] }}
+          contractContent=""
+          date={new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })}
+          myRole="professional"
+          onClose={() => setShowContract(false)}
+          onSubmit={(data) => {
+            console.log("계약서 서명 완료", data)
+            setShowContract(false)
+          }}
+        />
+      )}
 
       <div className="flex flex-1 px-20 pt-8 overflow-hidden">
         {/* 왼쪽 채팅 목록 */}
@@ -254,22 +260,20 @@ export default function Page() {
                   return (
                     <div key={msg.messageId}>
                       {!isSent ? (
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-end gap-3">
                           <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 bg-zinc-200">
                             <Image src="/profile.png" alt="" width={36} height={36} className="w-full h-full object-cover" />
                           </div>
-                          <div className="flex flex-col gap-1">
-                            {hasImage ? (
-                              <div className="w-48 rounded-xl overflow-hidden">
-                                <img src={msg.attachedFileUrls[0]} alt="첨부 이미지" className="w-full h-auto" />
-                              </div>
-                            ) : (
-                              <div className="bg-zinc-100 rounded-2xl px-4 py-2 max-w-xs">
-                                <p className="text-sm">{msg.message}</p>
-                              </div>
-                            )}
-                            <span className="text-xs text-zinc-400">{formatTime(msg.createdAt)}</span>
-                          </div>
+                          {hasImage ? (
+                            <div className="w-48 rounded-xl overflow-hidden">
+                              <img src={msg.attachedFileUrls[0]} alt="첨부 이미지" className="w-full h-auto" />
+                            </div>
+                          ) : (
+                            <div className="bg-zinc-100 rounded-2xl rounded-bl-none px-4 py-2 max-w-xs">
+                              <p className="text-sm">{msg.message}</p>
+                            </div>
+                          )}
+                          <span className="text-xs text-zinc-400 shrink-0">{formatTime(msg.createdAt)}</span>
                         </div>
                       ) : (
                         <div className="flex justify-end items-end gap-2">
@@ -279,7 +283,7 @@ export default function Page() {
                               <img src={msg.attachedFileUrls[0]} alt="첨부 이미지" className="w-full h-auto" />
                             </div>
                           ) : (
-                            <div className="bg-main rounded-2xl px-4 py-2 max-w-xs">
+                            <div className="bg-main rounded-2xl rounded-br-none px-4 py-2 max-w-xs">
                               <p className="text-sm text-white">{msg.message}</p>
                             </div>
                           )}
@@ -314,8 +318,11 @@ export default function Page() {
                     </button>
                     <span className="text-xs text-zinc-500">문서</span>
                   </div>
-                  <div className="flex flex-col items items-center gap-1">
-                    <button className="w-12 h-12 rounded-full bg-yellow-400 flex items-center justify-center cursor-pointer">
+                  <div className="flex flex-col items-center gap-1">
+                    <button
+                      onClick={() => { setShowAttach(false); setShowContract(true) }}
+                      className="w-12 h-12 rounded-full bg-yellow-400 flex items-center justify-center cursor-pointer"
+                    >
                       <MdOutlineAssignment className="text-white text-2xl" />
                     </button>
                     <span className="text-xs text-zinc-500">계약서</span>
