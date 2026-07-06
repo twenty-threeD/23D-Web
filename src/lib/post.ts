@@ -1,12 +1,10 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL
+import { throwApiError } from './apiError'
 
 function authHeaders(token?: string | null) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   return headers
 }
-
-import { throwApiError } from './apiError'
 
 export interface PostMember {
   username: string
@@ -25,7 +23,7 @@ export interface Post {
 }
 
 export async function getPosts(token?: string | null) {
-  const res = await fetch(`${BASE}/api/post?page=0&size=1`, {
+  const res = await fetch(`/api/post?page=0&size=20`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
   if (!res.ok) await throwApiError(res)
@@ -36,7 +34,7 @@ export async function getPosts(token?: string | null) {
 }
 
 export async function getPost(postId: number, token?: string | null) {
-  const res = await fetch(`${BASE}/api/post/${postId}`, {
+  const res = await fetch(`/api/post/${postId}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
   if (!res.ok) await throwApiError(res)
@@ -46,7 +44,7 @@ export async function getPost(postId: number, token?: string | null) {
 }
 
 export async function createPost(token: string, data: { title: string; content: string; fileUrl?: string }) {
-  const res = await fetch(`${BASE}/api/post`, {
+  const res = await fetch(`/api/post`, {
     method: 'POST',
     headers: authHeaders(token),
     body: JSON.stringify(data),
@@ -56,7 +54,7 @@ export async function createPost(token: string, data: { title: string; content: 
 }
 
 export async function updatePost(token: string, data: { id: number; title: string; content: string; fileUrl?: string }) {
-  const res = await fetch(`${BASE}/api/post`, {
+  const res = await fetch(`/api/post`, {
     method: 'PATCH',
     headers: authHeaders(token),
     body: JSON.stringify(data),
@@ -66,7 +64,7 @@ export async function updatePost(token: string, data: { id: number; title: strin
 }
 
 export async function deletePost(token: string, postId: number) {
-  const res = await fetch(`${BASE}/api/post?postId=${postId}`, {
+  const res = await fetch(`/api/post?postId=${postId}`, {
     method: 'DELETE',
     headers: authHeaders(token),
   })
@@ -76,7 +74,7 @@ export async function deletePost(token: string, postId: number) {
 
 export async function searchPosts(title: string, page = 0, size = 20) {
   const params = new URLSearchParams({ title, page: String(page), size: String(size) })
-  const res = await fetch(`${BASE}/api/post/search?${params}`)
+  const res = await fetch(`/api/post/search?${params}`)
   if (!res.ok) await throwApiError(res)
   const json = await res.json()
   const raw = json?.data ?? json

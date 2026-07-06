@@ -1,5 +1,3 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL
-
 function authHeaders(token: string) {
   return {
     'Content-Type': 'application/json',
@@ -9,8 +7,7 @@ function authHeaders(token: string) {
 
 // 결제 조회 (paymentKey)
 export async function getPayment(token: string, paymentKey: string) {
-  const res = await fetch(`${BASE}/api/payment/${paymentKey}`, {
-    credentials: 'include',
+  const res = await fetch(`/api/payment/${paymentKey}`, {
     headers: authHeaders(token),
   })
   if (!res.ok) throw new Error('결제 조회 실패')
@@ -19,8 +16,7 @@ export async function getPayment(token: string, paymentKey: string) {
 
 // 결제 조회 (orderId)
 export async function getPaymentByOrder(token: string, orderId: string) {
-  const res = await fetch(`${BASE}/api/payment/orders/${orderId}`, {
-    credentials: 'include',
+  const res = await fetch(`/api/payment/orders/${orderId}`, {
     headers: authHeaders(token),
   })
   if (!res.ok) throw new Error('주문 조회 실패')
@@ -32,9 +28,8 @@ export async function confirmPayment(
   token: string,
   data: { paymentKey: string; orderId: string; amount: number }
 ) {
-  const res = await fetch(`${BASE}/api/payment/confirm`, {
+  const res = await fetch(`/api/payment/confirm`, {
     method: 'POST',
-    credentials: 'include',
     headers: authHeaders(token),
     body: JSON.stringify(data),
   })
@@ -54,9 +49,8 @@ export async function createVirtualAccount(
     dueDate?: string
   }
 ) {
-  const res = await fetch(`${BASE}/api/payment/virtual-accounts`, {
+  const res = await fetch(`/api/payment/virtual-accounts`, {
     method: 'POST',
-    credentials: 'include',
     headers: authHeaders(token),
     body: JSON.stringify(data),
   })
@@ -70,9 +64,8 @@ export async function cancelPayment(
   paymentKey: string,
   data: { cancelReason: string; cancelAmount?: number }
 ) {
-  const res = await fetch(`${BASE}/api/payment/${paymentKey}/cancel`, {
+  const res = await fetch(`/api/payment/${paymentKey}/cancel`, {
     method: 'POST',
-    credentials: 'include',
     headers: authHeaders(token),
     body: JSON.stringify(data),
   })

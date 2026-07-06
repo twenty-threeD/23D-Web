@@ -1,5 +1,3 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL
-
 function authHeaders(token: string) {
   return {
     'Content-Type': 'application/json',
@@ -10,18 +8,15 @@ function authHeaders(token: string) {
 // 아이디 찾기
 export async function getUsername(email: string) {
   const params = new URLSearchParams({ email })
-  const res = await fetch(`${BASE}/api/member/username?${params}`, {
-    credentials: 'include',
-  })
+  const res = await fetch(`/api/member/username?${params}`)
   if (!res.ok) throw new Error('아이디 찾기 실패')
   return res.json()
 }
 
 // 아이디 재설정
 export async function resetUsername(token: string, username: string) {
-  const res = await fetch(`${BASE}/api/member/username/reset`, {
+  const res = await fetch(`/api/member/username/reset`, {
     method: 'POST',
-    credentials: 'include',
     headers: authHeaders(token),
     body: JSON.stringify({ username }),
   })
@@ -31,9 +26,8 @@ export async function resetUsername(token: string, username: string) {
 
 // 비밀번호 재설정 인증 확인
 export async function checkPasswordReset(email: string, verifyCode: string) {
-  const res = await fetch(`${BASE}/api/member/password/reset/check`, {
+  const res = await fetch(`/api/member/password/reset/check`, {
     method: 'POST',
-    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, verifyCode }),
   })
@@ -43,9 +37,8 @@ export async function checkPasswordReset(email: string, verifyCode: string) {
 
 // 비밀번호 재설정
 export async function resetPassword(email: string, newPassword: string) {
-  const res = await fetch(`${BASE}/api/member/password/reset`, {
+  const res = await fetch(`/api/member/password/reset`, {
     method: 'POST',
-    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, newPassword }),
   })
@@ -55,9 +48,8 @@ export async function resetPassword(email: string, newPassword: string) {
 
 // 회원 탈퇴
 export async function deleteAccount(token: string) {
-  const res = await fetch(`${BASE}/api/member/account`, {
+  const res = await fetch(`/api/member/account`, {
     method: 'DELETE',
-    credentials: 'include',
     headers: authHeaders(token),
   })
   if (!res.ok) throw new Error('회원 탈퇴 실패')

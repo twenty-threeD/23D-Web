@@ -1,5 +1,7 @@
 import type { NextConfig } from 'next'
 
+const API_URL = 'http://13.125.161.66:8080'
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -8,6 +10,18 @@ const nextConfig: NextConfig = {
         hostname: '13.125.161.66',
       },
     ],
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/connect',
+        destination: `${API_URL}/connect`,
+      },
+      {
+        source: '/api/:path*',
+        destination: `${API_URL}/api/:path*`,
+      },
+    ]
   },
 }
 export default nextConfig

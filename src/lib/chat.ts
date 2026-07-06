@@ -1,7 +1,5 @@
 import { throwApiError } from './apiError'
 
-const BASE = process.env.NEXT_PUBLIC_API_URL
-
 function authHeaders(token?: string | null) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
@@ -9,8 +7,7 @@ function authHeaders(token?: string | null) {
 }
 
 export async function getChatRooms(token: string) {
-  const res = await fetch(`${BASE}/api/chat/rooms`, {
-    credentials: 'include',
+  const res = await fetch(`/api/chat/rooms`, {
     headers: authHeaders(token),
   })
   if (!res.ok) await throwApiError(res)
@@ -18,9 +15,8 @@ export async function getChatRooms(token: string) {
 }
 
 export async function createChatRoom(token: string, username: string) {
-  const res = await fetch(`${BASE}/api/chat/rooms`, {
+  const res = await fetch(`/api/chat/rooms`, {
     method: 'POST',
-    credentials: 'include',
     headers: authHeaders(token),
     body: JSON.stringify({ username }),
   })
@@ -29,8 +25,7 @@ export async function createChatRoom(token: string, username: string) {
 }
 
 export async function getChatMessages(token: string, roomId: number) {
-  const res = await fetch(`${BASE}/api/chat/rooms/${roomId}/messages`, {
-    credentials: 'include',
+  const res = await fetch(`/api/chat/rooms/${roomId}/messages`, {
     headers: authHeaders(token),
   })
   if (!res.ok) await throwApiError(res)
@@ -38,9 +33,8 @@ export async function getChatMessages(token: string, roomId: number) {
 }
 
 export async function deleteChatRoom(token: string, roomId: number) {
-  const res = await fetch(`${BASE}/api/chat/rooms/${roomId}`, {
+  const res = await fetch(`/api/chat/rooms/${roomId}`, {
     method: 'DELETE',
-    credentials: 'include',
     headers: authHeaders(token),
   })
   if (!res.ok) await throwApiError(res)

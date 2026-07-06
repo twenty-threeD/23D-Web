@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/connect",
+      "destination": "http://13.125.161.66:8080/connect"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "http://13.125.161.66:8080/api/:path*"
+    }
+  ]
+}

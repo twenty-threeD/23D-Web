@@ -1,10 +1,7 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL
-
 // 인증코드 전송
 export async function sendVerifyCode(email: string) {
-  const res = await fetch(`${BASE}/api/email/code/send`, {
+  const res = await fetch(`/api/email/code/send`, {
     method: 'POST',
-    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
   })
@@ -14,9 +11,8 @@ export async function sendVerifyCode(email: string) {
 
 // 인증코드 확인
 export async function checkVerifyCode(email: string, verifyCode: string) {
-  const res = await fetch(`${BASE}/api/email/code/verify`, {
+  const res = await fetch(`/api/email/code/verify`, {
     method: 'POST',
-    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, verifyCode }),
   })
@@ -32,9 +28,8 @@ export async function signup(
   password: string,
   phone?: string
 ) {
-  const res = await fetch(`${BASE}/api/auth/signup`, {
+  const res = await fetch(`/api/auth/signup`, {
     method: 'POST',
-    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       name,
@@ -55,9 +50,8 @@ export async function signup(
 
 // 로그인
 export async function login(email: string, password: string) {
-  const res = await fetch(`${BASE}/api/auth/signin`, {
+  const res = await fetch(`/api/auth/signin`, {
     method: 'POST',
-    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   })
@@ -71,8 +65,7 @@ export async function login(email: string, password: string) {
 
 // 로그아웃
 export async function logout() {
-  await fetch(`${BASE}/api/auth/signout`, {
+  await fetch(`/api/auth/signout`, {
     method: 'POST',
-    credentials: 'include',
   })
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Header from "@/src/components/Header"
 import Image from "next/image"
@@ -45,6 +45,34 @@ export default function Page() {
   const [messages, setMessages] = useState<Message[]>([])
   const [loadingRooms, setLoadingRooms] = useState(true)
   const [loadingMessages, setLoadingMessages] = useState(false)
+  const wsRef = useRef<WebSocket | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
+
+  useEffect(() => {
+    if (!selectedId || !token) return
+
+    const wsUrl = window.location.protocol === "https:"
+      ? `wss://${window.location.host}/connect?token=${token}`
+      : `${(process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080").replace(/^http/, "ws")}/connect?token=${token}`
+    const ws = new WebSocket(wsUrl)
+    wsRef.current = ws
+
+    ws.onmessage = (event) => {
+      try {
+        const msg: Message = JSON.parse(event.data)
+        setMessages((prev) => [...prev, msg])
+      } catch {}
+    }
+
+    return () => {
+      ws.close()
+      wsRef.current = null
+    }
+  }, [selectedId, token])
 
   const fetchRooms = useCallback(async () => {
     if (!token) return
@@ -89,6 +117,9 @@ export default function Page() {
 
   function handleSend() {
     if (!message.trim()) return
+    const ws = wsRef.current
+    if (!ws || ws.readyState !== WebSocket.OPEN) return
+    ws.send(JSON.stringify({ roomId: selectedId, message }))
     setMessage("")
   }
 
@@ -229,6 +260,7 @@ export default function Page() {
                     </div>
                   )
                 })}
+                <div ref={messagesEndRef} />
               </div>
             </>
           ) : (
