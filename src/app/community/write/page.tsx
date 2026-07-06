@@ -10,12 +10,14 @@ import { IoImageOutline } from "react-icons/io5"
 import { createPost } from "@/src/lib/community"
 import { uploadFile } from "@/src/lib/file"
 import { useAuthStore } from "@/src/store/authStore"
+import { useHandleError } from "@/src/hooks/useHandleError"
 
 const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false })
 
 export default function Page() {
   const router = useRouter()
   const token = useAuthStore((s) => s.accessToken)
+  const handleError = useHandleError()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cursorPosRef = useRef<number>(0)
 
@@ -44,7 +46,7 @@ export default function Page() {
         const md = `![image](${url})\n`
         newContent = newContent.slice(0, insertPos) + md + newContent.slice(insertPos)
         insertPos += md.length
-      } catch { /* ignore */ }
+      } catch (e) { handleError(e) }
     }
 
     setContent(newContent)
@@ -60,7 +62,7 @@ export default function Page() {
       const res = await createPost(token, { title, content })
       const postId = res.data?.postId
       router.push(postId ? `/posts/${postId}` : "/community")
-    } catch { /* ignore */ } finally {
+    } catch (e) { handleError(e) } finally {
       setSubmitting(false)
     }
   }

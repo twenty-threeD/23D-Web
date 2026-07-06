@@ -45,7 +45,7 @@ const Page = () => {
 
 
                 <div className="flex items-start gap-10 justify-between">
-                    <PriceCard />
+                    <PriceCard username="안재민" />
 
                     <div className="pr-25">
                         <ApplyPay isAgree={isAgree} setIsAgree={setIsAgree} />

@@ -1,6 +1,7 @@
 'use client';
 import { useState } from "react";
 import Image from "next/image";
+import { useToast } from "@/src/hooks/useToast";
 import { useRouter } from "next/navigation";
 import TermsAgreement from "@/src/components/login/TermsAgreement";
 import InputData from "@/src/components/login/inputData";
@@ -13,6 +14,7 @@ import BackButton from "@/src/components/BackButton";
 
 
 export default function Page() {
+    const { addToast } = useToast();
     const router = useRouter();
 
     const [step, setStep] = useState(1);
@@ -48,9 +50,14 @@ export default function Page() {
         setIsWaiting(true)
         try {
             await signup(formData.name, formData.username, formData.email, formData.password, formData.phone)
+            addToast(
+                { message: "회원가입에 성공했습니다. 로그인 페이지로 이동합니다.", type: "success" }
+            )
             router.push('/login/signin')
-        } catch {
-            alert("회원가입에 실패했습니다.")
+        } catch (e) {
+            addToast(
+                { message: e instanceof Error ? `회원가입에 실패하였습니다. ${e.message}` : '회원가입에 실패했습니다.', type: "error" },
+            );
         } finally {
             setIsWaiting(false)
         }

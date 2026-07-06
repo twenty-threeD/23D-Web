@@ -8,6 +8,7 @@ interface WriteSectionProps {
   price: string
   onPriceChange: (value: string) => void
   onSubmit?: () => void
+  isWaiting?: boolean
 }
 
 export default function WriteSection({
@@ -18,6 +19,7 @@ export default function WriteSection({
   price,
   onPriceChange,
   onSubmit,
+  isWaiting,
 }: WriteSectionProps) {
   return (
     <div className="w-124 h-186 flex flex-col gap-7">
@@ -44,9 +46,10 @@ export default function WriteSection({
 
       <button
         onClick={onSubmit}
-        className="w-32 h-10 bg-[#FE6A4C] text-white rounded-lg font-bold self-end"
+        disabled={isWaiting}
+        className="w-32 h-10 bg-main text-white rounded-lg font-bold self-end disabled:opacity-50 cursor-pointer"
       >
-        등록하기
+        {isWaiting ? "등록 중..." : "등록하기"}
       </button>
     </div>
   )

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import Header from "@/src/components/Header";
 import Footer from "@/src/components/Footer";
 import Banner from "@/src/components/Banner";
@@ -10,19 +11,55 @@ import DoButton from "@/src/components/DoButton";
 import Review from "@/src/components/Review";
 import StarRating from "@/src/components/StarRating";
 import NormalCard from "@/src/components/NormalCard";
-import { IoIosArrowUp } from "react-icons/io";
-import { FaStar } from "react-icons/fa";
 import TopButton from "@/src/components/TopButton";
+import { FaStar } from "react-icons/fa";
+import { getPost, getPosts, type Post } from "@/src/lib/post"
+import { type PriceCardPlan } from "@/src/types/priceCard";
+
+function parsePlan(content: string): { description: string; plan?: PriceCardPlan } {
+  try {
+    const parsed = JSON.parse(content)
+    if (parsed && typeof parsed === "object" && "description" in parsed) return parsed
+  } catch {}
+  return { description: content }
+}
 
 export default function Page() {
+  const params = useParams();
+  const postId = params.id ? Number(Array.isArray(params.id) ? params.id[0] : params.id) : null;
+
   const reviewCount = 24;
   const review = 4.5;
   const [isExpanded, setIsExpanded] = useState(false);
+  const [post, setPost] = useState<Post | null>(null);
+  const [relatedPosts, setRelatedPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  function handleShowMore() {
-    setIsExpanded(!isExpanded);
+  useEffect(() => {
+    if (!postId) return;
+    setLoading(true);
+    getPost(postId)
+      .then((res) => setPost(res.data ?? null))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [postId]);
+
+  useEffect(() => {
+    getPosts().then((list) => setRelatedPosts(list)).catch(() => {});
+  }, []);
+
+  const { description, plan } = post ? parsePlan(post.content) : { description: "" };
+
+  if (loading) {
+    return (
+      <div>
+        <Header />
+        <p className="text-center py-20 text-zinc-400">불러오는 중...</p>
+        <Footer />
+      </div>
+    );
   }
-  
+
   return (
     <div>
       <Header />
@@ -38,8 +75,8 @@ export default function Page() {
                 <div className="flex gap-4">
                   <div className="w-20 h-20 rounded-full bg-zinc-300" />
                   <div className="flex flex-col justify-between py-1">
-                    <span className="font-bold text-xl">오늘의 에어컨</span>
-                    <span className="text-sm text-zinc-400">“전문가”의 꼼꼼한 시공/최고의 퀄리티!/<br/>대표 직접 시공!!24시간문의 환영입니다!</span>
+                    <span className="font-bold text-xl">{post?.username ?? "오늘의 에어컨"}</span>
+                    <span className="text-sm text-zinc-400">{post?.title ?? "전문가의 꼼꼼한 시공"}</span>
                   </div>
                 </div>
                 <span className="text-sm text-zinc-600">설치/수리 &gt; 에어컨 대구광역시 / 50km 이동가능</span>
@@ -73,26 +110,35 @@ export default function Page() {
               </div>
               <button className="text-md text-zinc-400">전체 보기</button>
             </div>
-            <div className="w-full flex gap-4">
-              <Portfolio />
-              <Portfolio />
-              <Portfolio />
-              <Portfolio />
-            </div>
+            {post?.fileUrls && post.fileUrls.length > 0 ? (
+              <div className="w-full flex gap-4">
+                {post.fileUrls.map((url, i) => (
+                  <div key={i} className="w-48 h-48 rounded-lg overflow-hidden bg-zinc-200">
+                    <img src={url} alt={`포트폴리오 ${i + 1}`} className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="w-full flex gap-4">
+                <Portfolio />
+                <Portfolio />
+                <Portfolio />
+                <Portfolio />
+              </div>
+            )}
 
             {/* 상세 설명 */}
             <div className="flex flex-col gap-4">
               <h2 className="text-xl font-bold">서비스 설명</h2>
               <p
-                className={`$${""}
-                  ${isExpanded
-                    ? "text-zinc-500"
-                    : "line-clamp-10 bg-linear-to-b from-zinc-500 via-zinc-300 to-white bg-clip-text text-transparent"
+                className={`${isExpanded
+                  ? "text-zinc-500"
+                  : "line-clamp-10 bg-linear-to-b from-zinc-500 via-zinc-300 to-white bg-clip-text text-transparent"
                 }`}
               >
-                ◆ 안녕하세요 깔끔e 입니다! 저희는 20대 후반부터 30대 청년들로 구성 되어 있는 청소대행 전문업체 입니다.<br/>◆ 저희업체는 청소전문교육 및 검증이 완료된 인원만으로 청소 진행을 합니다!<br/>◆ 저희업체는 스팀청소, 검증된 친환경 약품 및 전문장비들을 이용하여 청소 진행을 합니다!<br/>◆ 저희업체는 고객님들의 최대한의 만족을 위해 시간이 걸리더라도 구애받지 않고 보다 꼼꼼하게 작업 해 드릴 것을 약속 드립니다!<br/>◆ 저희업체는 항상 청소작업 마무리 전 사전연락 드린 후, 고객님들께 검수를 받고 있습니다!<br/><br/>● 전체적인 작업은 이렇게 진행됩니다<br/>● 1. 주방<br/>✔ 싱크대 상, 하부 청소 (수납장 탈거 후 청소)<br/>✔ 가스레인지, 인덕션 등 기름때 청소 (오염도에 따라 스팀청소 및 전용세제 사용)<br/>✔ 후드 및 필터 기름때 청소 (오염도에 따라 스팀청소 및 전용세제 사용)<br/>✔ 주방 타일 기름때 청소 (오염도에 따라 스팀청소 및 전용세제사용)<br/>✔ 싱크대 걸레받이 분리 및 청소 2. 화장실<br/>✔ 벽, 천장, 타일 청소<br/>✔ 세면대, 변기 찌든때 제거<br/>✔ 거울 , 샤워부스 물때 제거<br/>✔ 환풍기 내/외부, 수납장 청소<br/>✔ 배수구, 바닥 청소
+                {description || "서비스 설명이 없습니다."}
               </p>
-              <DoButton onClick={handleShowMore}>
+              <DoButton onClick={() => setIsExpanded(!isExpanded)}>
                 {isExpanded ? "접기" : "더보기"}
               </DoButton>
             </div>
@@ -107,8 +153,6 @@ export default function Page() {
                   <span className="text-sm text-zinc-500">({reviewCount})</span>
                 </div>
               </div>
-              
-              {/* 리뷰 목록 */}
               <div className="flex flex-col gap-4">
                 <Review />
                 <Review />
@@ -120,7 +164,7 @@ export default function Page() {
           {/* right content */}
           <div className="flex flex-col gap-4">
             <div className="w-100 shrink-0">
-              <PriceCard />
+              <PriceCard username={post?.username} plan={plan} />
             </div>
             <div className="bg-zinc-100 p-4 rounded-lg">
               <ul className="flex flex-col gap-1 list-disc list-inside">
@@ -130,24 +174,22 @@ export default function Page() {
             </div>
           </div>
         </div>
-      
+
         <div className="w-full flex gap-8 justify-between">
-          <h2 className="text-2xl font-bold">이웃들이<br/>많이 찾아요</h2>
+          <h2 className="text-2xl font-bold shrink-0">이웃들이<br/>많이 찾아요</h2>
           <div className="flex gap-4">
-            <NormalCard />
-            <NormalCard />
-            <NormalCard />
-            <NormalCard />
+            {relatedPosts.slice(0, 4).map((p) => (
+              <NormalCard key={p.id} id={p.id} title={p.title} content={p.content} fileUrl={p.fileUrls?.[0]} />
+            ))}
           </div>
         </div>
 
         <div className="w-full flex gap-8 justify-between">
-          <h2 className="text-2xl font-bold">재방문율이<br/>높아요</h2>
+          <h2 className="text-2xl font-bold shrink-0">재방문율이<br/>높아요</h2>
           <div className="flex gap-4">
-            <NormalCard />
-            <NormalCard />
-            <NormalCard />
-            <NormalCard />
+            {relatedPosts.slice(4, 8).map((p) => (
+              <NormalCard key={p.id} id={p.id} title={p.title} content={p.content} fileUrl={p.fileUrls?.[0]} />
+            ))}
           </div>
         </div>
       </div>

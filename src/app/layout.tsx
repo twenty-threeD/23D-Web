@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Toast } from "@/src/components/ui/toaster"
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "@/src/components/AuthProvider";
@@ -30,6 +31,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <AuthProvider>{children}</AuthProvider>
+        <Toast />
       </body>
     </html>
   );

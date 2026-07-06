@@ -18,7 +18,7 @@ export const CheckBox = ({ isEssential, label, link = "#", checked, onChange }: 
                     checked={checked} 
                     onChange={onChange} 
                     // 팁: 체크박스 자체도 커서가 포인터여야 사용자가 편합니다
-                    className="mr-2 font-semibold accent-[#FE6A4C] w-3 h-3 cursor-pointer" 
+                    className="mr-2 font-semibold accent-main w-3 h-3 cursor-pointer" 
                 />
                 
                 {isEssential ? (

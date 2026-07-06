@@ -1,30 +1,51 @@
-import Button from "./LinkButton";
 import Link from "next/link";
 
-export default function NormalCard() {
+interface NormalCardProps {
+  id: number
+  title: string
+  content: string
+  fileUrl?: string
+  price?: string
+}
+
+function getDescription(content: string): string {
+  try {
+    const parsed = JSON.parse(content)
+    return parsed.description ?? content
+  } catch {
+    return content
+  }
+}
+
+function getPrice(content: string, fallback?: string): string | null {
+  try {
+    const parsed = JSON.parse(content)
+    const price = parsed.plan?.price || fallback
+    return price ? `${Number(price).toLocaleString()}원 ~` : null
+  } catch {
+    return fallback ? `${Number(fallback).toLocaleString()}원 ~` : null
+  }
+}
+
+export default function NormalCard({ id, title, content, fileUrl, price }: NormalCardProps) {
+  const description = getDescription(content)
+  const displayPrice = getPrice(content, price)
+
   return (
-    <div className="flex flex-col w-64 gap-2 p-3 rounded-lg hover:scale-105 hover:shadow-lg transition-transform duration-300">
-      <Link href="/item">
-        {/* 이미지 */}
-        <div className="h-48 rounded-lg bg-zinc-300 overflow-hidden">
-          <img
-            src="https://picsum.photos/seed/1/300/200"
-            alt="가게 이미지"
-            className="w-full h-full object-cover"
-          />
-        </div>
-        {/* 내용 */}
-        <h3 className="text-xl pt-2 font-semibold">민에어컨</h3>
-        <div className="flex justify-between items-center text-zinc-500">
-          <p>4.9 (123)</p>
-          <p className="font-medium">100,000원 ~</p>
-        </div>
-        <p className="font-medium text-zinc-500">
-          전문가의 에어컨 설치 이전 철거등과 및 케어 서비스, 연락주시면 에어컨
-          냉난방기 관련 모든 업무 진행합니다.
-        </p>
-      </Link>
-      <Button text="에어컨 관련 더보기" to="/" />
-    </div>
+    <Link href={`/item/${id}`} className="flex flex-col w-64 gap-2 p-3 rounded-lg hover:scale-105 hover:shadow-lg transition-transform duration-300">
+      <div className="h-48 rounded-lg bg-zinc-300 overflow-hidden">
+        {fileUrl ? (
+          <img src={fileUrl} alt={title} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full bg-zinc-200" />
+        )}
+      </div>
+      <h3 className="text-xl pt-2 font-semibold line-clamp-1">{title}</h3>
+      <div className="flex justify-between items-center text-zinc-500">
+        <p>-</p>
+        {displayPrice && <p className="font-medium">{displayPrice}</p>}
+      </div>
+      <p className="font-medium text-zinc-500 line-clamp-2">{description}</p>
+    </Link>
   );
 }

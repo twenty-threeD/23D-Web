@@ -4,19 +4,20 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-
+import { useToast } from "@/src/hooks/useToast";
 import { InputField } from "@/src/components/InputField";
 import BackButton from "@/src/components/BackButton";
 import { login } from "@/src/lib/auth";
 import { useAuthStore } from "@/src/store/authStore";
 
 export default function Page() {
+  const { addToast } = useToast();
   const router = useRouter();
   const setToken = useAuthStore((s) => s.setToken);
 
   // 1. 입력값 상태 관리
   const [formData, setFormData] = useState({
-    username: "",
+    email: "",
     password: "",
   });
 
@@ -25,19 +26,18 @@ export default function Page() {
   };
 
   const canLogin =
-    formData.username.trim() !== "" && formData.password.trim() !== "";
+    formData.email.trim() !== "" && formData.password.trim() !== "";
 
   const handleLogin = async () => {
     if (!canLogin) return;
-    console.log("로그인 시도:", formData);
     try {
-      const data = await login(formData.username, formData.password);
-      setToken(data.accessToken);
-      console.log(data);
+      const data = await login(formData.email, formData.password);
       setToken(data.accessToken);
       router.push("/main");
     } catch (e) {
-      alert("로그인 실패");
+      addToast(
+        { message: e instanceof Error ? e.message : '로그인에 실패했습니다.', type: 'error' }
+      )
     }
   };
 
@@ -68,11 +68,11 @@ export default function Page() {
           {/* 인풋 필드 영역 */}
           <div className="mb-2.5">
             <InputField
-              label="아이디 입력"
-              placeholder="아이디를 입력해주세요"
+              label="이메일 입력"
+              placeholder="이메일을 입력해주세요"
               isEssential={true}
-              value={formData.username}
-              onChange={(e) => handleChange("username", e.target.value)}
+              value={formData.email}
+              onChange={(e) => handleChange("email", e.target.value)}
             />
             <InputField
               label="비밀번호 입력"

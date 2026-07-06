@@ -5,6 +5,9 @@ import { CiCamera } from "react-icons/ci"
 import Image from "next/image"
 import { uploadFile } from "@/src/lib/file"
 import { useAuthStore } from "@/src/store/authStore"
+import { useToast } from "@/src/hooks/useToast"
+
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"]
 
 interface UploadFileProps {
   onUpload?: (url: string) => void
@@ -12,16 +15,27 @@ interface UploadFileProps {
 
 export default function UploadFile({ onUpload }: UploadFileProps) {
   const token = useAuthStore((s) => s.accessToken)
+  const { addToast } = useToast()
   const inputRef = useRef<HTMLInputElement>(null)
   const [images, setImages] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
 
   async function handleFiles(files: FileList | null) {
     if (!files || !token) return
+
+    const validFiles = Array.from(files).filter((file) => {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        addToast({ message: `${file.name}: 지원되지 않는 파일 형식입니다. (JPG, PNG, GIF, WEBP만 가능)`, type: "error" })
+        return false
+      }
+      return true
+    })
+    if (validFiles.length === 0) return
+
     setUploading(true)
     try {
       const uploaded: string[] = []
-      for (const file of Array.from(files)) {
+      for (const file of validFiles) {
         const { url } = await uploadFile(token, file)
         uploaded.push(url)
       }
@@ -29,7 +43,7 @@ export default function UploadFile({ onUpload }: UploadFileProps) {
       setImages(next)
       if (next[0]) onUpload?.(next[0])
     } catch {
-      /* ignore */
+      addToast({ message: "이미지 업로드에 실패했습니다.", type: "error" })
     } finally {
       setUploading(false)
     }
@@ -63,7 +77,7 @@ export default function UploadFile({ onUpload }: UploadFileProps) {
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/gif,image/webp"
         multiple
         className="hidden"
         onChange={(e) => handleFiles(e.target.files)}
@@ -73,17 +87,32 @@ export default function UploadFile({ onUpload }: UploadFileProps) {
         {Array.from({ length: 5 }).map((_, i) => (
           <div
             key={i}
-            className="shrink-0 w-18 h-18 border border-zinc-300 rounded-lg bg-zinc-50 overflow-hidden cursor-pointer"
+            className="relative shrink-0 w-18 h-18 border border-zinc-300 rounded-lg bg-zinc-50 overflow-hidden cursor-pointer"
             onClick={() => !images[i] && inputRef.current?.click()}
           >
             {images[i] ? (
-              <Image
-                src={images[i]}
-                alt={`이미지 ${i + 1}`}
-                width={72}
-                height={72}
-                className="w-full h-full object-cover"
-              />
+              <>
+                <Image
+                  src={images[i]}
+                  alt={`이미지 ${i + 1}`}
+                  width={72}
+                  height={72}
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const next = images.filter((_, j) => j !== i)
+                    setImages(next)
+                    if (next[0]) onUpload?.(next[0])
+                    else onUpload?.("")
+                  }}
+                  className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/60 text-white text-xs flex items-center justify-center cursor-pointer"
+                >
+                  ×
+                </button>
+              </>
             ) : null}
           </div>
         ))}

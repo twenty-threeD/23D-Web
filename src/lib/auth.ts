@@ -48,21 +48,23 @@ export async function signup(
   })
   if (!res.ok) {
     const err = await res.json()
-    console.log('회원가입 에러:', err) // 이거 콘솔에서 확인
-    throw new Error('회원가입 실패')
+    throw new Error(err?.error?.message ?? '회원가입에 실패했습니다.')
   }
   return res.json()
 }
 
 // 로그인
-export async function login(username: string, password: string) {
+export async function login(email: string, password: string) {
   const res = await fetch(`${BASE}/api/auth/signin`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ email, password }),
   })
-  if (!res.ok) throw new Error('로그인 실패')
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err?.error?.message ?? '로그인에 실패했습니다.')
+  }
   const json = await res.json()
   return json.data
 }

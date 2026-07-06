@@ -20,6 +20,9 @@ import {
   removeLike,
 } from "@/src/lib/community"
 import { useAuthStore } from "@/src/store/authStore"
+import { useLikeStore } from "@/src/store/likeStore"
+import { ApiError } from "@/src/lib/apiError"
+import { useHandleError } from "@/src/hooks/useHandleError"
 import TopButton from "@/src/components/TopButton"
 
 interface Post {
@@ -58,6 +61,8 @@ export default function Page() {
   const postId = Number(Array.isArray(params.id) ? params.id[0] : params.id)
   const token = useAuthStore((s) => s.accessToken)
 
+  const handleError = useHandleError()
+  const likeStore = useLikeStore()
   const [post, setPost] = useState<Post | null>(null)
   const [comments, setComments] = useState<CommentData[]>([])
   const [relatedPosts, setRelatedPosts] = useState<PostListItem[]>([])
@@ -72,12 +77,14 @@ export default function Page() {
     setLoading(true)
     try {
       const res = await getPost(postId, token)
-      const data = Array.isArray(res.data) ? res.data[0] : res.data
+      const data = Array.isArray(res.data)
+        ? (res.data.find((p: Post) => p.id === postId) ?? res.data[0])
+        : res.data
       setPost(data)
       setLikeCount(data?.likeCount ?? 0)
-      setIsLiked(data?.isLiked ?? false)
-    } catch {
-      router.replace("/community")
+      setIsLiked(data?.isLiked ?? likeStore.isLiked(postId))
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) router.replace("/community")
     } finally {
       setLoading(false)
     }
@@ -116,16 +123,15 @@ export default function Page() {
         await removeLike(token, postId)
         setIsLiked(false)
         setLikeCount((c) => c - 1)
+        likeStore.unlike(postId)
       } else {
         const res = await addLike(token, postId)
-        if (res?.alreadyLiked) {
-          setIsLiked(true)
-          return
-        }
+        if (res?.alreadyLiked) { setIsLiked(true); likeStore.like(postId); return }
         setIsLiked(true)
         setLikeCount((c) => c + 1)
+        likeStore.like(postId)
       }
-    } catch { /* ignore */ }
+    } catch (e) { handleError(e) }
   }
 
   async function handleCommentSubmit() {
@@ -136,7 +142,9 @@ export default function Page() {
       await createComment(token, postId, commentText)
       setCommentText("")
       await fetchComments()
-    } catch { /* ignore */ } finally {
+    } catch (e) {
+      handleError(e)
+    } finally {
       setSubmitting(false)
     }
   }
