@@ -5,6 +5,7 @@ import { InputField } from "@/src/components/InputField";
 
 import { SignUpFormData } from "@/type/authData";
 import { sendVerifyCode, checkVerifyCode } from '@/src/lib/auth'
+import { useToast } from "@/src/hooks/useToast"
 
 interface InputEmailProps {
     formData: SignUpFormData;
@@ -13,13 +14,14 @@ interface InputEmailProps {
 }
 
 const InputEmail = ({ formData, setFormData, onNext }: InputEmailProps) => {
+    const { addToast } = useToast()
     const handleChange = (key: keyof SignUpFormData, value: string) => {
         setFormData((prev) => ({ ...prev, [key]: value }));
     };
 
-    const isAllValid = 
+    const isAllValid =
         formData.email.trim() !== "" &&
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email); 
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
 
     const [showVerification, setShowVerification] = useState(false);
     const [isWaiting, setIsWaiting] = useState(false);
@@ -29,6 +31,9 @@ const InputEmail = ({ formData, setFormData, onNext }: InputEmailProps) => {
         try {
             await sendVerifyCode(formData.email)
             setShowVerification(true)
+            addToast({ message: "인증번호가 발송되었습니다.", type: "success" })
+        } catch (e) {
+            addToast({ message: e instanceof Error ? e.message : "인증번호 발송에 실패했습니다.", type: "error" })
         } finally {
             setIsWaiting(false)
         }
@@ -40,7 +45,7 @@ const InputEmail = ({ formData, setFormData, onNext }: InputEmailProps) => {
             await checkVerifyCode(formData.email, formData.emailVerification)
             onNext()
         } catch {
-            alert("인증번호가 일치하지 않습니다.")
+            addToast({ message: "인증번호가 일치하지 않습니다.", type: "error" })
         } finally {
             setIsWaiting(false)
         }

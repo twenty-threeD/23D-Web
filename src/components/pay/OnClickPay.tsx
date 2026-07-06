@@ -7,9 +7,10 @@ interface OnClickPayProps {
   price: number;
   orderName?: string;
   orderCustomerName?: string;
+  postId?: number;
 }
 
-export const OnClickPay = ({ isAgree, price, orderName, orderCustomerName }: OnClickPayProps) => {
+export const OnClickPay = ({ isAgree, price, orderName, orderCustomerName, postId }: OnClickPayProps) => {
   
   const handlePayment = async () => {
     if (!isAgree) return;
@@ -35,8 +36,8 @@ export const OnClickPay = ({ isAgree, price, orderName, orderCustomerName }: OnC
         },
         orderId: `order_${Date.now()}`,
         orderName: `잇다: ${orderName || "잇다 서비스 결제"}`,
-        successUrl: `${window.location.origin}/pay/success`,
-        failUrl: `${window.location.origin}/pay/fail`,
+        successUrl: `${window.location.origin}/pay/success${postId ? `?postId=${postId}` : ""}`,
+        failUrl: `${window.location.origin}/pay/fail${postId ? `?postId=${postId}` : ""}`,
         customerName: orderCustomerName || "익명의 고객",
       });
     } catch (error) {

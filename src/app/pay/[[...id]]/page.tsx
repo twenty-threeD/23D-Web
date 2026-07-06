@@ -74,6 +74,7 @@ const Page = () => {
               price={price}
               orderName={post?.title ?? "잇다 서비스"}
               orderCustomerName={username ?? ""}
+              postId={postId ?? undefined}
             />
           </div>
         </div>
