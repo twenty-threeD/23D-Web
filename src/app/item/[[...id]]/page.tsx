@@ -14,6 +14,7 @@ import NormalCard from "@/src/components/NormalCard";
 import TopButton from "@/src/components/TopButton";
 import { FaStar } from "react-icons/fa";
 import { getPost, getPosts, type Post } from "@/src/lib/post"
+import { toRelativeUrl } from "@/src/lib/file"
 import { type PriceCardPlan } from "@/src/types/priceCard";
 import { useAuthStore } from "@/src/store/authStore";
 
@@ -116,7 +117,7 @@ export default function Page() {
               <div className="w-full flex gap-4">
                 {post.fileUrls.map((url, i) => (
                   <div key={i} className="w-48 h-48 rounded-lg overflow-hidden bg-zinc-200">
-                    <img src={url} alt={`포트폴리오 ${i + 1}`} className="w-full h-full object-cover" />
+                    <img src={toRelativeUrl(url)} alt={`포트폴리오 ${i + 1}`} className="w-full h-full object-cover" />
                   </div>
                 ))}
               </div>

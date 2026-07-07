@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { toRelativeUrl } from "@/src/lib/file"
 
 interface PremiumCardProps {
   id: number
@@ -23,7 +24,7 @@ export default function PremiumCard({ id, title, content, fileUrl }: PremiumCard
     <Link href={`/item/${id}`} className="flex flex-col w-lg h-72 p-3 rounded-lg hover:scale-105 hover:shadow-lg transition-transform duration-300">
       <div className="w-full min-h-32 bg-zinc-300 flex items-center justify-start rounded-lg overflow-hidden">
         {fileUrl ? (
-          <img src={fileUrl} alt={title} className="w-full h-full object-cover" />
+          <img src={toRelativeUrl(fileUrl)} alt={title} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full bg-zinc-200" />
         )}

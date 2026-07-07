@@ -10,6 +10,7 @@ import { HiDotsHorizontal } from "react-icons/hi"
 import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment } from "react-icons/md"
 import { useAuthStore } from "@/src/store/authStore"
 import { getChatRooms, getChatMessages } from "@/src/lib/chat"
+import { toRelativeUrl } from "@/src/lib/file"
 import { Client } from "@stomp/stompjs"
 import SockJS from "sockjs-client"
 import ContractModal from "@/src/components/chat/ContractModal"
@@ -266,7 +267,7 @@ export default function Page() {
                           </div>
                           {hasImage ? (
                             <div className="w-48 rounded-xl overflow-hidden">
-                              <img src={msg.attachedFileUrls[0]} alt="첨부 이미지" className="w-full h-auto" />
+                              <img src={toRelativeUrl(msg.attachedFileUrls[0])} alt="첨부 이미지" className="w-full h-auto" />
                             </div>
                           ) : (
                             <div className="bg-zinc-100 rounded-2xl rounded-bl-none px-4 py-2 max-w-xs">
@@ -280,7 +281,7 @@ export default function Page() {
                           <span className="text-xs text-zinc-400">{formatTime(msg.createdAt)}</span>
                           {hasImage ? (
                             <div className="w-48 rounded-xl overflow-hidden">
-                              <img src={msg.attachedFileUrls[0]} alt="첨부 이미지" className="w-full h-auto" />
+                              <img src={toRelativeUrl(msg.attachedFileUrls[0])} alt="첨부 이미지" className="w-full h-auto" />
                             </div>
                           ) : (
                             <div className="bg-main rounded-2xl rounded-br-none px-4 py-2 max-w-xs">

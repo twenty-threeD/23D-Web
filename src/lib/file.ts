@@ -1,3 +1,11 @@
+const BACKEND_ORIGIN = 'http://13.125.161.66:8080'
+
+export function toRelativeUrl(url: string | null | undefined): string {
+  if (!url) return ''
+  if (url.startsWith(BACKEND_ORIGIN)) return url.slice(BACKEND_ORIGIN.length)
+  return url
+}
+
 export async function uploadFile(token: string, file: File): Promise<{ url: string }> {
   const formData = new FormData()
   formData.append('file', file, file.name)
@@ -10,6 +18,5 @@ export async function uploadFile(token: string, file: File): Promise<{ url: stri
   if (!res.ok) throw new Error('파일 업로드 실패')
   const json = await res.json()
   const fileUrl: string = json.data?.fileUrl ?? json.fileUrl ?? ''
-  const url = fileUrl.startsWith('http') ? fileUrl : `${process.env.NEXT_PUBLIC_API_URL}${fileUrl}`
-  return { url }
+  return { url: toRelativeUrl(fileUrl) }
 }
