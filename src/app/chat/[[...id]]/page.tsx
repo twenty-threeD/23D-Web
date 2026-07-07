@@ -39,7 +39,14 @@ export default function Page() {
   const params = useParams()
   const router = useRouter()
   const token = useAuthStore((s) => s.accessToken)
-  const myUsername = useAuthStore((s) => s.username)
+  const myUsername = useAuthStore((s) => {
+    if (s.username) return s.username
+    if (!s.accessToken) return null
+    try {
+      const p = JSON.parse(atob(s.accessToken.split('.')[1]))
+      return p.username ?? p.sub ?? null
+    } catch { return null }
+  })
   const selectedId = params.id ? Number(Array.isArray(params.id) ? params.id[0] : params.id) : null
 
   const [tab, setTab] = useState<Tab>("received")
@@ -59,6 +66,14 @@ export default function Page() {
   }, [messages])
 
   useEffect(() => {
+    if (!token) return
+    try {
+      const p = JSON.parse(atob(token.split('.')[1]))
+      console.log('[chat] JWT payload:', p, '| myUsername:', myUsername)
+    } catch {}
+  }, [token, myUsername])
+
+  useEffect(() => {
     if (!selectedId || !token) return
 
     const sockjsUrl = `${window.location.protocol}//${window.location.host}/ws-stomp?token=${token}`
@@ -72,6 +87,7 @@ export default function Page() {
         client.subscribe(`/topic/chat/rooms/${selectedId}`, (frame) => {
           try {
             const msg: Message = JSON.parse(frame.body)
+            console.log('[chat] msg.senderUsername:', msg.senderUsername)
             setMessages((prev) => [...prev, msg])
           } catch {}
         })

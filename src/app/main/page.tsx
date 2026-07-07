@@ -90,8 +90,8 @@ export default function Page() {
               </div>
             </div>
           </div>
-          <div className="w-full h-64 border overflow-hidden border-zinc-300 rounded-lg">
-            <img src="banner.png" alt="" className="h-full object-cover" />
+          <div className="w-full overflow-hidden border border-zinc-300 rounded-lg">
+            <img src="banner.png" alt="" className="w-full h-auto" />
           </div>
         </div>
 
