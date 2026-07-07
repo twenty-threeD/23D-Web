@@ -4,13 +4,13 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Header from "@/src/components/Header"
 import Image from "next/image"
-import { IoClose, IoSend } from "react-icons/io5"
+import { IoClose, IoSend, IoAdd } from "react-icons/io5"
 import Search from "@/src/components/Search"
 import { HiDotsHorizontal } from "react-icons/hi"
 import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment } from "react-icons/md"
 import { useAuthStore } from "@/src/store/authStore"
 import { getChatRooms, getChatMessages } from "@/src/lib/chat"
-import { toRelativeUrl } from "@/src/lib/file"
+import { toRelativeUrl, uploadFile } from "@/src/lib/file"
 import { Client } from "@stomp/stompjs"
 import SockJS from "sockjs-client"
 import ContractModal from "@/src/components/chat/ContractModal"
@@ -58,8 +58,12 @@ export default function Page() {
   const [messages, setMessages] = useState<Message[]>([])
   const [loadingRooms, setLoadingRooms] = useState(true)
   const [loadingMessages, setLoadingMessages] = useState(false)
+  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null)
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
   const stompClientRef = useRef<Client | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -145,18 +149,48 @@ export default function Page() {
 
   const filteredRooms = rooms.filter((r) => r.participantName.includes(search))
 
-  function handleSend() {
-    if (!message.trim()) return
-    const client = stompClientRef.current
-    if (!client?.connected) return
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !token) return
+    const preview = URL.createObjectURL(file)
+    setPendingPreview(preview)
+    setShowAttach(false)
+    setUploading(true)
+    try {
+      const { url } = await uploadFile(token, file)
+      setPendingImageUrl(url)
+    } catch {
+      URL.revokeObjectURL(preview)
+      setPendingPreview(null)
+    } finally {
+      setUploading(false)
+      e.target.value = ""
+    }
+  }
 
-    const body = JSON.stringify({ roomId: selectedId, message, fileUrls: [] })
+  function clearPendingImage() {
+    if (pendingPreview) URL.revokeObjectURL(pendingPreview)
+    setPendingPreview(null)
+    setPendingImageUrl(null)
+  }
+
+  function handleSend() {
+    if (!message.trim() && !pendingImageUrl) return
+    const client = stompClientRef.current
+    if (!client?.connected || uploading) return
+
+    const body = JSON.stringify({
+      roomId: selectedId,
+      message: message.trim() || "",
+      fileUrls: pendingImageUrl ? [pendingImageUrl] : [],
+    })
     client.publish({
       destination: "/app/chat.send",
       headers: { Authorization: `Bearer ${token}` },
       body,
     })
     setMessage("")
+    clearPendingImage()
   }
 
   function formatTime(dateStr: string) {
@@ -324,7 +358,10 @@ export default function Page() {
               {showAttach && (
                 <div className="flex gap-6">
                   <div className="flex flex-col items-center gap-1">
-                    <button className="w-12 h-12 rounded-full bg-main flex items-center justify-center cursor-pointer">
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-12 h-12 rounded-full bg-main flex items-center justify-center cursor-pointer"
+                    >
                       <MdOutlineImage className="text-white text-2xl" />
                     </button>
                     <span className="text-xs text-zinc-500">사진</span>
@@ -347,14 +384,32 @@ export default function Page() {
                 </div>
               )}
 
+              {pendingPreview && (
+                <div className="relative w-24 h-24 rounded-lg overflow-hidden shrink-0">
+                  <img src={pendingPreview} alt="첨부 이미지" className="w-full h-full object-cover" />
+                  {uploading ? (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <span className="text-white text-xs">업로드 중</span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={clearPendingImage}
+                      className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center cursor-pointer"
+                    >
+                      <IoClose className="text-white text-xs" />
+                    </button>
+                  )}
+                </div>
+              )}
+
               <div className="flex items-center gap-3 p-2 rounded-lg border border-zinc-200">
                 <button
                   onClick={() => setShowAttach((v) => !v)}
-                  className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 cursor-pointer ${
+                  className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-colors ${
                     showAttach ? "bg-main" : "bg-zinc-200"
                   }`}
                 >
-                  <IoClose className={`text-xl ${showAttach ? "text-white" : "text-zinc-500"}`} />
+                  <IoAdd className={`text-xl transition-transform duration-200 ${showAttach ? "text-white rotate-45" : "text-zinc-500"}`} />
                 </button>
                 <input
                   className="flex-1 text-sm focus:outline-none"
@@ -365,11 +420,20 @@ export default function Page() {
                 />
                 <button
                   onClick={handleSend}
-                  className="w-9 h-9 rounded-full bg-main flex items-center justify-center shrink-0 cursor-pointer"
+                  disabled={uploading}
+                  className="w-9 h-9 rounded-full bg-main flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-50"
                 >
                   <IoSend className="text-white text-base" />
                 </button>
               </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
+              />
             </div>
           )}
         </div>
