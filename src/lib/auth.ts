@@ -64,8 +64,9 @@ export async function login(email: string, password: string) {
 }
 
 // 로그아웃
-export async function logout() {
+export async function logout(token?: string | null) {
   await fetch(`/api/auth/signout`, {
     method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
 }

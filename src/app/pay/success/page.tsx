@@ -3,20 +3,38 @@
 import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/src/hooks/useToast";
+import { confirmPayment } from "@/src/lib/payment";
+import { useAuthStore } from "@/src/store/authStore";
 
 function SuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { addToast } = useToast();
+  const token = useAuthStore((s) => s.accessToken);
 
   useEffect(() => {
     const postId = searchParams.get("postId");
-    addToast({ message: "결제가 완료되었습니다.", type: "success" });
-    if (postId) {
-      router.replace(`/item/${postId}`);
-    } else {
-      router.replace("/main");
+    const paymentKey = searchParams.get("paymentKey");
+    const orderId = searchParams.get("orderId");
+    const amount = searchParams.get("amount");
+    const destination = postId ? `/item/${postId}` : "/main";
+
+    async function run() {
+      if (!token || !paymentKey || !orderId || !amount) {
+        addToast({ message: "결제 정보를 확인할 수 없습니다.", type: "error" });
+        router.replace(destination);
+        return;
+      }
+      try {
+        await confirmPayment(token, { paymentKey, orderId, amount: Number(amount) });
+        addToast({ message: "결제가 완료되었습니다.", type: "success" });
+      } catch (e) {
+        addToast({ message: e instanceof Error ? e.message : "결제 승인에 실패했습니다.", type: "error" });
+      } finally {
+        router.replace(destination);
+      }
     }
+    run();
   }, []);
 
   return (

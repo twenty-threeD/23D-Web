@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useRef, useEffect, useCallback } from "react"
+import { useRouter, useParams } from "next/navigation"
 import dynamic from "next/dynamic"
 import Header from "@/src/components/Header"
 import Footer from "@/src/components/Footer"
 import CommunityMenu from "@/src/components/CommunitySideBar"
 import { IoImageOutline } from "react-icons/io5"
-import { createPost } from "@/src/lib/community"
+import { getPost, createPost, updatePost } from "@/src/lib/community"
 import { uploadFile } from "@/src/lib/file"
 import { useAuthStore } from "@/src/store/authStore"
 import { useHandleError } from "@/src/hooks/useHandleError"
@@ -16,7 +16,17 @@ const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false })
 
 export default function Page() {
   const router = useRouter()
+  const params = useParams()
+  const postId = params.id ? Number(Array.isArray(params.id) ? params.id[0] : params.id) : null
   const token = useAuthStore((s) => s.accessToken)
+  const myUsername = useAuthStore((s) => {
+    if (s.username) return s.username
+    if (!s.accessToken) return null
+    try {
+      const p = JSON.parse(atob(s.accessToken.split('.')[1]))
+      return p.username ?? p.sub ?? null
+    } catch { return null }
+  })
   const handleError = useHandleError()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cursorPosRef = useRef<number>(0)
@@ -25,6 +35,29 @@ export default function Page() {
   const [content, setContent] = useState("")
   const [uploading, setUploading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [loading, setLoading] = useState(!!postId)
+
+  const fetchPost = useCallback(async () => {
+    if (!postId) return
+    setLoading(true)
+    try {
+      const res = await getPost(postId, token)
+      const data = res.data ?? res
+      if (data.username && myUsername && data.username !== myUsername) {
+        router.replace(`/posts/${postId}`)
+        return
+      }
+      setTitle(data.title ?? "")
+      setContent(data.content ?? "")
+    } catch (e) {
+      handleError(e)
+      router.replace("/community")
+    } finally {
+      setLoading(false)
+    }
+  }, [postId, token, myUsername])
+
+  useEffect(() => { fetchPost() }, [fetchPost])
 
   function handleUploadClick() {
     const ta = document.querySelector(".w-md-editor-text-input") as HTMLTextAreaElement | null
@@ -59,15 +92,30 @@ export default function Page() {
     if (!title.trim() || !content.trim()) return
     setSubmitting(true)
     try {
-      const res = await createPost(token, { title, content })
-      const postId = res.data?.postId
-      router.push(postId ? `/posts/${postId}` : "/community")
+      if (postId) {
+        await updatePost(token, postId, { title, content })
+        router.push(`/posts/${postId}`)
+      } else {
+        const res = await createPost(token, { title, content })
+        const newId = res.data?.postId
+        router.push(newId ? `/posts/${newId}` : "/community")
+      }
     } catch (e) { handleError(e) } finally {
       setSubmitting(false)
     }
   }
 
   const isReady = title.trim().length > 0 && content.trim().length > 0
+
+  if (loading) {
+    return (
+      <div>
+        <Header />
+        <p className="text-center py-20 text-zinc-400">불러오는 중...</p>
+        <Footer />
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -77,7 +125,7 @@ export default function Page() {
 
         <main className="flex flex-col gap-4 w-full">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-zinc-800">글쓰기</h1>
+            <h1 className="text-xl font-bold text-zinc-800">{postId ? "글 수정" : "글쓰기"}</h1>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => router.back()}
@@ -90,7 +138,7 @@ export default function Page() {
                 disabled={!isReady || submitting}
                 className="px-5 py-2 rounded-lg bg-main text-white text-sm font-semibold hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {submitting ? "등록 중..." : "등록"}
+                {submitting ? (postId ? "수정 중..." : "등록 중...") : (postId ? "수정" : "등록")}
               </button>
             </div>
           </div>

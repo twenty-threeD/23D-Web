@@ -19,7 +19,6 @@ export async function POST(req: NextRequest) {
   })
 
   const text = await res.text()
-  console.log('[upload proxy]', res.status, text)
 
   try {
     return NextResponse.json(JSON.parse(text), { status: res.status })

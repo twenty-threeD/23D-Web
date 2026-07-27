@@ -81,3 +81,41 @@ export async function searchPosts(title: string, page = 0, size = 20) {
   const list: Post[] = Array.isArray(raw) ? raw : (raw?.content ?? [])
   return list
 }
+
+export interface FavoriteResult {
+  postId: number
+  favoriteCount: number
+  message: string
+}
+
+export async function favoritePost(token: string, postId: number) {
+  const res = await fetch(`/api/post/favorite?postId=${postId}`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  })
+  if (!res.ok) await throwApiError(res)
+  const json = await res.json()
+  return json.data as FavoriteResult
+}
+
+export async function unfavoritePost(token: string, postId: number) {
+  const res = await fetch(`/api/post/favorite?postId=${postId}`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  })
+  if (!res.ok) await throwApiError(res)
+  const json = await res.json()
+  return json.data as FavoriteResult
+}
+
+export async function getFavoritePosts(token: string, page = 0, size = 20) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) })
+  const res = await fetch(`/api/post/favorite?${params}`, {
+    headers: authHeaders(token),
+  })
+  if (!res.ok) await throwApiError(res)
+  const json = await res.json()
+  const raw = json?.data ?? json
+  const list: Post[] = Array.isArray(raw) ? raw : (raw?.content ?? [])
+  return list
+}

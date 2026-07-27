@@ -5,6 +5,7 @@ import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import Search from "./Search";
 import { useAuthStore } from "@/src/store/authStore";
+import { logout } from "@/src/lib/auth";
 
 export default function Header() {
   const [scrollY, setScrollY] = useState(0);
@@ -16,10 +17,18 @@ export default function Header() {
   const clear = useAuthStore((s) => s.clear);
   const isPostPage = pathname === "/community";
 
-  function handleLogout() {
+  async function handleLogout() {
+    try {
+      await logout(token);
+    } catch {}
     clear();
     setShowMenu(false);
     router.push("/login/signin");
+  }
+
+  function handleSearch(keyword: string) {
+    if (!keyword.trim()) return;
+    router.push(`/main?keyword=${encodeURIComponent(keyword)}`);
   }
 
   useEffect(() => {
@@ -51,11 +60,12 @@ export default function Header() {
           <li><Link href="/" className="text-zinc-500 text-sm font-semibold ">견적요청</Link></li>
           <li><Link href="/chat" className="text-zinc-500 text-sm font-semibold">능력자 찾기</Link></li>
           <li><Link href="/community" className="text-zinc-500 text-sm font-semibold">커뮤니티</Link></li>
+          <li><Link href="/upload" className="text-zinc-500 text-sm font-semibold">서비스 등록</Link></li>
         </ul>
       </div>
 
       {/* 검색창 */}
-      <Search isTop={isPostPage ? true : isTop} where="header" />
+      <Search isTop={isPostPage ? true : isTop} where="header" onSearch={handleSearch} />
 
       {/* 로그인 / 프로필 */}
       {token ? (

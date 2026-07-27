@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Header from "@/src/components/Header";
 import Footer from "@/src/components/Footer";
 import Banner from "@/src/components/Banner";
@@ -13,10 +13,12 @@ import StarRating from "@/src/components/StarRating";
 import NormalCard from "@/src/components/NormalCard";
 import TopButton from "@/src/components/TopButton";
 import { FaStar } from "react-icons/fa";
-import { getPost, getPosts, type Post } from "@/src/lib/post"
+import { IoMdHeart, IoMdHeartEmpty } from "react-icons/io";
+import { getPost, getPosts, favoritePost, unfavoritePost, getFavoritePosts, type Post } from "@/src/lib/post"
 import { toRelativeUrl } from "@/src/lib/file"
 import { type PriceCardPlan } from "@/src/types/priceCard";
 import { useAuthStore } from "@/src/store/authStore";
+import { useHandleError } from "@/src/hooks/useHandleError";
 
 function parsePlan(content: string): { description: string; plan?: PriceCardPlan } {
   try {
@@ -28,15 +30,20 @@ function parsePlan(content: string): { description: string; plan?: PriceCardPlan
 
 export default function Page() {
   const params = useParams();
+  const router = useRouter();
   const postId = params.id ? Number(Array.isArray(params.id) ? params.id[0] : params.id) : null;
 
   const token = useAuthStore((s) => s.accessToken);
+  const myUsername = useAuthStore((s) => s.username);
+  const handleError = useHandleError();
   const reviewCount = 24;
   const review = 4.5;
   const [isExpanded, setIsExpanded] = useState(false);
   const [post, setPost] = useState<Post | null>(null);
   const [relatedPosts, setRelatedPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [favoriteBusy, setFavoriteBusy] = useState(false);
 
   useEffect(() => {
     if (!postId) return;
@@ -51,7 +58,33 @@ export default function Page() {
     getPosts(token).then((list) => setRelatedPosts(list)).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (!token || !postId) return;
+    getFavoritePosts(token)
+      .then((list) => setIsFavorited(list.some((p) => p.id === postId)))
+      .catch(() => {});
+  }, [token, postId]);
+
+  async function handleToggleFavorite() {
+    if (!token || !postId) { router.push("/login/signin"); return; }
+    setFavoriteBusy(true);
+    try {
+      if (isFavorited) {
+        await unfavoritePost(token, postId);
+        setIsFavorited(false);
+      } else {
+        await favoritePost(token, postId);
+        setIsFavorited(true);
+      }
+    } catch (e) {
+      handleError(e);
+    } finally {
+      setFavoriteBusy(false);
+    }
+  }
+
   const { description, plan } = post ? parsePlan(post.content) : { description: "" };
+  const isOwner = !!(post?.member?.username && myUsername && post.member.username === myUsername);
 
   if (loading) {
     return (
@@ -82,7 +115,30 @@ export default function Page() {
                     <span className="text-sm text-zinc-400">{post?.title ?? "전문가의 꼼꼼한 시공"}</span>
                   </div>
                 </div>
-                <span className="text-sm text-zinc-600">설치/수리 &gt; 에어컨 대구광역시 / 50km 이동가능</span>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-sm text-zinc-600">설치/수리 &gt; 에어컨 대구광역시 / 50km 이동가능</span>
+                  {isOwner ? (
+                    <button
+                      onClick={() => router.push(`/upload/${postId}`)}
+                      className="px-3 py-1 text-sm text-zinc-600 border border-zinc-300 rounded-lg hover:bg-zinc-50 cursor-pointer"
+                    >
+                      수정
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleToggleFavorite}
+                      disabled={favoriteBusy}
+                      className="p-1 disabled:opacity-50 cursor-pointer"
+                      aria-label="찜하기"
+                    >
+                      {isFavorited ? (
+                        <IoMdHeart className="text-2xl text-main" />
+                      ) : (
+                        <IoMdHeartEmpty className="text-2xl text-main" />
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="flex w-full py-4 items-center justify-between">

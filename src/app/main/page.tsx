@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Header from "@/src/components/Header";
 import Footer from "@/src/components/Footer";
 import PremiumCard from "@/src/components/PremiumCard";
@@ -8,20 +9,30 @@ import PremiumCardSkeleton from "@/src/components/PremiumCardSkeleton";
 import NormalCard from "@/src/components/NormalCard";
 import NormalCardSkeleton from "@/src/components/NormalCardSkeleton";
 import Search from "@/src/components/Search";
-import { getPosts, type Post } from "@/src/lib/post";
+import { getPosts, searchPosts, type Post } from "@/src/lib/post";
 import { useAuthStore } from "@/src/store/authStore";
 
-export default function Page() {
+function MainContent() {
   const token = useAuthStore((s) => s.accessToken);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const keyword = searchParams.get("keyword") ?? "";
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getPosts(token)
+    setLoading(true);
+    const request = keyword ? searchPosts(keyword) : getPosts(token);
+    request
       .then((list) => setPosts(list))
-      .catch(() => {})
+      .catch(() => setPosts([]))
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [token, keyword]);
+
+  function handleSearch(value: string) {
+    if (value.trim()) router.push(`/main?keyword=${encodeURIComponent(value)}`);
+    else router.push("/main");
+  }
 
   const premiumPosts = posts.slice(0, 3);
   const popularPosts = posts.slice(0, 4);
@@ -38,7 +49,7 @@ export default function Page() {
               <h1 className="text-3xl font-semibold">능력자가 필요한 순간,</h1>
               <h1 className="text-3xl font-semibold whitespace-nowrap">좋은 능력자를 바로바로 잇다에서!</h1>
             </div>
-            <Search />
+            <Search onSearch={handleSearch} />
             <div className="flex w-full gap-3">
               <div className="flex flex-col items-center justify-center w-0 flex-1">
                 <div className="w-full rounded-lg aspect-square bg-red-200">
@@ -149,5 +160,13 @@ export default function Page() {
       </div>
       <Footer />
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <MainContent />
+    </Suspense>
   );
 }

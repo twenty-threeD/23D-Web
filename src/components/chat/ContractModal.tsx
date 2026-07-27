@@ -34,7 +34,8 @@ export default function ContractModal({
   const [clientName, setClientName] = useState(client.name)
   const [professionalName, setProfessionalName] = useState(professional.name)
 
-  const canSubmit = clientSig && professionalSig && clientName.trim() && professionalName.trim()
+  const mySig = myRole === "client" ? clientSig : professionalSig
+  const canSubmit = !!mySig && clientName.trim() !== "" && professionalName.trim() !== ""
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">

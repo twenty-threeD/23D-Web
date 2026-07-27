@@ -9,11 +9,34 @@ import Search from "@/src/components/Search"
 import { HiDotsHorizontal } from "react-icons/hi"
 import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment } from "react-icons/md"
 import { useAuthStore } from "@/src/store/authStore"
-import { getChatRooms, getChatMessages } from "@/src/lib/chat"
+import { getChatRooms, getChatMessages, deleteChatRoom } from "@/src/lib/chat"
 import { toRelativeUrl, uploadFile } from "@/src/lib/file"
+import { useHandleError } from "@/src/hooks/useHandleError"
 import { Client } from "@stomp/stompjs"
 import SockJS from "sockjs-client"
 import ContractModal from "@/src/components/chat/ContractModal"
+
+function isImageUrl(url: string) {
+  return /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(url)
+}
+
+function fileNameFromUrl(url: string) {
+  try {
+    const decoded = decodeURIComponent(url.split("/").pop() ?? "첨부파일")
+    return decoded.replace(/^\d+[-_]/, "")
+  } catch {
+    return "첨부파일"
+  }
+}
+
+function dataUrlToFile(dataUrl: string, filename: string): File {
+  const [header, base64] = dataUrl.split(",")
+  const mime = header.match(/data:(.*?);base64/)?.[1] ?? "image/png"
+  const bin = atob(base64)
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  return new File([bytes], filename, { type: mime })
+}
 
 type Tab = "received" | "sent" | "done"
 
@@ -60,22 +83,18 @@ export default function Page() {
   const [loadingMessages, setLoadingMessages] = useState(false)
   const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null)
   const [pendingPreview, setPendingPreview] = useState<string | null>(null)
+  const [pendingDocUrl, setPendingDocUrl] = useState<string | null>(null)
+  const [pendingDocName, setPendingDocName] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const stompClientRef = useRef<Client | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const docInputRef = useRef<HTMLInputElement>(null)
+  const handleError = useHandleError()
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
-
-  useEffect(() => {
-    if (!token) return
-    try {
-      const p = JSON.parse(atob(token.split('.')[1]))
-      console.log('[chat] JWT payload:', p, '| myUsername:', myUsername)
-    } catch {}
-  }, [token, myUsername])
 
   useEffect(() => {
     if (!selectedId || !token) return
@@ -91,7 +110,6 @@ export default function Page() {
         client.subscribe(`/topic/chat/rooms/${selectedId}`, (frame) => {
           try {
             const msg: Message = JSON.parse(frame.body)
-            console.log('[chat] msg.senderUsername:', msg.senderUsername)
             setMessages((prev) => [...prev, msg])
           } catch {}
         })
@@ -128,8 +146,7 @@ export default function Page() {
       const raw = res.data ?? res
       const list: Message[] = Array.isArray(raw) ? raw : (raw?.content ?? [])
       setMessages(list)
-    } catch (e) {
-      console.error("[chat] getChatMessages error:", e)
+    } catch {
       setMessages([])
     } finally {
       setLoadingMessages(false)
@@ -138,6 +155,19 @@ export default function Page() {
 
   useEffect(() => { fetchRooms() }, [fetchRooms])
   useEffect(() => { fetchMessages() }, [fetchMessages])
+
+  async function handleDeleteRoom(e: React.MouseEvent, roomId: number) {
+    e.stopPropagation()
+    if (!token) return
+    if (!confirm("채팅방을 삭제하시겠습니까?")) return
+    try {
+      await deleteChatRoom(token, roomId)
+      setRooms((prev) => prev.filter((r) => r.roomId !== roomId))
+      if (selectedId === roomId) router.push("/chat")
+    } catch (e) {
+      handleError(e)
+    }
+  }
 
   const selectedRoom = rooms.find((r) => r.roomId === selectedId)
 
@@ -174,15 +204,38 @@ export default function Page() {
     setPendingImageUrl(null)
   }
 
+  async function handleDocChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !token) return
+    setPendingDocName(file.name)
+    setShowAttach(false)
+    setUploading(true)
+    try {
+      const { url } = await uploadFile(token, file)
+      setPendingDocUrl(url)
+    } catch {
+      setPendingDocName(null)
+    } finally {
+      setUploading(false)
+      e.target.value = ""
+    }
+  }
+
+  function clearPendingDoc() {
+    setPendingDocUrl(null)
+    setPendingDocName(null)
+  }
+
   function handleSend() {
-    if (!message.trim() && !pendingImageUrl) return
+    if (!message.trim() && !pendingImageUrl && !pendingDocUrl) return
     const client = stompClientRef.current
     if (!client?.connected || uploading) return
 
+    const fileUrls = pendingImageUrl ? [pendingImageUrl] : pendingDocUrl ? [pendingDocUrl] : []
     const body = JSON.stringify({
       roomId: selectedId,
       message: message.trim() || "",
-      fileUrls: pendingImageUrl ? [pendingImageUrl] : [],
+      fileUrls,
     })
     client.publish({
       destination: "/app/chat.send",
@@ -191,6 +244,34 @@ export default function Page() {
     })
     setMessage("")
     clearPendingImage()
+    clearPendingDoc()
+  }
+
+  async function handleContractSubmit(data: { clientSig: string; professionalSig: string; clientName: string; professionalName: string }) {
+    if (!token || !selectedId) return
+    const client = stompClientRef.current
+    if (!client?.connected) return
+
+    const mySig = data.professionalSig || data.clientSig
+    const summary = `[계약서 서명 완료]\n갑(의뢰인): ${data.clientName}\n을(수행자): ${data.professionalName}`
+
+    let fileUrls: string[] = []
+    if (mySig) {
+      try {
+        const file = dataUrlToFile(mySig, `contract-signature-${Date.now()}.png`)
+        const { url } = await uploadFile(token, file)
+        fileUrls = [url]
+      } catch (e) {
+        handleError(e)
+      }
+    }
+
+    client.publish({
+      destination: "/app/chat.send",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ roomId: selectedId, message: summary, fileUrls }),
+    })
+    setShowContract(false)
   }
 
   function formatTime(dateStr: string) {
@@ -212,10 +293,7 @@ export default function Page() {
           date={new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })}
           myRole="professional"
           onClose={() => setShowContract(false)}
-          onSubmit={(data) => {
-            console.log("계약서 서명 완료", data)
-            setShowContract(false)
-          }}
+          onSubmit={handleContractSubmit}
         />
       )}
 
@@ -277,7 +355,13 @@ export default function Page() {
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     <span className="text-xs text-zinc-400">{room.lastMessageAt ? formatTime(room.lastMessageAt) : ""}</span>
                     {room.roomId === selectedId && (
-                      <HiDotsHorizontal className="text-zinc-400 text-base" />
+                      <button
+                        onClick={(e) => handleDeleteRoom(e, room.roomId)}
+                        className="text-zinc-400 hover:text-red-500 text-base cursor-pointer"
+                        aria-label="채팅방 삭제"
+                      >
+                        <HiDotsHorizontal />
+                      </button>
                     )}
                   </div>
                 </button>
@@ -307,7 +391,33 @@ export default function Page() {
                   <p className="text-center text-zinc-400 text-sm">불러오는 중...</p>
                 ) : messages.map((msg) => {
                   const isSent = msg.senderUsername === myUsername
-                  const hasImage = msg.attachedFileUrls?.length > 0
+                  const attachedUrl = msg.attachedFileUrls?.[0]
+                  const isImage = attachedUrl ? isImageUrl(attachedUrl) : false
+
+                  const attachment = attachedUrl ? (
+                    isImage ? (
+                      <div className="w-48 rounded-xl overflow-hidden">
+                        <img src={toRelativeUrl(attachedUrl)} alt="첨부 이미지" className="w-full h-auto" />
+                      </div>
+                    ) : (
+                      <a
+                        href={toRelativeUrl(attachedUrl)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-2 bg-zinc-100 rounded-xl px-3 py-2 max-w-xs hover:bg-zinc-200"
+                      >
+                        <MdOutlineDescription className="text-lg text-zinc-500 shrink-0" />
+                        <span className="text-xs text-zinc-600 truncate">{fileNameFromUrl(attachedUrl)}</span>
+                      </a>
+                    )
+                  ) : null
+
+                  const textBubble = msg.message ? (
+                    <div className={`rounded-2xl px-4 py-2 max-w-xs ${isSent ? "bg-main rounded-br-none" : "bg-zinc-100 rounded-bl-none"}`}>
+                      <p className={`text-sm whitespace-pre-line ${isSent ? "text-white" : ""}`}>{msg.message}</p>
+                    </div>
+                  ) : null
+
                   return (
                     <div key={msg.messageId}>
                       {!isSent ? (
@@ -315,29 +425,19 @@ export default function Page() {
                           <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 bg-zinc-200">
                             <Image src="/profile.png" alt="" width={36} height={36} className="w-full h-full object-cover" />
                           </div>
-                          {hasImage ? (
-                            <div className="w-48 rounded-xl overflow-hidden">
-                              <img src={toRelativeUrl(msg.attachedFileUrls[0])} alt="첨부 이미지" className="w-full h-auto" />
-                            </div>
-                          ) : (
-                            <div className="bg-zinc-100 rounded-2xl rounded-bl-none px-4 py-2 max-w-xs">
-                              <p className="text-sm">{msg.message}</p>
-                            </div>
-                          )}
+                          <div className="flex flex-col gap-1">
+                            {attachment}
+                            {textBubble}
+                          </div>
                           <span className="text-xs text-zinc-400 shrink-0">{formatTime(msg.createdAt)}</span>
                         </div>
                       ) : (
                         <div className="flex justify-end items-end gap-2">
                           <span className="text-xs text-zinc-400">{formatTime(msg.createdAt)}</span>
-                          {hasImage ? (
-                            <div className="w-48 rounded-xl overflow-hidden">
-                              <img src={toRelativeUrl(msg.attachedFileUrls[0])} alt="첨부 이미지" className="w-full h-auto" />
-                            </div>
-                          ) : (
-                            <div className="bg-main rounded-2xl rounded-br-none px-4 py-2 max-w-xs">
-                              <p className="text-sm text-white">{msg.message}</p>
-                            </div>
-                          )}
+                          <div className="flex flex-col gap-1 items-end">
+                            {attachment}
+                            {textBubble}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -367,7 +467,10 @@ export default function Page() {
                     <span className="text-xs text-zinc-500">사진</span>
                   </div>
                   <div className="flex flex-col items-center gap-1">
-                    <button className="w-12 h-12 rounded-full bg-orange-300 flex items-center justify-center cursor-pointer">
+                    <button
+                      onClick={() => docInputRef.current?.click()}
+                      className="w-12 h-12 rounded-full bg-orange-300 flex items-center justify-center cursor-pointer"
+                    >
                       <MdOutlineDescription className="text-white text-2xl" />
                     </button>
                     <span className="text-xs text-zinc-500">문서</span>
@@ -397,6 +500,20 @@ export default function Page() {
                       className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center cursor-pointer"
                     >
                       <IoClose className="text-white text-xs" />
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {pendingDocName && (
+                <div className="relative flex items-center gap-2 bg-zinc-100 rounded-lg px-3 py-2 w-fit shrink-0">
+                  <MdOutlineDescription className="text-lg text-zinc-500 shrink-0" />
+                  <span className="text-xs text-zinc-600 truncate max-w-40">{pendingDocName}</span>
+                  {uploading ? (
+                    <span className="text-xs text-zinc-400">업로드 중</span>
+                  ) : (
+                    <button onClick={clearPendingDoc} className="text-zinc-400 hover:text-zinc-600 cursor-pointer">
+                      <IoClose className="text-sm" />
                     </button>
                   )}
                 </div>
@@ -433,6 +550,13 @@ export default function Page() {
                 accept="image/*"
                 className="hidden"
                 onChange={handleFileChange}
+              />
+              <input
+                ref={docInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx,.hwp,.hwpx,.xls,.xlsx,.ppt,.pptx,.zip,.txt"
+                className="hidden"
+                onChange={handleDocChange}
               />
             </div>
           )}
