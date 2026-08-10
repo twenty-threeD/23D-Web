@@ -21,7 +21,7 @@ export default function PremiumCard({ id, title, content, fileUrl }: PremiumCard
   const description = getDescription(content)
 
   return (
-    <Link href={`/item/${id}`} className="flex flex-col w-lg h-72 p-3 rounded-lg hover:scale-105 hover:shadow-lg transition-transform duration-300">
+    <Link href={`/item/${id}`} className="flex flex-col w-lg h-72 p-3 rounded-lg hover:shadow-sm transition-transform duration-300">
       <div className="w-full min-h-32 bg-zinc-300 flex items-center justify-start rounded-lg overflow-hidden">
         {fileUrl ? (
           <img src={toRelativeUrl(fileUrl)} alt={title} className="w-full h-full object-cover" />

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { InputField } from "@/src/components/InputField";
 
 import { SignUpFormData } from "@/type/authData";
-
+import { checkPhone } from "@/src/lib/member";
 
 interface InputPhoneProps {
     formData: SignUpFormData;
@@ -46,8 +46,14 @@ const InputPhone = ({ formData, setFormData, onNext }: InputPhoneProps) => {
                 onClick={async () => {
                     if (!showVerification) {
                         setIsWaiting(true)
-                        setShowVerification(true)
-                        setIsWaiting(false)
+                        try {
+                            await checkPhone(formData.phone)
+                            setShowVerification(true)
+                        } catch (e) {
+                            alert(e instanceof Error ? e.message : "전화번호 확인에 실패했습니다.")
+                        } finally {
+                            setIsWaiting(false)
+                        }
                     } else {
                         setIsWaiting(true)
                         try {

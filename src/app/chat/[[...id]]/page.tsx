@@ -9,6 +9,7 @@ import Search from "@/src/components/Search"
 import { HiDotsHorizontal } from "react-icons/hi"
 import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment } from "react-icons/md"
 import { useAuthStore } from "@/src/store/authStore"
+import { useChatRoomsStore } from "@/src/store/chatRoomsStore"
 import { getChatRooms, getChatMessages, deleteChatRoom } from "@/src/lib/chat"
 import { toRelativeUrl, uploadFile } from "@/src/lib/file"
 import { useHandleError } from "@/src/hooks/useHandleError"
@@ -40,14 +41,6 @@ function dataUrlToFile(dataUrl: string, filename: string): File {
 
 type Tab = "received" | "sent" | "done"
 
-interface ChatRoom {
-  roomId: number
-  participantUsername: string
-  participantName: string
-  lastMessagePreview: string
-  lastMessageAt: string
-}
-
 interface Message {
   messageId: number
   roomId: number
@@ -77,9 +70,10 @@ export default function Page() {
   const [message, setMessage] = useState("")
   const [showAttach, setShowAttach] = useState(false)
   const [showContract, setShowContract] = useState(false)
-  const [rooms, setRooms] = useState<ChatRoom[]>([])
+  const rooms = useChatRoomsStore((s) => s.rooms)
+  const setRoomsInStore = useChatRoomsStore((s) => s.setRooms)
   const [messages, setMessages] = useState<Message[]>([])
-  const [loadingRooms, setLoadingRooms] = useState(true)
+  const [loadingRooms, setLoadingRooms] = useState(() => !useChatRoomsStore.getState().loaded)
   const [loadingMessages, setLoadingMessages] = useState(false)
   const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null)
   const [pendingPreview, setPendingPreview] = useState<string | null>(null)
@@ -127,16 +121,16 @@ export default function Page() {
 
   const fetchRooms = useCallback(async () => {
     if (!token) return
-    setLoadingRooms(true)
+    if (!useChatRoomsStore.getState().loaded) setLoadingRooms(true)
     try {
       const res = await getChatRooms(token)
-      setRooms(res.data ?? [])
+      setRoomsInStore(res.data ?? [])
     } catch {
-      setRooms([])
+      setRoomsInStore([])
     } finally {
       setLoadingRooms(false)
     }
-  }, [token])
+  }, [token, setRoomsInStore])
 
   const fetchMessages = useCallback(async () => {
     if (!token || !selectedId) return
@@ -162,7 +156,7 @@ export default function Page() {
     if (!confirm("채팅방을 삭제하시겠습니까?")) return
     try {
       await deleteChatRoom(token, roomId)
-      setRooms((prev) => prev.filter((r) => r.roomId !== roomId))
+      setRoomsInStore(rooms.filter((r) => r.roomId !== roomId))
       if (selectedId === roomId) router.push("/chat")
     } catch (e) {
       handleError(e)
@@ -338,9 +332,12 @@ export default function Page() {
               <p className="text-center text-zinc-400 text-sm py-8">채팅방이 없습니다.</p>
             ) : (
               filteredRooms.map((room) => (
-                <button
+                <div
                   key={room.roomId}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => router.push(`/chat/${room.roomId}`)}
+                  onKeyDown={(e) => { if (e.key === "Enter") router.push(`/chat/${room.roomId}`) }}
                   className={`flex items-center gap-3 px-4 py-3 cursor-pointer text-left hover:bg-zinc-50 ${
                     room.roomId === selectedId ? "bg-zinc-100" : ""
                   }`}
@@ -364,7 +361,7 @@ export default function Page() {
                       </button>
                     )}
                   </div>
-                </button>
+                </div>
               ))
             )}
           </div>

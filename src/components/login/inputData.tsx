@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from "react";
 import { InputField } from "@/src/components/InputField";
 import { SignUpFormData } from "@/type/authData";
+import { checkUsername } from "@/src/lib/member";
 
 interface InputDataProps {
     formData: SignUpFormData;
@@ -10,9 +12,29 @@ interface InputDataProps {
 }
 
 const InputData = ({ formData, setFormData, onNext }: InputDataProps) => {
-    
+    const [usernameError, setUsernameError] = useState<string | null>(null);
+    const [checking, setChecking] = useState(false);
+
     const handleChange = (key: keyof SignUpFormData, value: string) => {
+        if (key === "username") setUsernameError(null);
         setFormData((prev) => ({ ...prev, [key]: value }));
+    };
+
+    const handleNext = async () => {
+        if (!isAllValid || checking) return;
+        setChecking(true);
+        try {
+            const res = await checkUsername(formData.username);
+            if (!res.available) {
+                setUsernameError(res.message || "이미 사용 중인 아이디입니다.");
+                return;
+            }
+            onNext();
+        } catch (e) {
+            setUsernameError(e instanceof Error ? e.message : "아이디 확인에 실패했습니다.");
+        } finally {
+            setChecking(false);
+        }
     };
 
     // 1. 비밀번호 유효성 검사 로직 수정
@@ -27,15 +49,16 @@ const InputData = ({ formData, setFormData, onNext }: InputDataProps) => {
         formData.passwordConfirm.length > 0 && 
         formData.password !== formData.passwordConfirm;
 
-    // 3. 전체 유효성 검사 (버튼 활성화 조건)
-    const isAllValid = 
-        formData.name.trim() !== "" &&
-        formData.username.trim() !== "" &&
-        passwordRegex.test(formData.password) && // 정규식을 통과해야 함
-        formData.password === formData.passwordConfirm;
-
     // ID 영문 검사
     const isIdValid = /^[A-Za-z0-9]+$/.test(formData.username);
+
+    // 3. 전체 유효성 검사 (버튼 활성화 조건)
+    const isAllValid =
+        formData.name.trim() !== "" &&
+        formData.username.trim() !== "" &&
+        isIdValid &&
+        passwordRegex.test(formData.password) && // 정규식을 통과해야 함
+        formData.password === formData.passwordConfirm;
 
     return (
         <div className="flex flex-col items-center">
@@ -46,10 +69,13 @@ const InputData = ({ formData, setFormData, onNext }: InputDataProps) => {
                 value={formData.name}
                 onChange={(e) => handleChange("name", e.target.value)}
             />
-            <InputField 
-                label={!isIdValid && formData.username.length > 0 ? "아이디 입력 · 영문 또는 숫자만 가능합니다" : "아이디 입력"} 
-                isError={!isIdValid && formData.username.length > 0} // 영문이 아닐 때 에러 상태
-                placeholder="아이디를 입력해주세요" 
+            <InputField
+                label={
+                    usernameError ? `아이디 입력 · ${usernameError}` :
+                    !isIdValid && formData.username.length > 0 ? "아이디 입력 · 영문 또는 숫자만 가능합니다" : "아이디 입력"
+                }
+                isError={!!usernameError || (!isIdValid && formData.username.length > 0)} // 영문이 아니거나 중복일 때 에러 상태
+                placeholder="아이디를 입력해주세요"
                 isEssential={true}
                 value={formData.username}
                 onChange={(e) => handleChange("username", e.target.value)}
@@ -77,12 +103,12 @@ const InputData = ({ formData, setFormData, onNext }: InputDataProps) => {
                 onChange={(e) => handleChange("passwordConfirm", e.target.value)}
             />
 
-            <button 
-                disabled={!isAllValid}
-                onClick={onNext}
-                className={`w-75 mt-10 h-10 rounded-lg text-lg font-bold transition-colors 
-                ${isAllValid
-                    ? 'bg-main text-white hover:bg-main/90' 
+            <button
+                disabled={!isAllValid || checking}
+                onClick={handleNext}
+                className={`w-75 mt-10 h-10 rounded-lg text-lg font-bold transition-colors
+                ${isAllValid && !checking
+                    ? 'bg-main text-white hover:bg-main/90'
                     : 'bg-zinc-300 text-zinc-500 cursor-not-allowed'}`}
             >
                 다음

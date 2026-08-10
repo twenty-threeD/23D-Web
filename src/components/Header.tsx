@@ -73,8 +73,8 @@ export default function Header() {
           <img src="/icon.png" alt="Logo" className="h-7"/>
         </Link>
         <ul className="flex gap-4">
-          <li><Link href="/" className="text-zinc-500 text-sm font-semibold ">견적요청</Link></li>
-          <li><Link href="/chat" className="text-zinc-500 text-sm font-semibold">능력자 찾기</Link></li>
+          <li><Link href="/main" className="text-zinc-500 text-sm font-semibold ">능력자 찾기</Link></li>
+          <li><Link href="/chat" className="text-zinc-500 text-sm font-semibold">채팅</Link></li>
           <li><Link href="/community" className="text-zinc-500 text-sm font-semibold">커뮤니티</Link></li>
           <li><Link href="/upload" className="text-zinc-500 text-sm font-semibold">서비스 등록</Link></li>
         </ul>

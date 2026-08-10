@@ -5,6 +5,7 @@ import { InputField } from "@/src/components/InputField";
 
 import { SignUpFormData } from "@/type/authData";
 import { sendVerifyCode, checkVerifyCode } from '@/src/lib/auth'
+import { checkEmail } from '@/src/lib/member'
 import { useToast } from "@/src/hooks/useToast"
 
 interface InputEmailProps {
@@ -29,6 +30,7 @@ const InputEmail = ({ formData, setFormData, onNext }: InputEmailProps) => {
     const handleSendCode = async () => {
         setIsWaiting(true)
         try {
+            await checkEmail(formData.email)
             await sendVerifyCode(formData.email)
             setShowVerification(true)
             addToast({ message: "인증번호가 발송되었습니다.", type: "success" })
