@@ -53,56 +53,56 @@ function MainContent() {
             <div className="flex w-full gap-3">
               <div className="flex flex-col items-center justify-center w-0 flex-1">
                 <div className="w-full rounded-lg aspect-square bg-red-200">
-                  <img src="category/brush.png" alt="" />
+                  <img src="/category/brush.png" alt="" />
                 </div>
                 <p className="whitespace-nowrap text-sm mt-2">이사/청소</p>
               </div>
               <div className="flex flex-col items-center justify-center w-0 flex-1">
                 <div className="w-full rounded-lg aspect-square bg-orange-200">
-                  <img src="category/wrench.png" alt="" />
+                  <img src="/category/wrench.png" alt="" />
                 </div>
                 <p className="whitespace-nowrap text-sm mt-2">설치/수리</p>
               </div>
               <div className="flex flex-col items-center justify-center w-0 flex-1">
                 <div className="w-full rounded-lg aspect-square bg-yellow-200">
-                  <img src="category/table.png" alt="" />
+                  <img src="/category/table.png" alt="" />
                 </div>
                 <p className="whitespace-nowrap text-sm mt-2">인테리어</p>
               </div>
               <div className="flex flex-col items-center justify-center w-0 flex-1">
                 <div className="w-full rounded-lg aspect-square bg-lime-200">
-                  <img src="category/art.png" alt="" />
+                  <img src="/category/art.png" alt="" />
                 </div>
                 <p className="whitespace-nowrap text-sm mt-2">외주</p>
               </div>
               <div className="flex flex-col items-center justify-center w-0 flex-1">
                 <div className="w-full rounded-lg aspect-square bg-green-200">
-                  <img src="category/money.png" alt="" />
+                  <img src="/category/money.png" alt="" />
                 </div>
                 <p className="whitespace-nowrap text-sm mt-2">법률/금융</p>
               </div>
               <div className="flex flex-col items-center justify-center w-0 flex-1">
                 <div className="w-full rounded-lg aspect-square bg-blue-200">
-                  <img src="category/book.png" alt="" />
+                  <img src="/category/book.png" alt="" />
                 </div>
                 <p className="whitespace-nowrap text-sm mt-2">과외</p>
               </div>
               <div className="flex flex-col items-center justify-center w-0 flex-1">
                 <div className="w-full rounded-lg aspect-square bg-purple-200">
-                  <img src="category/car.png" alt="" />
+                  <img src="/category/car.png" alt="" />
                 </div>
                 <p className="whitespace-nowrap text-sm mt-2">자동차</p>
               </div>
               <div className="flex flex-col items-center justify-center w-0 flex-1">
                 <div className="w-full rounded-lg aspect-square bg-pink-200">
-                  <img src="category/box.png" alt="" />
+                  <img src="/category/box.png" alt="" />
                 </div>
                 <p className="whitespace-nowrap text-sm mt-2">기타</p>
               </div>
             </div>
           </div>
           <div className="w-full overflow-hidden border border-zinc-300 rounded-lg">
-            <img src="banner.png" alt="" className="w-full h-auto" />
+            <img src="/banner.png" alt="" className="w-full h-auto" />
           </div>
         </div>
 
