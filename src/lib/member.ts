@@ -5,37 +5,28 @@ function authHeaders(token: string) {
   }
 }
 
-// 아이디 중복 확인
+// 아이디 중복 확인 (사용 가능하면 정상 반환, 중복이면 throw)
 export async function checkUsername(username: string) {
-  const res = await fetch(`/api/member/check-username`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(username),
-  })
+  const params = new URLSearchParams({ username })
+  const res = await fetch(`/api/member/check-username?${params}`)
   const json = await res.json()
   if (!res.ok) throw new Error(json?.error?.message ?? '이미 사용 중인 아이디입니다.')
-  return json.data as { available: boolean; message: string }
+  return json.data as { message: string }
 }
 
-// 이메일 중복 확인
+// 이메일 중복 확인 (사용 가능하면 정상 반환, 중복이면 throw)
 export async function checkEmail(email: string) {
-  const res = await fetch(`/api/member/check-email`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(email),
-  })
+  const params = new URLSearchParams({ email })
+  const res = await fetch(`/api/member/check-email?${params}`)
   const json = await res.json()
   if (!res.ok) throw new Error(json?.error?.message ?? '이미 사용 중인 이메일입니다.')
   return json.data as { message: string }
 }
 
-// 전화번호 중복 확인
+// 전화번호 중복 확인 (사용 가능하면 정상 반환, 중복이면 throw)
 export async function checkPhone(phone: string) {
-  const res = await fetch(`/api/member/check-phone`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(phone),
-  })
+  const params = new URLSearchParams({ phone })
+  const res = await fetch(`/api/member/check-phone?${params}`)
   const json = await res.json()
   if (!res.ok) throw new Error(json?.error?.message ?? '이미 사용 중인 전화번호입니다.')
   return json.data as { message: string }

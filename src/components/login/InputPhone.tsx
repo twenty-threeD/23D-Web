@@ -12,6 +12,13 @@ interface InputPhoneProps {
     onNext: () => void;
 }
 
+function formatPhone(value: string): string {
+    const digits = value.replace(/\D/g, "").slice(0, 11);
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+    return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
+
 const InputPhone = ({ formData, setFormData, onNext }: InputPhoneProps) => {
     const handleChange = (key: keyof SignUpFormData, value: string) => {
         setFormData((prev) => ({ ...prev, [key]: value }));
@@ -20,17 +27,17 @@ const InputPhone = ({ formData, setFormData, onNext }: InputPhoneProps) => {
     const [showVerification, setShowVerification] = useState(false);
     const [isWaiting, setIsWaiting] = useState(false);
 
-    const isAllValid = 
+    const isAllValid =
         formData.phone.trim() !== "" &&
-        /^010\d{8}$/.test(formData.phone) &&
+        /^010-\d{4}-\d{4}$/.test(formData.phone) &&
         (!showVerification || formData.phoneVerification.trim() !== "");
 
     const VerificationCode = "123456"; // 실제로는 서버에서 받아와야 함. 임시
 
     return (
         <div className="mt-5">
-            <InputField label="전화번호 입력" placeholder="전화번호를 입력해주세요" 
-            isEssential={true} value={formData.phone} onChange={(e) => handleChange("phone", e.target.value)} />
+            <InputField label="전화번호 입력" placeholder="전화번호를 입력해주세요"
+            isEssential={true} value={formData.phone} onChange={(e) => handleChange("phone", formatPhone(e.target.value))} />
 
             {showVerification && (
                 <InputField 

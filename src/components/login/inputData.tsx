@@ -24,11 +24,7 @@ const InputData = ({ formData, setFormData, onNext }: InputDataProps) => {
         if (!isAllValid || checking) return;
         setChecking(true);
         try {
-            const res = await checkUsername(formData.username);
-            if (!res.available) {
-                setUsernameError(res.message || "이미 사용 중인 아이디입니다.");
-                return;
-            }
+            await checkUsername(formData.username);
             onNext();
         } catch (e) {
             setUsernameError(e instanceof Error ? e.message : "아이디 확인에 실패했습니다.");
