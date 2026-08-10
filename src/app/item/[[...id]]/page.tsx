@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Header from "@/src/components/Header";
 import Footer from "@/src/components/Footer";
@@ -39,6 +39,8 @@ export default function Page() {
   const reviewCount = 24;
   const review = 4.5;
   const [isExpanded, setIsExpanded] = useState(false);
+  const [canExpand, setCanExpand] = useState(false);
+  const descriptionRef = useRef<HTMLParagraphElement>(null);
   const [post, setPost] = useState<Post | null>(null);
   const [relatedPosts, setRelatedPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,6 +66,12 @@ export default function Page() {
       .then((list) => setIsFavorited(list.some((p) => p.id === postId)))
       .catch(() => {});
   }, [token, postId]);
+
+  useEffect(() => {
+    const el = descriptionRef.current;
+    if (!el) return;
+    setCanExpand(el.scrollHeight > el.clientHeight + 1);
+  }, [post]);
 
   async function handleToggleFavorite() {
     if (!token || !postId) { router.push("/login/signin"); return; }
@@ -190,16 +198,19 @@ export default function Page() {
             <div className="flex flex-col gap-4">
               <h2 className="text-xl font-bold">서비스 설명</h2>
               <p
-                className={`${isExpanded
+                ref={descriptionRef}
+                className={`${isExpanded || !canExpand
                   ? "text-zinc-500"
                   : "line-clamp-10 bg-linear-to-b from-zinc-500 via-zinc-300 to-white bg-clip-text text-transparent"
                 }`}
               >
                 {description || "서비스 설명이 없습니다."}
               </p>
-              <DoButton onClick={() => setIsExpanded(!isExpanded)}>
-                {isExpanded ? "접기" : "더보기"}
-              </DoButton>
+              {canExpand && (
+                <DoButton onClick={() => setIsExpanded(!isExpanded)}>
+                  {isExpanded ? "접기" : "더보기"}
+                </DoButton>
+              )}
             </div>
 
             {/* 리뷰 */}
