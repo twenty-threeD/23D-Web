@@ -5,6 +5,42 @@ function authHeaders(token: string) {
   }
 }
 
+// 아이디 중복 확인
+export async function checkUsername(username: string) {
+  const res = await fetch(`/api/member/check-username`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(username),
+  })
+  const json = await res.json()
+  if (!res.ok) throw new Error(json?.error?.message ?? '이미 사용 중인 아이디입니다.')
+  return json.data as { available: boolean; message: string }
+}
+
+// 이메일 중복 확인
+export async function checkEmail(email: string) {
+  const res = await fetch(`/api/member/check-email`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(email),
+  })
+  const json = await res.json()
+  if (!res.ok) throw new Error(json?.error?.message ?? '이미 사용 중인 이메일입니다.')
+  return json.data as { message: string }
+}
+
+// 전화번호 중복 확인
+export async function checkPhone(phone: string) {
+  const res = await fetch(`/api/member/check-phone`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(phone),
+  })
+  const json = await res.json()
+  if (!res.ok) throw new Error(json?.error?.message ?? '이미 사용 중인 전화번호입니다.')
+  return json.data as { message: string }
+}
+
 // 아이디 찾기
 export async function getUsername(email: string) {
   const params = new URLSearchParams({ email })
