@@ -8,7 +8,6 @@ import Search from "./Search";
 import { useAuthStore } from "@/src/store/authStore";
 import { logout } from "@/src/lib/auth";
 import { useChatNotifications, type NotificationType } from "@/src/hooks/useChatNotifications";
-import { useToast } from "@/src/hooks/useToast";
 
 const NOTIFICATION_TYPE_STYLE: Record<NotificationType, { label: string; className: string }> = {
   chat: { label: "채팅", className: "text-yellow-700 bg-yellow-100" },
@@ -26,12 +25,15 @@ export default function Header() {
   const token = useAuthStore((s) => s.accessToken);
   const clear = useAuthStore((s) => s.clear);
   const isPostPage = pathname === "/community";
-  const { addToast } = useToast();
   const { notifications, unreadCount, markAsRead, clearAll } = useChatNotifications();
+  const [ringing, setRinging] = useState(false);
 
   useEffect(() => {
     const [latest] = notifications;
-    if (latest) addToast({ message: `${latest.senderName}: ${latest.message}`, type: "info" });
+    if (!latest) return;
+    setRinging(true);
+    const timer = setTimeout(() => setRinging(false), 600);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notifications.length]);
 
@@ -103,7 +105,7 @@ export default function Header() {
               className="relative w-9 h-9 rounded-full flex items-center justify-center hover:bg-zinc-100 cursor-pointer"
               aria-label="알림"
             >
-              <IoNotificationsOutline className="text-xl text-zinc-600" />
+              <IoNotificationsOutline className={`text-xl text-zinc-600 ${ringing ? "animate-bell-ring" : ""}`} />
               {unreadCount > 0 && (
                 <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-main" />
               )}
