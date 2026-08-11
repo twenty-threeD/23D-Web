@@ -72,6 +72,10 @@ export default function Page() {
   const [showContract, setShowContract] = useState(false)
   const rooms = useChatRoomsStore((s) => s.rooms)
   const setRoomsInStore = useChatRoomsStore((s) => s.setRooms)
+  const unreadRoomIds = useChatRoomsStore((s) => s.unreadRoomIds)
+  const lastMessageOverride = useChatRoomsStore((s) => s.lastMessageOverride)
+  const markRoomRead = useChatRoomsStore((s) => s.markRoomRead)
+  const setActiveRoomId = useChatRoomsStore((s) => s.setActiveRoomId)
   const [messages, setMessages] = useState<Message[]>([])
   const [loadingRooms, setLoadingRooms] = useState(() => !useChatRoomsStore.getState().loaded)
   const [loadingMessages, setLoadingMessages] = useState(false)
@@ -91,7 +95,14 @@ export default function Page() {
   }, [messages])
 
   useEffect(() => {
+    setActiveRoomId(selectedId)
+    return () => setActiveRoomId(null)
+  }, [selectedId, setActiveRoomId])
+
+  useEffect(() => {
     if (!selectedId || !token) return
+
+    markRoomRead(selectedId)
 
     const sockjsUrl = `${window.location.protocol}//${window.location.host}/ws-stomp?token=${token}`
 
@@ -105,6 +116,7 @@ export default function Page() {
           try {
             const msg: Message = JSON.parse(frame.body)
             setMessages((prev) => [...prev, msg])
+            markRoomRead(selectedId)
           } catch {}
         })
       },
@@ -293,7 +305,7 @@ export default function Page() {
 
       <div className="flex flex-1 px-20 pt-8 overflow-hidden">
         {/* 왼쪽 채팅 목록 */}
-        <div className="flex flex-col w-120 pr-4 shrink-0 border-r border-zinc-200">
+        <div className="flex flex-col pr-4 shrink-0 border-r border-zinc-200">
           {/* 탭 */}
           <div className="flex border-b border-zinc-200">
             {tabs.map((t) => (
@@ -331,7 +343,10 @@ export default function Page() {
             ) : filteredRooms.length === 0 ? (
               <p className="text-center text-zinc-400 text-sm py-8">채팅방이 없습니다.</p>
             ) : (
-              filteredRooms.map((room) => (
+              filteredRooms.map((room) => {
+                const isUnread = !!unreadRoomIds[room.roomId]
+                const previewText = isUnread ? "새 메시지" : (lastMessageOverride[room.roomId] ?? room.lastMessagePreview)
+                return (
                 <div
                   key={room.roomId}
                   role="button"
@@ -342,12 +357,15 @@ export default function Page() {
                     room.roomId === selectedId ? "bg-zinc-100" : ""
                   }`}
                 >
-                  <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 bg-zinc-200">
-                    <Image src="/profile.png" alt={room.participantName} width={48} height={48} className="w-full h-full object-cover" />
+                  <div className="relative w-12 h-12 shrink-0">
+                    <Image src="/profile.png" alt={room.participantName} width={48} height={48} className="w-full h-full object-cover rounded-full" />
+                    {isUnread && <span className="absolute top-0 -right-1 w-2 h-2 rounded-full bg-red-500 shrink-0" />}
                   </div>
                   <div className="flex flex-col flex-1 min-w-0">
-                    <span className="text-sm font-semibold">{room.participantName}</span>
-                    <span className="text-xs text-zinc-400 truncate">{room.lastMessagePreview}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-semibold">{room.participantName}</span>
+                    </div>
+                    <span className={`text-xs truncate ${isUnread ? "text-zinc-700 font-semibold" : "text-zinc-400"}`}>{previewText}</span>
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     <span className="text-xs text-zinc-400">{room.lastMessageAt ? formatTime(room.lastMessageAt) : ""}</span>
@@ -362,13 +380,14 @@ export default function Page() {
                     )}
                   </div>
                 </div>
-              ))
+                )
+              })
             )}
           </div>
         </div>
 
         {/* 오른쪽 채팅창 */}
-        <div className="flex flex-col flex-1 overflow-hidden">
+        <div className="flex flex-col flex-1 w-1/2 overflow-hidden">
           {selectedRoom ? (
             <>
               {/* 채팅 헤더 */}
@@ -530,6 +549,7 @@ export default function Page() {
                   placeholder="메시지 입력"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
+                  onFocus={() => { if (selectedId) markRoomRead(selectedId) }}
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleSend() }}
                 />
                 <button

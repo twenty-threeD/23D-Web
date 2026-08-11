@@ -3,12 +3,16 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
-import { IoNotificationsOutline } from "react-icons/io5";
+import { IoNotificationsOutline, IoCheckmark } from "react-icons/io5";
 import Search from "./Search";
 import { useAuthStore } from "@/src/store/authStore";
 import { logout } from "@/src/lib/auth";
-import { useChatNotifications } from "@/src/hooks/useChatNotifications";
-import { useToast } from "@/src/hooks/useToast";
+import { useChatNotifications, type NotificationType } from "@/src/hooks/useChatNotifications";
+
+const NOTIFICATION_TYPE_STYLE: Record<NotificationType, { label: string; className: string }> = {
+  chat: { label: "채팅", className: "text-yellow-700 bg-yellow-100" },
+  notice: { label: "공지", className: "text-red-600 bg-red-100" },
+};
 
 export default function Header() {
   const [scrollY, setScrollY] = useState(0);
@@ -21,14 +25,23 @@ export default function Header() {
   const token = useAuthStore((s) => s.accessToken);
   const clear = useAuthStore((s) => s.clear);
   const isPostPage = pathname === "/community";
-  const { addToast } = useToast();
-  const { notifications, unreadCount, clear: clearNotifications } = useChatNotifications();
+  const { notifications, unreadCount, markAsRead, clearAll } = useChatNotifications();
+  const [ringing, setRinging] = useState(false);
 
   useEffect(() => {
     const [latest] = notifications;
-    if (latest) addToast({ message: `${latest.senderName}: ${latest.message}`, type: "info" });
+    if (!latest) return;
+    setRinging(true);
+    const timer = setTimeout(() => setRinging(false), 600);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notifications.length]);
+
+  function formatNotificationTime(dateStr: string) {
+    return new Date(dateStr).toLocaleString("ko-KR", {
+      month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
+    });
+  }
 
   async function handleLogout() {
     try {
@@ -88,31 +101,61 @@ export default function Header() {
         <div className="flex items-center gap-3 shrink-0">
           <div ref={notifRef} className="relative">
             <button
-              onClick={() => { setShowNotifications((v) => !v); if (!showNotifications) clearNotifications(); }}
+              onClick={() => setShowNotifications((v) => !v)}
               className="relative w-9 h-9 rounded-full flex items-center justify-center hover:bg-zinc-100 cursor-pointer"
               aria-label="알림"
             >
-              <IoNotificationsOutline className="text-xl text-zinc-600" />
+              <IoNotificationsOutline className={`text-xl text-zinc-600 ${ringing ? "animate-bell-ring" : ""}`} />
               {unreadCount > 0 && (
                 <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-main" />
               )}
             </button>
             {showNotifications && (
-              <div className="absolute right-0 top-11 w-72 bg-white border border-zinc-200 rounded-lg shadow-lg overflow-hidden z-50 max-h-80 overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <p className="px-4 py-6 text-center text-sm text-zinc-400">새 알림이 없습니다.</p>
-                ) : (
-                  notifications.map((n, i) => (
+              <div className="absolute right-0 top-11 w-80 bg-white border border-zinc-200 rounded-lg shadow-lg overflow-hidden z-50">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100">
+                  <span className="text-sm font-bold">알림</span>
+                  {notifications.length > 0 && (
                     <button
-                      key={i}
-                      onClick={() => { setShowNotifications(false); router.push(`/chat/${n.roomId}`); }}
-                      className="w-full flex flex-col items-start gap-0.5 px-4 py-3 text-left border-b border-zinc-100 last:border-b-0 hover:bg-zinc-50 cursor-pointer"
+                      onClick={clearAll}
+                      className="text-xs text-zinc-400 hover:text-zinc-600 cursor-pointer"
                     >
-                      <span className="text-sm font-semibold">{n.senderName}</span>
-                      <span className="text-xs text-zinc-500 truncate w-full">{n.message}</span>
+                      모두 지우기
                     </button>
-                  ))
-                )}
+                  )}
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <p className="px-4 py-6 text-center text-sm text-zinc-400">새 알림이 없습니다.</p>
+                  ) : (
+                    notifications.map((n) => (
+                      <div
+                        key={n.id}
+                        onClick={() => { setShowNotifications(false); router.push(`/chat/${n.roomId}`); }}
+                        className={`w-full flex items-start gap-3 px-4 py-3 text-left border-b border-zinc-100 last:border-b-0 hover:bg-zinc-50 cursor-pointer ${n.read ? "opacity-50" : ""}`}
+                      >
+                        <span className={`shrink-0 mt-0.5 px-2 py-0.5 text-[11px] font-semibold rounded-full ${NOTIFICATION_TYPE_STYLE[n.type].className}`}>
+                          {NOTIFICATION_TYPE_STYLE[n.type].label}
+                        </span>
+                        <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-sm font-semibold truncate">{n.senderName}</span>
+                            <span className="text-[11px] text-zinc-400 shrink-0">{formatNotificationTime(n.createdAt)}</span>
+                          </div>
+                          <span className="text-xs text-zinc-500 truncate w-full">{n.message}</span>
+                        </div>
+                        {!n.read && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }}
+                            className="shrink-0 w-6 h-6 rounded-full border border-zinc-300 flex items-center justify-center text-zinc-400 hover:border-main hover:text-main hover:bg-main/10 cursor-pointer"
+                            aria-label="읽음 처리"
+                          >
+                            <IoCheckmark className="text-sm" />
+                          </button>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             )}
           </div>
