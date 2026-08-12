@@ -55,6 +55,12 @@ export default function Comment({ authorName, content, createdAt, profileImage, 
             <textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                  e.preventDefault()
+                  handleSave()
+                }
+              }}
               className="w-full text-sm border border-zinc-300 rounded-md p-2 focus:outline-none focus:border-main resize-none"
               rows={2}
             />

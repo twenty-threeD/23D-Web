@@ -15,7 +15,9 @@ export default function Footer() {
           </div>
           <div className="flex gap-2">
             <FaInstagram className="text-zinc-500 w-10 h-10 border-2 border-zinc-500 rounded-lg p-1" />
-            <FaGithub className="text-zinc-500 w-10 h-10 border-2 border-zinc-500 rounded-lg p-1" />
+            <a href="https://github.com/twenty-threeD/23D-Web" target="_blank" rel="noreferrer">
+              <FaGithub className="text-zinc-500 w-10 h-10 border-2 border-zinc-500 rounded-lg p-1 hover:text-zinc-700 hover:border-zinc-700 transition-colors" />
+            </a>
           </div>
         </div>
 

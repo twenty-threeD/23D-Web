@@ -5,7 +5,7 @@ interface PremiumCardProps {
   id: number
   title: string
   content: string
-  fileUrl?: string
+  fileUrls?: string[]
 }
 
 function getDescription(content: string): string {
@@ -17,16 +17,24 @@ function getDescription(content: string): string {
   }
 }
 
-export default function PremiumCard({ id, title, content, fileUrl }: PremiumCardProps) {
+export default function PremiumCard({ id, title, content, fileUrls }: PremiumCardProps) {
   const description = getDescription(content)
+  const images = (fileUrls ?? []).slice(0, 2)
 
   return (
     <Link href={`/item/${id}`} className="flex flex-col w-lg h-72 p-3 rounded-lg hover:shadow-sm transition-transform duration-300">
-      <div className="w-full min-h-32 bg-zinc-300 flex items-center justify-start rounded-lg overflow-hidden">
-        {fileUrl ? (
-          <img src={toRelativeUrl(fileUrl)} alt={title} className="w-full h-full object-cover" />
-        ) : (
+      <div className="w-full h-32 bg-zinc-300 flex items-center justify-start rounded-lg overflow-hidden">
+        {images.length === 0 ? (
           <div className="w-full h-full bg-zinc-200" />
+        ) : (
+          images.map((url, i) => (
+            <img
+              key={i}
+              src={toRelativeUrl(url)}
+              alt={title}
+              className={`h-full object-cover ${images.length === 1 ? "w-full" : "w-1/2"}`}
+            />
+          ))
         )}
       </div>
       <div className="flex flex-col gap-2 py-4">
