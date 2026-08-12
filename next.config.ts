@@ -1,13 +1,13 @@
 import type { NextConfig } from 'next'
 
-const API_URL = 'http://13.125.161.66:8080'
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.idta.store'
 
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: 'http',
-        hostname: '13.125.161.66',
+        protocol: 'https',
+        hostname: 'api.idta.store',
       },
     ],
   },
