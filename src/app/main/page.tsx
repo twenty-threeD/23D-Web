@@ -117,7 +117,7 @@ function MainContent() {
               ? Array.from({ length: 3 }).map((_, i) => <PremiumCardSkeleton key={i} />)
               : premiumPosts.length > 0
                 ? premiumPosts.map((post) => (
-                    <PremiumCard key={post.id} id={post.id} title={post.title} content={post.content} fileUrl={post.fileUrls?.[0]} />
+                    <PremiumCard key={post.id} id={post.id} title={post.title} content={post.content} fileUrls={post.fileUrls} />
                   ))
                 : Array.from({ length: 3 }).map((_, i) => (
                     <div key={i} className="w-lg h-72 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-400 text-sm">

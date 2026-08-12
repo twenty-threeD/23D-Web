@@ -58,10 +58,9 @@ export async function updatePost(
 }
 
 export async function deletePost(token: string, postId: number) {
-  const res = await fetch(`/api/community/post`, {
+  const res = await fetch(`/api/community/post?postId=${postId}`, {
     method: 'DELETE',
     headers: authHeaders(token),
-    body: JSON.stringify({ postId }),
   })
   if (!res.ok) throw new Error('게시글 삭제 실패')
   return res.json()
@@ -99,10 +98,9 @@ export async function updateComment(token: string, commentId: number, content: s
 }
 
 export async function deleteComment(token: string, commentId: number) {
-  const res = await fetch(`/api/community/comment`, {
+  const res = await fetch(`/api/community/comment?commentId=${commentId}`, {
     method: 'DELETE',
     headers: authHeaders(token),
-    body: JSON.stringify({ commentId }),
   })
   if (!res.ok) throw new Error('댓글 삭제 실패')
   return res.json()
