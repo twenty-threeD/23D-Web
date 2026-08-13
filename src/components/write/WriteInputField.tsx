@@ -23,9 +23,10 @@ export default function WriteInputField({
     const raw = e.target.value.replace(/[^0-9]/g, ""); // 숫자만 추출
     const num = Number(raw);
     if (num > MAX_PRICE) return;
-    const formatted = raw ? num.toLocaleString() : "";
-    onChange?.(formatted);
+    onChange?.(raw); // 상태에는 콤마 없는 순수 숫자 문자열만 저장
   };
+
+  const displayPrice = value ? Number(value).toLocaleString() : "";
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -53,7 +54,7 @@ export default function WriteInputField({
             type="text"
             className="flex-1 focus:outline-none"
             placeholder="가격을 입력해주세요."
-            value={value}
+            value={displayPrice}
             onChange={handlePriceChange}
           />
           <span className="text-zinc-500 ml-1">원</span>
