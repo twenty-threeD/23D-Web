@@ -55,6 +55,18 @@ export function useChatNotifications() {
   const token = useAuthStore((s) => s.accessToken)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const markRoomUnread = useChatRoomsStore((s) => s.markRoomUnread)
+  const activeRoomId = useChatRoomsStore((s) => s.activeRoomId)
+
+  // 채팅방에 들어가 있는 동안(activeRoomId)은 그 방에서 온 알림을 벨에서 지운다.
+  useEffect(() => {
+    if (!token || activeRoomId === null) return
+    const stale = notifications.filter((n) => n.type === "chat" && n.roomId === activeRoomId)
+    if (stale.length === 0) return
+    stale.forEach((n) => {
+      if (n.id > 0) readNotification(token, n.id).catch(() => {})
+    })
+    setNotifications((prev) => prev.filter((n) => !(n.type === "chat" && n.roomId === activeRoomId)))
+  }, [activeRoomId, token, notifications])
 
   useEffect(() => {
     if (!token) {
