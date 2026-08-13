@@ -4,6 +4,7 @@ import { useRef, useState } from "react"
 import { CiCamera } from "react-icons/ci"
 import Image from "next/image"
 import { uploadFile } from "@/src/lib/file"
+import { isPayloadTooLarge } from "@/src/lib/apiError"
 import { useAuthStore } from "@/src/store/authStore"
 import { useToast } from "@/src/hooks/useToast"
 
@@ -42,8 +43,11 @@ export default function UploadFile({ onUpload }: UploadFileProps) {
       const next = [...images, ...uploaded].slice(0, 5)
       setImages(next)
       if (next[0]) onUpload?.(next[0])
-    } catch {
-      addToast({ message: "이미지 업로드에 실패했습니다.", type: "error" })
+    } catch (e) {
+      addToast({
+        message: isPayloadTooLarge(e) ? "사진은 최대 10MB까지 업로드할 수 있어요." : "이미지 업로드에 실패했습니다.",
+        type: "error",
+      })
     } finally {
       setUploading(false)
     }
@@ -54,7 +58,7 @@ export default function UploadFile({ onUpload }: UploadFileProps) {
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="h-82 flex flex-col items-center justify-center border border-zinc-300 rounded-lg bg-zinc-50 cursor-pointer hover:bg-zinc-100"
+        className="relative h-82 flex flex-col items-center justify-center border border-zinc-300 rounded-lg bg-zinc-50 cursor-pointer hover:bg-zinc-100"
       >
         {images[0] ? (
           <Image
@@ -71,6 +75,11 @@ export default function UploadFile({ onUpload }: UploadFileProps) {
               {uploading ? "업로드 중..." : "사진을 업로드 해주세요."}
             </span>
           </>
+        )}
+        {uploading && images[0] && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg">
+            <div className="w-8 h-8 rounded-full border-2 border-white border-t-transparent animate-spin" />
+          </div>
         )}
       </button>
 

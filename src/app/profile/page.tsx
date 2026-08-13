@@ -8,9 +8,11 @@ import Footer from "@/src/components/Footer";
 import NormalCard from "@/src/components/NormalCard";
 import { CiCamera } from "react-icons/ci";
 import { useAuthStore } from "@/src/store/authStore";
+import { useProfileStore } from "@/src/store/profileStore";
 import { useToast } from "@/src/hooks/useToast";
 import { useHandleError } from "@/src/hooks/useHandleError";
 import { uploadFile, toRelativeUrl } from "@/src/lib/file";
+import { isPayloadTooLarge } from "@/src/lib/apiError";
 import {
   getMyProfile,
   updateMyProfile,
@@ -45,6 +47,8 @@ export default function Page() {
   const [saving, setSaving] = useState(false);
 
   const [imageUrl, setImageUrl] = useState("");
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [shortDescription, setShortDescription] = useState("");
   const [jobCategoryId, setJobCategoryId] = useState<number | "">("");
   const [ctprvnCd, setCtprvnCd] = useState("");
@@ -67,6 +71,7 @@ export default function Page() {
       const data = res.data;
       setProfile(data);
       setImageUrl(data.imageUrl ?? "");
+      useProfileStore.getState().setImageUrl(data.imageUrl ?? null);
       setShortDescription(data.shortDescription ?? "");
       setJobCategoryId(data.jobCategoryId ?? "");
       setSigCd(data.sigCd ?? "");
@@ -103,12 +108,21 @@ export default function Page() {
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !token) return;
+    const preview = URL.createObjectURL(file);
+    setImagePreview(preview);
+    setUploadingImage(true);
     try {
       const { url } = await uploadFile(token, file);
       setImageUrl(url);
-    } catch {
-      addToast({ message: "이미지 업로드에 실패했습니다.", type: "error" });
+    } catch (e) {
+      addToast({
+        message: isPayloadTooLarge(e) ? "사진은 최대 10MB까지 업로드할 수 있어요." : "이미지 업로드에 실패했습니다.",
+        type: "error",
+      });
     } finally {
+      URL.revokeObjectURL(preview);
+      setImagePreview(null);
+      setUploadingImage(false);
       e.target.value = "";
     }
   }
@@ -144,6 +158,7 @@ export default function Page() {
       await deleteAccount(token);
       addToast({ message: "회원 탈퇴가 완료되었습니다.", type: "success" });
       clear();
+      useProfileStore.getState().reset();
       router.push("/main");
     } catch (e) {
       handleError(e);
@@ -170,13 +185,19 @@ export default function Page() {
           <div className="flex items-center gap-6">
             <div className="relative w-24 h-24 rounded-full overflow-hidden border border-zinc-300 bg-zinc-100 shrink-0">
               <Image
-                src={imageUrl ? toRelativeUrl(imageUrl) : "/profile.png"}
+                src={imagePreview ?? (imageUrl ? toRelativeUrl(imageUrl) : "/profile.png")}
                 alt="프로필 이미지"
                 width={96}
                 height={96}
                 className="w-full h-full object-cover"
+                unoptimized={!!imagePreview}
               />
-              {editing && (
+              {uploadingImage && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                  <div className="w-6 h-6 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                </div>
+              )}
+              {editing && !uploadingImage && (
                 <label className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
                   <CiCamera className="text-white text-3xl" />
                   <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
