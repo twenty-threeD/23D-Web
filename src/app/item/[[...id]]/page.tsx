@@ -15,10 +15,10 @@ import TopButton from "@/src/components/TopButton";
 import { FaStar } from "react-icons/fa";
 import { IoMdHeart, IoMdHeartEmpty } from "react-icons/io";
 import { getPost, getPosts, favoritePost, unfavoritePost, getFavoritePosts, type Post } from "@/src/lib/post"
-import { toRelativeUrl } from "@/src/lib/file"
 import { type PriceCardPlan } from "@/src/types/priceCard";
 import { useAuthStore } from "@/src/store/authStore";
 import { useHandleError } from "@/src/hooks/useHandleError";
+import { toRelativeUrl } from "@/src/lib/file"
 
 function parsePlan(content: string): { description: string; plan?: PriceCardPlan } {
   try {
@@ -177,22 +177,12 @@ export default function Page() {
               </div>
               <button className="text-md text-zinc-400">전체 보기</button>
             </div>
-            {post?.fileUrls && post.fileUrls.length > 0 ? (
-              <div className="w-full flex gap-4">
-                {post.fileUrls.map((url, i) => (
-                  <div key={i} className="w-48 h-48 rounded-lg overflow-hidden bg-zinc-200">
-                    <img src={toRelativeUrl(url)} alt={`포트폴리오 ${i + 1}`} className="w-full h-full object-cover" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="w-full flex gap-4">
-                <Portfolio />
-                <Portfolio />
-                <Portfolio />
-                <Portfolio />
-              </div>
-            )}
+            <div className="w-full flex gap-4">
+              <Portfolio />
+              <Portfolio />
+              <Portfolio />
+              <Portfolio />
+            </div>
 
             {/* 상세 설명 */}
             <div className="flex flex-col gap-4">
@@ -210,6 +200,22 @@ export default function Page() {
                 <DoButton onClick={() => setIsExpanded(!isExpanded)}>
                   {isExpanded ? "접기" : "더보기"}
                 </DoButton>
+              )}
+            </div>
+
+            {/* 이미지 */}
+            <div className="flex flex-col gap-4">
+              <h2 className="text-xl font-bold">이미지</h2>
+              {post?.fileUrls && post.fileUrls.length > 0 ? (
+                <div className="w-full flex gap-4">
+                  {post.fileUrls.map((url, i) => (
+                    <div key={i} className="w-48 h-48 rounded-lg overflow-hidden bg-zinc-200">
+                      <img src={toRelativeUrl(url)} alt={`이미지 ${i + 1}`} className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p>이미지가 없습니다</p>
               )}
             </div>
 

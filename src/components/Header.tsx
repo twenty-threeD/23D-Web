@@ -6,7 +6,10 @@ import Image from "next/image";
 import { IoNotificationsOutline, IoCheckmark } from "react-icons/io5";
 import Search from "./Search";
 import { useAuthStore } from "@/src/store/authStore";
+import { useProfileStore } from "@/src/store/profileStore";
 import { logout } from "@/src/lib/auth";
+import { getMyProfile } from "@/src/lib/profile";
+import { toRelativeUrl } from "@/src/lib/file";
 import { useChatNotifications, type NotificationType } from "@/src/hooks/useChatNotifications";
 
 const NOTIFICATION_TYPE_STYLE: Record<NotificationType, { label: string; className: string }> = {
@@ -27,6 +30,17 @@ export default function Header() {
   const isPostPage = pathname === "/community";
   const { notifications, unreadCount, markAsRead, clearAll } = useChatNotifications();
   const [ringing, setRinging] = useState(false);
+  const profileImageUrl = useProfileStore((s) => s.imageUrl);
+  const profileLoaded = useProfileStore((s) => s.loaded);
+  const setProfileImageUrl = useProfileStore((s) => s.setImageUrl);
+
+  useEffect(() => {
+    if (!token) return;
+    if (profileLoaded) return;
+    getMyProfile(token)
+      .then((res) => setProfileImageUrl(res.data.imageUrl ?? null))
+      .catch(() => {});
+  }, [token, profileLoaded, setProfileImageUrl]);
 
   useEffect(() => {
     const [latest] = notifications;
@@ -48,6 +62,7 @@ export default function Header() {
       await logout(token);
     } catch {}
     clear();
+    useProfileStore.getState().reset();
     setShowMenu(false);
     router.push("/login/signin");
   }
@@ -164,7 +179,13 @@ export default function Header() {
               onClick={() => setShowMenu((v) => !v)}
               className="w-9 h-9 rounded-full overflow-hidden border border-zinc-300 cursor-pointer"
             >
-              <Image src="/profile.png" alt="프로필" width={36} height={36} className="w-full h-full object-cover" />
+              <Image
+                src={profileImageUrl ? toRelativeUrl(profileImageUrl) : "/profile.png"}
+                alt="프로필"
+                width={36}
+                height={36}
+                className="w-full h-full object-cover"
+              />
             </button>
             {showMenu && (
               <div className="absolute right-0 top-11 w-36 bg-white border border-zinc-200 rounded-lg shadow-lg overflow-hidden z-50">

@@ -1,3 +1,5 @@
+import { throwApiError } from './apiError'
+
 const BACKEND_ORIGIN = 'http://13.125.161.66:8080'
 
 export function toRelativeUrl(url: string | null | undefined): string {
@@ -15,7 +17,7 @@ export async function uploadFile(token: string, file: File): Promise<{ url: stri
     headers: { 'Authorization': `Bearer ${token}` },
     body: formData,
   })
-  if (!res.ok) throw new Error('파일 업로드 실패')
+  if (!res.ok) await throwApiError(res)
   const json = await res.json()
   const fileUrl: string = json.data?.fileUrl ?? json.fileUrl ?? ''
   return { url: toRelativeUrl(fileUrl) }
