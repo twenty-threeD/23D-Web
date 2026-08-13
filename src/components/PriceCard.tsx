@@ -76,21 +76,13 @@ export default function PriceCard({ username, plan = DEFAULT_PLAN, postId }: Pri
           </div>
         )}
 
-        <div className="flex flex-col gap-2">
-          <Link
-            href={postId ? `/pay/${postId}` : "/pay"}
-            className="w-full py-2 border text-center border-zinc-300 font-semibold rounded-md"
-          >
-            견적서 요청
-          </Link>
-          <button
-            onClick={handleChat}
-            disabled={loading || !username}
-            className="w-full py-2 border text-center bg-main border-zinc-300 text-white font-semibold rounded-md disabled:opacity-50 cursor-pointer"
-          >
-            {loading ? "연결 중..." : "문의하기"}
-          </button>
-        </div>
+        <button
+          onClick={handleChat}
+          disabled={loading || !username}
+          className="w-full py-2 border text-center bg-main border-zinc-300 text-white font-semibold rounded-md disabled:opacity-50 cursor-pointer"
+        >
+          {loading ? "연결 중..." : "문의하기"}
+        </button>
       </div>
     </div>
   )

@@ -59,8 +59,8 @@ const InputData = ({ formData, setFormData, onNext }: InputDataProps) => {
     return (
         <div className="flex flex-col items-center">
             <InputField
-                label="사용자명 입력"
-                placeholder="사용자명을 입력해주세요"
+                label="본명 입력"
+                placeholder="본명을 입력해주세요"
                 isEssential={true}
                 value={formData.name}
                 onChange={(e) => handleChange("name", e.target.value)}

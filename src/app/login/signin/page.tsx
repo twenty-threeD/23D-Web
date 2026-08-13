@@ -41,6 +41,22 @@ export default function Page() {
     }
   };
 
+  const OAuth = (index: number) => () => {
+    switch (index) {
+      case 0:
+        window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/google`;
+        break;
+      case 1:
+        window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/kakao`;
+        break;
+      case 2:
+        window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/naver`;
+        break;
+      default:
+        break;
+    }
+  };
+
   const enterLogin = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && canLogin) {
       handleLogin();
@@ -122,6 +138,7 @@ export default function Page() {
               <button
                 key={index}
                 className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-zinc-300 hover:border-main transition-colors"
+                onClick={OAuth(index)}
               >
                 <img
                   src={social.src}
