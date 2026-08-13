@@ -145,8 +145,11 @@ export default function Header() {
                     notifications.map((n) => (
                       <div
                         key={n.id}
-                        onClick={() => { setShowNotifications(false); router.push(`/chat/${n.roomId}`); }}
-                        className={`w-full flex items-start gap-3 px-4 py-3 text-left border-b border-zinc-100 last:border-b-0 hover:bg-zinc-50 cursor-pointer ${n.read ? "opacity-50" : ""}`}
+                        onClick={() => {
+                          setShowNotifications(false)
+                          if (n.type === "chat" && n.roomId !== null) router.push(`/chat/${n.roomId}`)
+                        }}
+                        className="w-full flex items-start gap-3 px-4 py-3 text-left border-b border-zinc-100 last:border-b-0 hover:bg-zinc-50 cursor-pointer"
                       >
                         <span className={`shrink-0 mt-0.5 px-2 py-0.5 text-[11px] font-semibold rounded-full ${NOTIFICATION_TYPE_STYLE[n.type].className}`}>
                           {NOTIFICATION_TYPE_STYLE[n.type].label}
@@ -158,15 +161,13 @@ export default function Header() {
                           </div>
                           <span className="text-xs text-zinc-500 truncate w-full">{n.message}</span>
                         </div>
-                        {!n.read && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }}
-                            className="shrink-0 w-6 h-6 rounded-full border border-zinc-300 flex items-center justify-center text-zinc-400 hover:border-main hover:text-main hover:bg-main/10 cursor-pointer"
-                            aria-label="읽음 처리"
-                          >
-                            <IoCheckmark className="text-sm" />
-                          </button>
-                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }}
+                          className="shrink-0 w-6 h-6 rounded-full border border-zinc-300 flex items-center justify-center text-zinc-400 hover:border-main hover:text-main hover:bg-main/10 cursor-pointer"
+                          aria-label="읽음 처리"
+                        >
+                          <IoCheckmark className="text-sm" />
+                        </button>
                       </div>
                     ))
                   )}
