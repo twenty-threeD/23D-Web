@@ -13,15 +13,7 @@ import { OnClickPay } from "@/src/components/pay/OnClickPay";
 import PriceCard from "@/src/components/PriceCard";
 import { getPost, type Post } from "@/src/lib/post";
 import { useAuthStore } from "@/src/store/authStore";
-import { type PriceCardPlan } from "@/src/types/priceCard";
-
-function parsePlan(content: string): { description: string; plan?: PriceCardPlan } {
-  try {
-    const parsed = JSON.parse(content);
-    if (parsed && typeof parsed === "object" && "description" in parsed) return parsed;
-  } catch {}
-  return { description: content };
-}
+import { parsePostContent } from "@/src/types/priceCard";
 
 const Page = () => {
   const params = useParams();
@@ -37,7 +29,8 @@ const Page = () => {
     getPost(postId, token).then((res) => setPost(res.data ?? null)).catch(() => {});
   }, [postId, token]);
 
-  const { plan } = post ? parsePlan(post.content) : { plan: undefined };
+  const { plans } = post ? parsePostContent(post.content) : { plans: [] };
+  const plan = plans[0];
 
   const price = plan?.price ? Number(plan.price.replace(/,/g, "")) : 0;
   const expertName = post?.member?.name ?? post?.member?.username ?? "";
@@ -66,7 +59,7 @@ const Page = () => {
         </div>
 
         <div className="flex items-start gap-10 justify-between">
-          <PriceCard username={expertUsername} plan={plan} />
+          <PriceCard username={expertUsername} plans={plans} />
           <div className="pr-25">
             <ApplyPay isAgree={isAgree} setIsAgree={setIsAgree} />
             <OnClickPay

@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Header from "@/src/components/Header";
-import Footer from "@/src/components/Footer";
 import BackButton from "@/src/components/BackButton";
 import UploadFile from "@/src/components/write/UploadPicture";
 import WriteSection from "@/src/components/write/WriteSection";
@@ -13,22 +12,7 @@ import { useAuthStore } from "@/src/store/authStore";
 import { createPost, updatePost, getPost, getPostCategories, type PostCategory } from "@/src/lib/post";
 import { useHandleError } from "@/src/hooks/useHandleError";
 import { useToast } from "@/src/hooks/useToast";
-import { type PriceCardPlan } from "@/src/types/priceCard";
-
-const DEFAULT_PLAN: PriceCardPlan = {
-  planName: "",
-  price: "",
-  description: "",
-  items: [],
-}
-
-function parsePlan(content: string): { description: string; plan?: PriceCardPlan } {
-  try {
-    const parsed = JSON.parse(content)
-    if (parsed && typeof parsed === "object" && "description" in parsed) return parsed
-  } catch {}
-  return { description: content }
-}
+import { type PriceCardPlan, DEFAULT_PLAN, parsePostContent, serializePostContent } from "@/src/types/priceCard";
 
 export default function Page() {
   const router = useRouter();
@@ -42,7 +26,7 @@ export default function Page() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [imageUrl, setImageUrl] = useState("");
-  const [plan, setPlan] = useState<PriceCardPlan>(DEFAULT_PLAN);
+  const [plans, setPlans] = useState<PriceCardPlan[]>([DEFAULT_PLAN]);
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [categories, setCategories] = useState<PostCategory[]>([]);
   const [isWaiting, setIsWaiting] = useState(false);
@@ -63,9 +47,10 @@ export default function Page() {
       setTitle(post.title ?? "");
       setImageUrl(post.fileUrls?.[0] ?? "");
       setCategoryId(post.category?.id ?? "");
-      const { description: desc, plan: existingPlan } = parsePlan(post.content ?? "");
+      const { description: desc, plans: existingPlans } = parsePostContent(post.content ?? "");
       setDescription(desc ?? "");
-      if (existingPlan) { setPlan(existingPlan); setPrice(existingPlan.price ?? ""); }
+      setPlans(existingPlans.length > 0 ? existingPlans : [DEFAULT_PLAN]);
+      setPrice(existingPlans[0]?.price ?? "");
     } catch (e) {
       handleError(e);
       router.replace("/main");
@@ -82,16 +67,23 @@ export default function Page() {
       addToast({ message: "제목과 본문을 입력해주세요.", type: "warning" });
       return;
     }
+    if (categoryId === "") {
+      addToast({ message: "카테고리를 선택해주세요.", type: "warning" });
+      return;
+    }
+    if (!imageUrl) {
+      addToast({ message: "사진을 업로드해주세요.", type: "warning" });
+      return;
+    }
     setIsWaiting(true);
     try {
-      const effectivePlan = { ...plan, price: plan.price || price };
-      const content = JSON.stringify({ description, plan: effectivePlan });
-      const categoryIdValue = categoryId === "" ? undefined : categoryId;
+      const effectivePlans = plans.map((p, i) => (i === 0 ? { ...p, price: price || p.price } : p));
+      const content = serializePostContent(description, effectivePlans);
       if (postId) {
-        await updatePost(token, { id: postId, title, content, fileUrl: imageUrl || undefined, categoryId: categoryIdValue });
+        await updatePost(token, { id: postId, title, content, fileUrl: imageUrl || undefined, categoryId });
         router.push(`/item/${postId}`);
       } else {
-        const res = await createPost(token, { title, content, fileUrl: imageUrl || undefined, categoryId: categoryIdValue });
+        const res = await createPost(token, { title, content, fileUrl: imageUrl || undefined, categoryId });
         const newId = res.data?.id;
         if (newId) router.push(`/item/${newId}`);
       }
@@ -107,7 +99,6 @@ export default function Page() {
       <div>
         <Header />
         <p className="text-center py-20 text-zinc-400">불러오는 중...</p>
-        <Footer />
       </div>
     );
   }
@@ -118,33 +109,42 @@ export default function Page() {
       <div className="px-20 py-4">
         <BackButton />
       </div>
-      <main className="flex flex-col gap-8 px-20 pb-12">
-        <div className="flex justify-between gap-4">
-          <UploadFile onUpload={setImageUrl} />
-          <WriteSection
-            title={title}
-            onTitleChange={setTitle}
-            description={description}
-            onDescriptionChange={setDescription}
-            price={price}
-            onPriceChange={setPrice}
-            categoryId={categoryId}
-            onCategoryChange={setCategoryId}
-            categories={categories}
-            onSubmit={isWaiting ? undefined : handleSubmit}
-            isWaiting={isWaiting}
-          />
-          <Preview
-            imageUrl={imageUrl}
-            title={title}
-            description={description}
-            price={price}
-          />
+      <main className="flex gap-8 px-20 pb-12 items-start">
+        <div className="flex-1 flex flex-col gap-8 min-w-0">
+          <div className="flex gap-8">
+            <UploadFile onUpload={setImageUrl} />
+            <WriteSection
+              title={title}
+              onTitleChange={setTitle}
+              description={description}
+              onDescriptionChange={setDescription}
+              price={price}
+              onPriceChange={setPrice}
+              categoryId={categoryId}
+              onCategoryChange={setCategoryId}
+              categories={categories}
+            />
+          </div>
+          <PriceCardEditor plans={plans} onChange={setPlans} />
+
+          <button
+            onClick={isWaiting ? undefined : handleSubmit}
+            disabled={isWaiting}
+            className="w-32 h-10 bg-main text-white rounded-lg font-bold self-end disabled:opacity-50 cursor-pointer"
+          >
+            {isWaiting ? "등록 중..." : "등록하기"}
+          </button>
         </div>
 
-        <PriceCardEditor plan={plan} onChange={setPlan} />
+        <div className="w-px self-stretch bg-zinc-300" />
+
+        <Preview
+          imageUrl={imageUrl}
+          title={title}
+          description={description}
+          price={price || plans[0]?.price}
+        />
       </main>
-      <Footer />
     </div>
   );
 }

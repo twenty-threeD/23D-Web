@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FaStar } from "react-icons/fa"
 import { toRelativeUrl } from "@/src/lib/file"
+import { parsePostContent } from "@/src/types/priceCard"
 
 interface NormalCardProps {
   id: number
@@ -13,22 +14,13 @@ interface NormalCardProps {
 }
 
 function getDescription(content: string): string {
-  try {
-    const parsed = JSON.parse(content)
-    return parsed.description ?? content
-  } catch {
-    return content
-  }
+  return parsePostContent(content).description || content
 }
 
 function getPrice(content: string, fallback?: string): string | null {
-  try {
-    const parsed = JSON.parse(content)
-    const price = parsed.plan?.price || fallback
-    return price ? `${Number(String(price).replace(/,/g, "")).toLocaleString()}원 ~` : null
-  } catch {
-    return fallback ? `${Number(String(fallback).replace(/,/g, "")).toLocaleString()}원 ~` : null
-  }
+  const { plans } = parsePostContent(content)
+  const price = plans[0]?.price || fallback
+  return price ? `${Number(String(price).replace(/,/g, "")).toLocaleString()}원 ~` : null
 }
 
 export default function NormalCard({ id, title, content, fileUrl, price, rating, category }: NormalCardProps) {
