@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import Header from "@/src/components/Header";
 import Footer from "@/src/components/Footer";
 import PremiumCard from "@/src/components/PremiumCard";
@@ -9,25 +10,48 @@ import PremiumCardSkeleton from "@/src/components/PremiumCardSkeleton";
 import NormalCard from "@/src/components/NormalCard";
 import NormalCardSkeleton from "@/src/components/NormalCardSkeleton";
 import Search from "@/src/components/Search";
-import { getPosts, searchPosts, type Post } from "@/src/lib/post";
+import { getPosts, searchPosts, getPostCategories, type Post, type PostCategory } from "@/src/lib/post";
 import { useAuthStore } from "@/src/store/authStore";
+
+const CATEGORY_ICONS: { label: string; icon: string; color: string }[] = [
+  { label: "이사/청소", icon: "/category/brush.png", color: "bg-red-200" },
+  { label: "설치/수리", icon: "/category/wrench.png", color: "bg-orange-200" },
+  { label: "인테리어", icon: "/category/table.png", color: "bg-yellow-200" },
+  { label: "외주", icon: "/category/art.png", color: "bg-lime-200" },
+  { label: "법률/금융", icon: "/category/money.png", color: "bg-green-200" },
+  { label: "과외", icon: "/category/book.png", color: "bg-blue-200" },
+  { label: "자동차", icon: "/category/car.png", color: "bg-purple-200" },
+  { label: "기타", icon: "/category/box.png", color: "bg-pink-200" },
+];
 
 function MainContent() {
   const token = useAuthStore((s) => s.accessToken);
   const router = useRouter();
   const searchParams = useSearchParams();
   const keyword = searchParams.get("keyword") ?? "";
+  const categoryParam = searchParams.get("category");
+  const categoryIds = categoryParam ? categoryParam.split(",").map(Number) : null;
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<PostCategory[]>([]);
+
+  useEffect(() => {
+    getPostCategories().then(setCategories).catch(() => {});
+  }, []);
+
+  function categoryHref(label: string): string {
+    const match = categories.find((c) => c.name === label);
+    return match ? `/main?category=${match.id}` : "/main";
+  }
 
   useEffect(() => {
     setLoading(true);
     const request = keyword ? searchPosts(keyword) : getPosts(token);
     request
-      .then((list) => setPosts(list))
+      .then((list) => setPosts(categoryIds ? list.filter((p) => p.category && categoryIds.includes(p.category.id)) : list))
       .catch(() => setPosts([]))
       .finally(() => setLoading(false));
-  }, [token, keyword]);
+  }, [token, keyword, categoryParam]);
 
   function handleSearch(value: string) {
     if (value.trim()) router.push(`/main?keyword=${encodeURIComponent(value)}`);
@@ -51,54 +75,18 @@ function MainContent() {
             </div>
             <Search onSearch={handleSearch} />
             <div className="flex w-full gap-3">
-              <div className="flex flex-col items-center justify-center w-0 flex-1">
-                <div className="w-full rounded-lg aspect-square bg-red-200">
-                  <img src="/category/brush.png" alt="" />
-                </div>
-                <p className="whitespace-nowrap text-sm mt-2">이사/청소</p>
-              </div>
-              <div className="flex flex-col items-center justify-center w-0 flex-1">
-                <div className="w-full rounded-lg aspect-square bg-orange-200">
-                  <img src="/category/wrench.png" alt="" />
-                </div>
-                <p className="whitespace-nowrap text-sm mt-2">설치/수리</p>
-              </div>
-              <div className="flex flex-col items-center justify-center w-0 flex-1">
-                <div className="w-full rounded-lg aspect-square bg-yellow-200">
-                  <img src="/category/table.png" alt="" />
-                </div>
-                <p className="whitespace-nowrap text-sm mt-2">인테리어</p>
-              </div>
-              <div className="flex flex-col items-center justify-center w-0 flex-1">
-                <div className="w-full rounded-lg aspect-square bg-lime-200">
-                  <img src="/category/art.png" alt="" />
-                </div>
-                <p className="whitespace-nowrap text-sm mt-2">외주</p>
-              </div>
-              <div className="flex flex-col items-center justify-center w-0 flex-1">
-                <div className="w-full rounded-lg aspect-square bg-green-200">
-                  <img src="/category/money.png" alt="" />
-                </div>
-                <p className="whitespace-nowrap text-sm mt-2">법률/금융</p>
-              </div>
-              <div className="flex flex-col items-center justify-center w-0 flex-1">
-                <div className="w-full rounded-lg aspect-square bg-blue-200">
-                  <img src="/category/book.png" alt="" />
-                </div>
-                <p className="whitespace-nowrap text-sm mt-2">과외</p>
-              </div>
-              <div className="flex flex-col items-center justify-center w-0 flex-1">
-                <div className="w-full rounded-lg aspect-square bg-purple-200">
-                  <img src="/category/car.png" alt="" />
-                </div>
-                <p className="whitespace-nowrap text-sm mt-2">자동차</p>
-              </div>
-              <div className="flex flex-col items-center justify-center w-0 flex-1">
-                <div className="w-full rounded-lg aspect-square bg-pink-200">
-                  <img src="/category/box.png" alt="" />
-                </div>
-                <p className="whitespace-nowrap text-sm mt-2">기타</p>
-              </div>
+              {CATEGORY_ICONS.map((c) => (
+                <Link
+                  key={c.label}
+                  href={categoryHref(c.label)}
+                  className="flex flex-col items-center justify-center w-0 flex-1"
+                >
+                  <div className={`w-full rounded-lg aspect-square ${c.color}`}>
+                    <img src={c.icon} alt="" />
+                  </div>
+                  <p className="whitespace-nowrap text-sm mt-2">{c.label}</p>
+                </Link>
+              ))}
             </div>
           </div>
           <div className="w-full overflow-hidden border border-zinc-300 rounded-lg">
@@ -136,7 +124,7 @@ function MainContent() {
               ? Array.from({ length: 4 }).map((_, i) => <NormalCardSkeleton key={i} />)
               : popularPosts.length > 0
                 ? popularPosts.map((post) => (
-                    <NormalCard key={post.id} id={post.id} title={post.title} content={post.content} fileUrl={post.fileUrls?.[0]} />
+                    <NormalCard key={post.id} id={post.id} title={post.title} content={post.content} fileUrl={post.fileUrls?.[0]} category={post.category} />
                   ))
                 : <p className="text-zinc-400 text-sm self-center">등록된 항목이 없습니다</p>
             }
@@ -151,7 +139,7 @@ function MainContent() {
               ? Array.from({ length: 4 }).map((_, i) => <NormalCardSkeleton key={i} />)
               : revisitPosts.length > 0
                 ? revisitPosts.map((post) => (
-                    <NormalCard key={post.id} id={post.id} title={post.title} content={post.content} fileUrl={post.fileUrls?.[0]} />
+                    <NormalCard key={post.id} id={post.id} title={post.title} content={post.content} fileUrl={post.fileUrls?.[0]} category={post.category} />
                   ))
                 : <p className="text-zinc-400 text-sm self-center">등록된 항목이 없습니다</p>
             }

@@ -124,7 +124,7 @@ export default function Page() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-sm text-zinc-600">설치/수리 &gt; 에어컨 대구광역시 / 50km 이동가능</span>
+                  <span className="text-sm text-zinc-600">{post?.category?.fullName ?? "카테고리 미설정"}</span>
                   {isOwner ? (
                     <button
                       onClick={() => router.push(`/upload/${postId}`)}
@@ -255,7 +255,7 @@ export default function Page() {
           <h2 className="text-2xl font-bold shrink-0">이웃들이<br/>많이 찾아요</h2>
           <div className="flex gap-4">
             {relatedPosts.slice(0, 4).map((p) => (
-              <NormalCard key={p.id} id={p.id} title={p.title} content={p.content} fileUrl={p.fileUrls?.[0]} />
+              <NormalCard key={p.id} id={p.id} title={p.title} content={p.content} fileUrl={p.fileUrls?.[0]} category={p.category} />
             ))}
           </div>
         </div>
@@ -264,7 +264,7 @@ export default function Page() {
           <h2 className="text-2xl font-bold shrink-0">재방문율이<br/>높아요</h2>
           <div className="flex gap-4">
             {relatedPosts.slice(4, 8).map((p) => (
-              <NormalCard key={p.id} id={p.id} title={p.title} content={p.content} fileUrl={p.fileUrls?.[0]} />
+              <NormalCard key={p.id} id={p.id} title={p.title} content={p.content} fileUrl={p.fileUrls?.[0]} category={p.category} />
             ))}
           </div>
         </div>
