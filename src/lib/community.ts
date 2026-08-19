@@ -51,7 +51,7 @@ export async function updatePost(
   const res = await fetch(`/api/community/post`, {
     method: 'PATCH',
     headers: authHeaders(token),
-    body: JSON.stringify({ postId, ...data }),
+    body: JSON.stringify({ id: postId, ...data }),
   })
   if (!res.ok) throw new Error('게시글 수정 실패')
   return res.json()

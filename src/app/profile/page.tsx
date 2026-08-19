@@ -336,7 +336,7 @@ export default function Page() {
           ) : (
             <div className="flex flex-wrap gap-4">
               {favorites.map((p) => (
-                <NormalCard key={p.id} id={p.id} title={p.title} content={p.content} fileUrl={p.fileUrls?.[0]} />
+                <NormalCard key={p.id} id={p.id} title={p.title} content={p.content} fileUrl={p.fileUrls?.[0]} category={p.category} />
               ))}
             </div>
           )}

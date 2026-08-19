@@ -10,7 +10,7 @@ import WriteSection from "@/src/components/write/WriteSection";
 import Preview from "@/src/components/write/Preview";
 import PriceCardEditor from "@/src/components/write/PriceCardEditor";
 import { useAuthStore } from "@/src/store/authStore";
-import { createPost, updatePost, getPost } from "@/src/lib/post";
+import { createPost, updatePost, getPost, getPostCategories, type PostCategory } from "@/src/lib/post";
 import { useHandleError } from "@/src/hooks/useHandleError";
 import { useToast } from "@/src/hooks/useToast";
 import { type PriceCardPlan } from "@/src/types/priceCard";
@@ -43,8 +43,12 @@ export default function Page() {
   const [price, setPrice] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [plan, setPlan] = useState<PriceCardPlan>(DEFAULT_PLAN);
+  const [categoryId, setCategoryId] = useState<number | "">("");
+  const [categories, setCategories] = useState<PostCategory[]>([]);
   const [isWaiting, setIsWaiting] = useState(false);
   const [loading, setLoading] = useState(!!postId);
+
+  useEffect(() => { getPostCategories().then(setCategories).catch(() => {}); }, []);
 
   const fetchExisting = useCallback(async () => {
     if (!postId) return;
@@ -58,6 +62,7 @@ export default function Page() {
       }
       setTitle(post.title ?? "");
       setImageUrl(post.fileUrls?.[0] ?? "");
+      setCategoryId(post.category?.id ?? "");
       const { description: desc, plan: existingPlan } = parsePlan(post.content ?? "");
       setDescription(desc ?? "");
       if (existingPlan) { setPlan(existingPlan); setPrice(existingPlan.price ?? ""); }
@@ -81,11 +86,12 @@ export default function Page() {
     try {
       const effectivePlan = { ...plan, price: plan.price || price };
       const content = JSON.stringify({ description, plan: effectivePlan });
+      const categoryIdValue = categoryId === "" ? undefined : categoryId;
       if (postId) {
-        await updatePost(token, { id: postId, title, content, fileUrl: imageUrl || undefined });
+        await updatePost(token, { id: postId, title, content, fileUrl: imageUrl || undefined, categoryId: categoryIdValue });
         router.push(`/item/${postId}`);
       } else {
-        const res = await createPost(token, { title, content, fileUrl: imageUrl || undefined });
+        const res = await createPost(token, { title, content, fileUrl: imageUrl || undefined, categoryId: categoryIdValue });
         const newId = res.data?.id;
         if (newId) router.push(`/item/${newId}`);
       }
@@ -122,6 +128,9 @@ export default function Page() {
             onDescriptionChange={setDescription}
             price={price}
             onPriceChange={setPrice}
+            categoryId={categoryId}
+            onCategoryChange={setCategoryId}
+            categories={categories}
             onSubmit={isWaiting ? undefined : handleSubmit}
             isWaiting={isWaiting}
           />

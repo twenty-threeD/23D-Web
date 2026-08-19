@@ -12,6 +12,14 @@ export interface PostMember {
   email: string
 }
 
+export interface PostCategory {
+  id: number
+  name: string
+  parentId?: number | null
+  parentName?: string | null
+  fullName: string
+}
+
 export interface Post {
   id: number
   title: string
@@ -20,6 +28,14 @@ export interface Post {
   viewCount?: number
   updatedAt?: string
   member?: PostMember
+  category?: PostCategory | null
+}
+
+export async function getPostCategories() {
+  const res = await fetch(`/api/post-category`)
+  if (!res.ok) await throwApiError(res)
+  const json = await res.json()
+  return (json.data ?? []) as PostCategory[]
 }
 
 export async function getPosts(token?: string | null) {
@@ -43,7 +59,7 @@ export async function getPost(postId: number, token?: string | null) {
   return { data: post }
 }
 
-export async function createPost(token: string, data: { title: string; content: string; fileUrl?: string }) {
+export async function createPost(token: string, data: { title: string; content: string; fileUrl?: string; categoryId?: number }) {
   const res = await fetch(`/api/post`, {
     method: 'POST',
     headers: authHeaders(token),
@@ -53,7 +69,7 @@ export async function createPost(token: string, data: { title: string; content: 
   return res.json() as Promise<{ data: Post }>
 }
 
-export async function updatePost(token: string, data: { id: number; title: string; content: string; fileUrl?: string }) {
+export async function updatePost(token: string, data: { id: number; title: string; content: string; fileUrl?: string; categoryId?: number }) {
   const res = await fetch(`/api/post`, {
     method: 'PATCH',
     headers: authHeaders(token),

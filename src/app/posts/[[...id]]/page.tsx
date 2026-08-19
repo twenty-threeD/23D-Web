@@ -24,6 +24,7 @@ import {
 } from "@/src/lib/community"
 import { useAuthStore } from "@/src/store/authStore"
 import { useLikeStore } from "@/src/store/likeStore"
+import { toRelativeUrl } from "@/src/lib/file"
 import { ApiError } from "@/src/lib/apiError"
 import { useHandleError } from "@/src/hooks/useHandleError"
 import TopButton from "@/src/components/TopButton"
@@ -265,7 +266,7 @@ export default function Page() {
 
             {/* 첨부 이미지 */}
             {post.fileUrl && (
-              <img src={post.fileUrl} alt="첨부 이미지" className="max-w-full rounded-lg" />
+              <img src={toRelativeUrl(post.fileUrl)} alt="첨부 이미지" className="max-w-full rounded-lg" />
             )}
 
             {/* 게시물 내용 */}
