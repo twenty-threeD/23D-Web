@@ -32,7 +32,7 @@ export default function Home() {
             <p className="text-main font-black text-2xl">블록체인</p>
             <p>으로 완성된 가장 안전한 매칭 서비스,</p>
           </div>
-          <p>잇다와 함께라면 당신의 비지니스가 더 단단해질 거에요.</p>
+          <p>잇다와 함께라면 당신의 비즈니스가 더 단단해질 거에요.</p>
         </div>
       <Footer/>
     </div>

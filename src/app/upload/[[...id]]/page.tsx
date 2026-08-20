@@ -25,7 +25,7 @@ export default function Page() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [plans, setPlans] = useState<PriceCardPlan[]>([DEFAULT_PLAN]);
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [categories, setCategories] = useState<PostCategory[]>([]);
@@ -45,7 +45,7 @@ export default function Page() {
         return;
       }
       setTitle(post.title ?? "");
-      setImageUrl(post.fileUrls?.[0] ?? "");
+      setImageUrls(post.fileUrls ?? []);
       setCategoryId(post.category?.id ?? "");
       const { description: desc, plans: existingPlans } = parsePostContent(post.content ?? "");
       setDescription(desc ?? "");
@@ -71,7 +71,7 @@ export default function Page() {
       addToast({ message: "카테고리를 선택해주세요.", type: "warning" });
       return;
     }
-    if (!imageUrl) {
+    if (imageUrls.length === 0) {
       addToast({ message: "사진을 업로드해주세요.", type: "warning" });
       return;
     }
@@ -80,10 +80,10 @@ export default function Page() {
       const effectivePlans = plans.map((p, i) => (i === 0 ? { ...p, price: price || p.price } : p));
       const content = serializePostContent(description, effectivePlans);
       if (postId) {
-        await updatePost(token, { id: postId, title, content, fileUrl: imageUrl || undefined, categoryId });
+        await updatePost(token, { id: postId, title, content, fileUrls: imageUrls, categoryId });
         router.push(`/item/${postId}`);
       } else {
-        const res = await createPost(token, { title, content, fileUrl: imageUrl || undefined, categoryId });
+        const res = await createPost(token, { title, content, fileUrls: imageUrls, categoryId });
         const newId = res.data?.id;
         if (newId) router.push(`/item/${newId}`);
       }
@@ -112,7 +112,7 @@ export default function Page() {
       <main className="flex gap-8 px-20 pb-12 items-start">
         <div className="flex-1 flex flex-col gap-8 min-w-0">
           <div className="flex gap-8">
-            <UploadFile onUpload={setImageUrl} />
+            <UploadFile initialImages={imageUrls} onUpload={setImageUrls} />
             <WriteSection
               title={title}
               onTitleChange={setTitle}
@@ -139,7 +139,7 @@ export default function Page() {
         <div className="w-px self-stretch bg-zinc-300" />
 
         <Preview
-          imageUrl={imageUrl}
+          imageUrl={imageUrls[0]}
           title={title}
           description={description}
           price={price || plans[0]?.price}

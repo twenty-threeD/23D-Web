@@ -77,7 +77,7 @@ export default function Page() {
                 `}
             >
                 <Link href="/main">
-                    <Image src="/icon.png" alt="Logo" width={80} height={40} className="mb-5" />
+                    <Image src="/logo.svg" alt="Logo" width={80} height={40} className="mb-5 bg-black" />
                 </Link>
                 <div className="w-full flex flex-col gap-3 items-center transition-opacity duration-300">
                     {step === 1 && (

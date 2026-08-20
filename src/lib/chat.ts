@@ -14,11 +14,11 @@ export async function getChatRooms(token: string) {
   return res.json()
 }
 
-export async function createChatRoom(token: string, username: string) {
+export async function createChatRoom(token: string, username: string, postId:number) {
   const res = await fetch(`/api/chat/rooms`, {
     method: 'POST',
     headers: authHeaders(token),
-    body: JSON.stringify({ username }),
+    body: JSON.stringify({ username, postId }),
   })
   if (!res.ok) await throwApiError(res)
   return res.json()

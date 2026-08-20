@@ -50,7 +50,7 @@ export default function NormalCard({ id, title, content, fileUrl, price, rating,
       {category && (
         <Link
           href={`/main?category=${category.id}`}
-          className="text-sm text-zinc-400 hover:text-main transition-colors"
+          className="w-full py-2 text-center text-sm font-medium text-zinc-600 border border-zinc-300 rounded-lg hover:bg-zinc-50 transition-colors"
         >
           {category.name} 관련 더보기
         </Link>

@@ -108,6 +108,11 @@ export default function Page() {
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !token) return;
+    if (file.size > 25 * 1024 * 1024) {
+      addToast({ message: "사진은 최대 25MB까지 업로드할 수 있어요.", type: "error" });
+      e.target.value = "";
+      return;
+    }
     const preview = URL.createObjectURL(file);
     setImagePreview(preview);
     setUploadingImage(true);
@@ -116,7 +121,7 @@ export default function Page() {
       setImageUrl(url);
     } catch (e) {
       addToast({
-        message: isPayloadTooLarge(e) ? "사진은 최대 10MB까지 업로드할 수 있어요." : "이미지 업로드에 실패했습니다.",
+        message: isPayloadTooLarge(e) ? "사진은 최대 25MB까지 업로드할 수 있어요." : "이미지 업로드에 실패했습니다.",
         type: "error",
       });
     } finally {

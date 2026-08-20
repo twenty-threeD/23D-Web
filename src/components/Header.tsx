@@ -98,7 +98,7 @@ export default function Header() {
       {/* 로고 / 리스트 */}
       <div className="flex gap-8 items-center">
         <Link href="/main">
-          <img src="/icon.png" alt="Logo" className="h-7"/>
+          <img src="/logo.svg" alt="Logo" className="h-7 bg-black hover:bg-main transition-colors "/>
         </Link>
         <ul className="flex gap-4">
           <li><Link href="/main" className="text-zinc-500 text-sm font-semibold ">능력자 찾기</Link></li>

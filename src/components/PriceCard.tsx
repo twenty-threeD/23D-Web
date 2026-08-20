@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { useAuthStore } from "@/src/store/authStore"
 import { createChatRoom } from "@/src/lib/chat"
 import { useHandleError } from "@/src/hooks/useHandleError"
@@ -34,10 +33,10 @@ export default function PriceCard({ username, plans, postId }: PriceCardProps) {
 
   async function handleChat() {
     if (!token) { router.push("/login/signin"); return }
-    if (!username) return
+    if (!username || !postId) return
     setLoading(true)
     try {
-      const res = await createChatRoom(token, username)
+      const res = await createChatRoom(token, username, postId)
       const roomId = res.data?.roomId
       if (roomId) router.push(`/chat/${roomId}`)
     } catch (e) {

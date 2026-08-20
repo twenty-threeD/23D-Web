@@ -59,7 +59,7 @@ export async function getPost(postId: number, token?: string | null) {
   return { data: post }
 }
 
-export async function createPost(token: string, data: { title: string; content: string; fileUrl?: string; categoryId?: number }) {
+export async function createPost(token: string, data: { title: string; content: string; fileUrls?: string[]; categoryId?: number }) {
   const res = await fetch(`/api/post`, {
     method: 'POST',
     headers: authHeaders(token),
@@ -69,7 +69,7 @@ export async function createPost(token: string, data: { title: string; content: 
   return res.json() as Promise<{ data: Post }>
 }
 
-export async function updatePost(token: string, data: { id: number; title: string; content: string; fileUrl?: string; categoryId?: number }) {
+export async function updatePost(token: string, data: { id: number; title: string; content: string; fileUrls?: string[]; categoryId?: number }) {
   const res = await fetch(`/api/post`, {
     method: 'PATCH',
     headers: authHeaders(token),

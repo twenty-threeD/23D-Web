@@ -73,11 +73,11 @@ export default function Page() {
         <div className="w-100 h-150 bg-white rounded-r-3xl flex flex-col items-center justify-center">
           <Link href="/main">
             <Image
-              src="/icon.png"
+              src="/logo.svg"
               alt="Logo"
               width={80}
               height={40}
-              className="mb-15.25"
+              className="mb-15.25 bg-black"
             />
           </Link>
 

@@ -13,9 +13,11 @@ import { useChatRoomsStore } from "@/src/store/chatRoomsStore"
 import { getChatRooms, getChatMessages, deleteChatRoom } from "@/src/lib/chat"
 import { toRelativeUrl, uploadFile } from "@/src/lib/file"
 import { useHandleError } from "@/src/hooks/useHandleError"
+import { useToast } from "@/src/hooks/useToast"
 import { Client } from "@stomp/stompjs"
 import SockJS from "sockjs-client"
 import ContractModal from "@/src/components/chat/ContractModal"
+import ImageLightbox from "@/src/components/ImageLightbox"
 
 function isImageUrl(url: string) {
   return /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(url)
@@ -79,9 +81,10 @@ export default function Page() {
   const [messages, setMessages] = useState<Message[]>([])
   const [loadingRooms, setLoadingRooms] = useState(() => !useChatRoomsStore.getState().loaded)
   const [loadingMessages, setLoadingMessages] = useState(false)
-  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null)
-  const [pendingPreview, setPendingPreview] = useState<string | null>(null)
+  const [pendingImageUrls, setPendingImageUrls] = useState<string[]>([])
+  const [pendingPreviews, setPendingPreviews] = useState<string[]>([])
   const [pendingDocUrl, setPendingDocUrl] = useState<string | null>(null)
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
   const [pendingDocName, setPendingDocName] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const stompClientRef = useRef<Client | null>(null)
@@ -89,6 +92,7 @@ export default function Page() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const docInputRef = useRef<HTMLInputElement>(null)
   const handleError = useHandleError()
+  const { addToast } = useToast()
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -185,29 +189,43 @@ export default function Page() {
 
   const filteredRooms = rooms.filter((r) => r.participantName.includes(search))
 
+  const MAX_CHAT_FILE_SIZE = 25 * 1024 * 1024
+
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file || !token) return
-    const preview = URL.createObjectURL(file)
-    setPendingPreview(preview)
+    const selected = Array.from(e.target.files ?? [])
+    const files = selected.filter((file) => {
+      if (file.size > MAX_CHAT_FILE_SIZE) {
+        addToast({ message: `${file.name}: 사진은 최대 25MB까지 업로드할 수 있어요.`, type: "error" })
+        return false
+      }
+      return true
+    })
+    if (!files.length || !token) return
+    const previews = files.map((file) => URL.createObjectURL(file))
+    setPendingPreviews((prev) => [...prev, ...previews])
     setShowAttach(false)
     setUploading(true)
     try {
-      const { url } = await uploadFile(token, file)
-      setPendingImageUrl(url)
+      const uploaded: string[] = []
+      for (const file of files) {
+        const { url } = await uploadFile(token, file)
+        uploaded.push(url)
+      }
+      setPendingImageUrls((prev) => [...prev, ...uploaded])
     } catch {
-      URL.revokeObjectURL(preview)
-      setPendingPreview(null)
+      previews.forEach((p) => URL.revokeObjectURL(p))
+      setPendingPreviews((prev) => prev.filter((p) => !previews.includes(p)))
     } finally {
       setUploading(false)
       e.target.value = ""
     }
   }
 
-  function clearPendingImage() {
-    if (pendingPreview) URL.revokeObjectURL(pendingPreview)
-    setPendingPreview(null)
-    setPendingImageUrl(null)
+  function clearPendingImage(index: number) {
+    const preview = pendingPreviews[index]
+    if (preview) URL.revokeObjectURL(preview)
+    setPendingPreviews((prev) => prev.filter((_, i) => i !== index))
+    setPendingImageUrls((prev) => prev.filter((_, i) => i !== index))
   }
 
   async function handleDocChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -233,11 +251,11 @@ export default function Page() {
   }
 
   function handleSend() {
-    if (!message.trim() && !pendingImageUrl && !pendingDocUrl) return
+    if (!message.trim() && pendingImageUrls.length === 0 && !pendingDocUrl) return
     const client = stompClientRef.current
     if (!client?.connected || uploading) return
 
-    const fileUrls = pendingImageUrl ? [pendingImageUrl] : pendingDocUrl ? [pendingDocUrl] : []
+    const fileUrls = pendingImageUrls.length > 0 ? pendingImageUrls : pendingDocUrl ? [pendingDocUrl] : []
     const body = JSON.stringify({
       roomId: selectedId,
       message: message.trim() || "",
@@ -249,7 +267,9 @@ export default function Page() {
       body,
     })
     setMessage("")
-    clearPendingImage()
+    pendingPreviews.forEach((p) => URL.revokeObjectURL(p))
+    setPendingPreviews([])
+    setPendingImageUrls([])
     clearPendingDoc()
   }
 
@@ -282,9 +302,18 @@ export default function Page() {
 
   function formatTime(dateStr: string) {
     return new Date(dateStr).toLocaleString("ko-KR", {
-      year: "numeric", month: "2-digit", day: "2-digit",
       hour: "2-digit", minute: "2-digit",
     })
+  }
+
+  function formatDate(dateStr: string) {
+    return new Date(dateStr).toLocaleDateString("ko-KR", {
+      year: "numeric", month: "long", day: "numeric", weekday: "long",
+    })
+  }
+
+  function dateKey(dateStr: string) {
+    return new Date(dateStr).toDateString()
   }
 
   return (
@@ -405,27 +434,49 @@ export default function Page() {
               <div className="flex flex-col flex-1 overflow-y-auto px-6 py-6 gap-4">
                 {loadingMessages ? (
                   <p className="text-center text-zinc-400 text-sm">불러오는 중...</p>
-                ) : messages.map((msg) => {
-                  const isSent = msg.senderUsername === myUsername
-                  const attachedUrl = msg.attachedFileUrls?.[0]
-                  const isImage = attachedUrl ? isImageUrl(attachedUrl) : false
+                ) : messages.map((msg, idx) => {
+                  const prevMsg = messages[idx - 1]
+                  const nextMsg = messages[idx + 1]
+                  const showDateDivider = !prevMsg || dateKey(msg.createdAt) !== dateKey(prevMsg.createdAt)
+                  const showTime =
+                    !nextMsg ||
+                    nextMsg.senderUsername !== msg.senderUsername ||
+                    formatTime(nextMsg.createdAt) !== formatTime(msg.createdAt) ||
+                    dateKey(nextMsg.createdAt) !== dateKey(msg.createdAt)
 
-                  const attachment = attachedUrl ? (
-                    isImage ? (
-                      <div className="w-48 rounded-xl overflow-hidden">
-                        <img src={toRelativeUrl(attachedUrl)} alt="첨부 이미지" className="w-full h-auto" />
-                      </div>
-                    ) : (
-                      <a
-                        href={toRelativeUrl(attachedUrl)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-2 bg-zinc-100 rounded-xl px-3 py-2 max-w-xs hover:bg-zinc-200"
-                      >
-                        <MdOutlineDescription className="text-lg text-zinc-500 shrink-0" />
-                        <span className="text-xs text-zinc-600 truncate">{fileNameFromUrl(attachedUrl)}</span>
-                      </a>
-                    )
+                  const isSent = msg.senderUsername === myUsername
+                  const attachedUrls = msg.attachedFileUrls ?? []
+                  const imageUrls = attachedUrls.filter(isImageUrl)
+                  const docUrls = attachedUrls.filter((url) => !isImageUrl(url))
+
+                  const attachment = attachedUrls.length > 0 ? (
+                    <div className="flex flex-col gap-1">
+                      {imageUrls.length > 0 && (
+                        <div className="flex flex-wrap gap-1 max-w-xs">
+                          {imageUrls.map((url) => (
+                            <div
+                              key={url}
+                              className="w-24 h-24 rounded-xl overflow-hidden cursor-pointer"
+                              onClick={() => setLightboxSrc(toRelativeUrl(url))}
+                            >
+                              <img src={toRelativeUrl(url)} alt="첨부 이미지" className="w-full h-full object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {docUrls.map((url) => (
+                        <a
+                          key={url}
+                          href={toRelativeUrl(url)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-2 bg-zinc-100 rounded-xl px-3 py-2 max-w-xs hover:bg-zinc-200"
+                        >
+                          <MdOutlineDescription className="text-lg text-zinc-500 shrink-0" />
+                          <span className="text-xs text-zinc-600 truncate">{fileNameFromUrl(url)}</span>
+                        </a>
+                      ))}
+                    </div>
                   ) : null
 
                   const textBubble = msg.message ? (
@@ -436,6 +487,13 @@ export default function Page() {
 
                   return (
                     <div key={msg.messageId}>
+                      {showDateDivider && (
+                        <div className="flex items-center justify-center py-2">
+                          <span className="text-xs text-zinc-400 bg-zinc-100 rounded-full px-3 py-1">
+                            {formatDate(msg.createdAt)}
+                          </span>
+                        </div>
+                      )}
                       {!isSent ? (
                         <div className="flex items-end gap-3">
                           <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 bg-zinc-200">
@@ -445,11 +503,11 @@ export default function Page() {
                             {attachment}
                             {textBubble}
                           </div>
-                          <span className="text-xs text-zinc-400 shrink-0">{formatTime(msg.createdAt)}</span>
+                          {showTime && <span className="text-xs text-zinc-400 shrink-0">{formatTime(msg.createdAt)}</span>}
                         </div>
                       ) : (
                         <div className="flex justify-end items-end gap-2">
-                          <span className="text-xs text-zinc-400">{formatTime(msg.createdAt)}</span>
+                          {showTime && <span className="text-xs text-zinc-400">{formatTime(msg.createdAt)}</span>}
                           <div className="flex flex-col gap-1 items-end">
                             {attachment}
                             {textBubble}
@@ -461,6 +519,9 @@ export default function Page() {
                 })}
                 <div ref={messagesEndRef} />
               </div>
+              {lightboxSrc && (
+                <ImageLightbox src={lightboxSrc} alt="첨부 이미지" onClose={() => setLightboxSrc(null)} />
+              )}
             </>
           ) : (
             <div className="flex flex-1 items-center justify-center">
@@ -503,21 +564,25 @@ export default function Page() {
                 </div>
               )}
 
-              {pendingPreview && (
-                <div className="relative w-24 h-24 rounded-lg overflow-hidden shrink-0">
-                  <img src={pendingPreview} alt="첨부 이미지" className="w-full h-full object-cover" />
-                  {uploading ? (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                      <span className="text-white text-xs">업로드 중</span>
+              {pendingPreviews.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {pendingPreviews.map((preview, i) => (
+                    <div key={preview} className="relative w-24 h-24 rounded-lg overflow-hidden shrink-0">
+                      <img src={preview} alt="첨부 이미지" className="w-full h-full object-cover" />
+                      {uploading && !pendingImageUrls[i] ? (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                          <span className="text-white text-xs">업로드 중</span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => clearPendingImage(i)}
+                          className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center cursor-pointer"
+                        >
+                          <IoClose className="text-white text-xs" />
+                        </button>
+                      )}
                     </div>
-                  ) : (
-                    <button
-                      onClick={clearPendingImage}
-                      className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center cursor-pointer"
-                    >
-                      <IoClose className="text-white text-xs" />
-                    </button>
-                  )}
+                  ))}
                 </div>
               )}
 
@@ -565,6 +630,7 @@ export default function Page() {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                multiple
                 className="hidden"
                 onChange={handleFileChange}
               />

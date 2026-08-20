@@ -163,20 +163,24 @@ export default function Page() {
               </div>
             </div>
 
-            {/* 포트폴리오 */}
-            <div className="flex justify-between">
-              <div className="flex items-baseline gap-2">
-                <h2 className="text-xl font-bold">포트폴리오</h2>
-                <span className="text-md text-zinc-400">(24)</span>
-              </div>
-              <button className="text-md text-zinc-400">전체 보기</button>
-            </div>
-            <div className="w-full flex gap-4">
-              <Portfolio />
-              <Portfolio />
-              <Portfolio />
-              <Portfolio />
-            </div>
+            {/* 포트폴리오 — 실제 데이터 연동 전까지는 숨김 */}
+            {false && (
+              <>
+                <div className="flex justify-between">
+                  <div className="flex items-baseline gap-2">
+                    <h2 className="text-xl font-bold">포트폴리오</h2>
+                    <span className="text-md text-zinc-400">(24)</span>
+                  </div>
+                  <button className="text-md text-zinc-400">전체 보기</button>
+                </div>
+                <div className="w-full flex gap-4">
+                  <Portfolio />
+                  <Portfolio />
+                  <Portfolio />
+                  <Portfolio />
+                </div>
+              </>
+            )}
 
             {/* 상세 설명 */}
             <div className="flex flex-col gap-4">

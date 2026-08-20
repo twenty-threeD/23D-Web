@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { CiCamera } from "react-icons/ci"
 import Image from "next/image"
 import { uploadFile } from "@/src/lib/file"
@@ -10,16 +10,19 @@ import { useToast } from "@/src/hooks/useToast"
 import ImageLightbox from "@/src/components/ImageLightbox"
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+const MAX_IMAGES = 4
+const MAX_FILE_SIZE = 25 * 1024 * 1024
 
 interface UploadFileProps {
-  onUpload?: (url: string) => void
+  initialImages?: string[]
+  onUpload?: (urls: string[]) => void
 }
 
-export default function UploadFile({ onUpload }: UploadFileProps) {
+export default function UploadFile({ initialImages, onUpload }: UploadFileProps) {
   const token = useAuthStore((s) => s.accessToken)
   const { addToast } = useToast()
   const inputRef = useRef<HTMLInputElement>(null)
-  const [images, setImages] = useState<string[]>([])
+  const [images, setImages] = useState<string[]>(initialImages ?? [])
   const [uploading, setUploading] = useState(false)
   const [showLightbox, setShowLightbox] = useState(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
@@ -29,12 +32,21 @@ export default function UploadFile({ onUpload }: UploadFileProps) {
   const clampedPreview = Math.min(previewIndex, Math.max(images.length - 1, 0))
   const bigImage = images[clampedPreview]
 
+  useEffect(() => {
+    if (initialImages && initialImages.length > 0) setImages(initialImages)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialImages])
+
   async function handleFiles(files: FileList | null) {
     if (!files || !token) return
 
     const validFiles = Array.from(files).filter((file) => {
       if (!ALLOWED_TYPES.includes(file.type)) {
         addToast({ message: `${file.name}: 지원되지 않는 파일 형식입니다. (JPG, PNG, GIF, WEBP만 가능)`, type: "error" })
+        return false
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        addToast({ message: `${file.name}: 사진은 최대 25MB까지 업로드할 수 있어요.`, type: "error" })
         return false
       }
       return true
@@ -48,12 +60,12 @@ export default function UploadFile({ onUpload }: UploadFileProps) {
         const { url } = await uploadFile(token, file)
         uploaded.push(url)
       }
-      const next = [...images, ...uploaded].slice(0, 5)
+      const next = [...images, ...uploaded].slice(0, MAX_IMAGES)
       setImages(next)
-      onUpload?.(next[0] ?? "")
+      onUpload?.(next)
     } catch (e) {
       addToast({
-        message: isPayloadTooLarge(e) ? "사진은 최대 10MB까지 업로드할 수 있어요." : "이미지 업로드에 실패했습니다.",
+        message: isPayloadTooLarge(e) ? "사진은 최대 25MB까지 업로드할 수 있어요." : "이미지 업로드에 실패했습니다.",
         type: "error",
       })
     } finally {
@@ -65,7 +77,7 @@ export default function UploadFile({ onUpload }: UploadFileProps) {
     const next = images.filter((_, j) => j !== i)
     setImages(next)
     setPreviewIndex(0)
-    onUpload?.(next[0] ?? "")
+    onUpload?.(next)
   }
 
   function reorder(from: number, to: number) {
@@ -75,7 +87,7 @@ export default function UploadFile({ onUpload }: UploadFileProps) {
     next.splice(to, 0, moved)
     setImages(next)
     setPreviewIndex(0)
-    onUpload?.(next[0] ?? "")
+    onUpload?.(next)
   }
 
   return (
@@ -128,7 +140,7 @@ export default function UploadFile({ onUpload }: UploadFileProps) {
       )}
 
       <div className="shrink-0 flex items-start rounded-lg gap-2 overflow-x-auto overflow-y-hidden pb-3 -mb-3">
-        {Array.from({ length: 5 }).map((_, i) => (
+        {Array.from({ length: MAX_IMAGES }).map((_, i) => (
           <div
             key={i}
             draggable={!!images[i]}
