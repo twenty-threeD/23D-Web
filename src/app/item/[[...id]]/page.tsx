@@ -20,6 +20,7 @@ import { useAuthStore } from "@/src/store/authStore";
 import { useHandleError } from "@/src/hooks/useHandleError";
 import { toRelativeUrl } from "@/src/lib/file"
 import ImageLightbox from "@/src/components/ImageLightbox"
+import { createReview, getReviews, type Review as ReviewData } from "@/src/lib/review"
 
 export default function Page() {
   const params = useParams();
@@ -29,8 +30,6 @@ export default function Page() {
   const token = useAuthStore((s) => s.accessToken);
   const myUsername = useAuthStore((s) => s.username);
   const handleError = useHandleError();
-  const reviewCount = 24;
-  const review = 4.5;
   const [isExpanded, setIsExpanded] = useState(false);
   const [canExpand, setCanExpand] = useState(false);
   const descriptionRef = useRef<HTMLParagraphElement>(null);
@@ -40,10 +39,13 @@ export default function Page() {
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<ReviewData[]>([]);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewContent, setReviewContent] = useState("");
+  const [reviewBusy, setReviewBusy] = useState(false);
 
   useEffect(() => {
     if (!postId) return;
-    setLoading(true);
     getPost(postId, token)
       .then((res) => setPost(res.data ?? null))
       .catch(() => {})
@@ -60,6 +62,14 @@ export default function Page() {
       .then((list) => setIsFavorited(list.some((p) => p.id === postId)))
       .catch(() => {});
   }, [token, postId]);
+
+  useEffect(() => {
+    if (!postId) return;
+    // 추정된 후기 조회 API(/api/review)를 호출합니다. 실제 백엔드 명세 확인이 필요합니다.
+    getReviews(postId, token)
+      .then(setReviews)
+      .catch(() => setReviews([]));
+  }, [postId, token]);
 
   useEffect(() => {
     const el = descriptionRef.current;
@@ -85,8 +95,46 @@ export default function Page() {
     }
   }
 
+  async function handleCreateReview() {
+    if (!token || !postId) {
+      router.push("/login/signin");
+      return;
+    }
+
+    const content = reviewContent.trim();
+    if (!content) return;
+
+    setReviewBusy(true);
+    try {
+      // 추정된 후기 등록 API(/api/review)에 게시글 ID, 별점, 내용을 전달합니다.
+      const created = await createReview(token, {
+        postId,
+        rating: reviewRating,
+        content,
+      });
+      const newReview: ReviewData = created ?? {
+        id: `local-${Date.now()}`,
+        rating: reviewRating,
+        content,
+        createdAt: new Date().toISOString(),
+        author: { username: myUsername },
+      };
+      setReviews((current) => [newReview, ...current]);
+      setReviewContent("");
+      setReviewRating(5);
+    } catch (e) {
+      handleError(e);
+    } finally {
+      setReviewBusy(false);
+    }
+  }
+
   const { description, plans } = post ? parsePostContent(post.content) : { description: "", plans: [] };
   const isOwner = !!(post?.member?.username && myUsername && post.member.username === myUsername);
+  const reviewCount = reviews.length;
+  const review = reviewCount > 0
+    ? reviews.reduce((total, item) => total + item.rating, 0) / reviewCount
+    : 0;
 
   if (loading) {
     return (
@@ -160,7 +208,7 @@ export default function Page() {
                   <span className="text-sm text-zinc-400">리뷰</span>
                   <div className="flex items-baseline justify-center gap-1">
                     <FaStar className="text-main size-5"/>
-                    <h3 className="text-2xl font-semibold">{review}</h3>
+                    <h3 className="text-2xl font-semibold">{review ? review.toFixed(1) : "-"}</h3>
                     <span className="text-sm text-zinc-500">({reviewCount})</span>
                   </div>
                 </div>
@@ -240,14 +288,48 @@ export default function Page() {
               <div className="flex gap-2 w-full px-4 py-10 border border-zinc-300 rounded-lg items-center">
                 <StarRating rating={review} />
                 <div className="flex items-baseline gap-1">
-                  <p className="text-lg font-semibold">{review}</p>
+                  <p className="text-lg font-semibold">{review ? review.toFixed(1) : "-"}</p>
                   <span className="text-sm text-zinc-500">({reviewCount})</span>
                 </div>
               </div>
-              <div className="flex flex-col gap-4">
-                <Review />
-                <Review />
-                <Review />
+
+              {!isOwner && (
+                <div className="flex flex-col gap-3 p-5 border border-zinc-200 rounded-lg bg-zinc-50">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold">후기 남기기</h3>
+                    <div className="flex items-center gap-2">
+                      <StarRating rating={reviewRating} interactive onChange={setReviewRating} />
+                      <span className="text-sm font-semibold text-zinc-600">{reviewRating}.0</span>
+                    </div>
+                  </div>
+                  <textarea
+                    value={reviewContent}
+                    onChange={(e) => setReviewContent(e.target.value.slice(0, 500))}
+                    placeholder="서비스는 어떠셨나요? 후기를 남겨주세요."
+                    maxLength={500}
+                    rows={4}
+                    className="w-full resize-none rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:outline-none focus:border-main"
+                  />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-zinc-400">{reviewContent.length} / 500</span>
+                    <button
+                      type="button"
+                      onClick={handleCreateReview}
+                      disabled={reviewBusy || !reviewContent.trim()}
+                      className="rounded-lg bg-main px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 cursor-pointer"
+                    >
+                      {reviewBusy ? "등록 중..." : "후기 등록"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col">
+                {reviews.length > 0 ? reviews.map((item) => (
+                  <Review key={item.id} review={item} />
+                )) : (
+                  <p className="py-8 text-center text-sm text-zinc-400">아직 등록된 후기가 없습니다.</p>
+                )}
               </div>
             </div>
           </div>
