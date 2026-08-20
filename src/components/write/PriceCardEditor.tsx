@@ -1,13 +1,14 @@
 "use client"
 
-import { type PriceCardPlan, type PriceCardItem } from "@/src/types/priceCard"
+import { useState } from "react"
+import { type PriceCardPlan, type PriceCardItem, DEFAULT_PLAN, MAX_PLANS } from "@/src/types/priceCard"
 
-interface PriceCardEditorProps {
+interface SinglePlanEditorProps {
   plan: PriceCardPlan
   onChange: (plan: PriceCardPlan) => void
 }
 
-export default function PriceCardEditor({ plan, onChange }: PriceCardEditorProps) {
+function SinglePlanEditor({ plan, onChange }: SinglePlanEditorProps) {
   function update(partial: Partial<PriceCardPlan>) {
     onChange({ ...plan, ...partial })
   }
@@ -26,9 +27,7 @@ export default function PriceCardEditor({ plan, onChange }: PriceCardEditorProps
   }
 
   return (
-    <div className="flex flex-col gap-4 border border-zinc-300 rounded-lg p-5">
-      <h3 className="font-bold text-lg">서비스 플랜</h3>
-
+    <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <label className="text-sm font-semibold text-zinc-600">플랜 이름</label>
         <input
@@ -86,15 +85,6 @@ export default function PriceCardEditor({ plan, onChange }: PriceCardEditorProps
             />
             <button
               type="button"
-              onClick={() => updateItem(i, { included: !item.included })}
-              className={`w-10 py-1.5 rounded-md text-sm font-bold cursor-pointer ${
-                item.included ? "bg-main text-white" : "bg-zinc-200 text-zinc-500"
-              }`}
-            >
-              {item.included ? "O" : "X"}
-            </button>
-            <button
-              type="button"
               onClick={() => removeItem(i)}
               className="text-zinc-400 hover:text-zinc-600 cursor-pointer text-lg leading-none"
             >
@@ -103,6 +93,74 @@ export default function PriceCardEditor({ plan, onChange }: PriceCardEditorProps
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+interface PriceCardEditorProps {
+  plans: PriceCardPlan[]
+  onChange: (plans: PriceCardPlan[]) => void
+}
+
+export default function PriceCardEditor({ plans, onChange }: PriceCardEditorProps) {
+  const [activeIndex, setActiveIndex] = useState(0)
+  const safePlans = plans.length > 0 ? plans : [DEFAULT_PLAN]
+  const active = Math.min(activeIndex, safePlans.length - 1)
+
+  function addPlan() {
+    if (safePlans.length >= MAX_PLANS) return
+    onChange([...safePlans, { ...DEFAULT_PLAN }])
+    setActiveIndex(safePlans.length)
+  }
+
+  function removePlan(index: number) {
+    if (safePlans.length <= 1) return
+    const next = safePlans.filter((_, i) => i !== index)
+    onChange(next)
+    setActiveIndex((prev) => Math.max(0, Math.min(prev, next.length - 1)))
+  }
+
+  return (
+    <div className="flex flex-col gap-4 border border-zinc-300 rounded-lg p-5">
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-lg">서비스 플랜</h3>
+        <button
+          type="button"
+          onClick={addPlan}
+          disabled={safePlans.length >= MAX_PLANS}
+          className="text-xs text-main font-semibold cursor-pointer disabled:text-zinc-300 disabled:cursor-not-allowed"
+        >
+          + 플랜 추가 ({safePlans.length}/{MAX_PLANS})
+        </button>
+      </div>
+
+      <div className="flex gap-2 border-b border-zinc-200">
+        {safePlans.map((plan, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => setActiveIndex(i)}
+            className={`flex items-center gap-1.5 px-3 py-2 text-sm font-semibold border-b-2 cursor-pointer ${
+              i === active ? "border-main text-main" : "border-transparent text-zinc-400 hover:text-zinc-600"
+            }`}
+          >
+            {plan.planName || `플랜 ${i + 1}`}
+            {safePlans.length > 1 && (
+              <span
+                onClick={(e) => { e.stopPropagation(); removePlan(i); }}
+                className="text-zinc-300 hover:text-zinc-500"
+              >
+                ×
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      <SinglePlanEditor
+        plan={safePlans[active]}
+        onChange={(nextPlan) => onChange(safePlans.map((p, i) => (i === active ? nextPlan : p)))}
+      />
     </div>
   )
 }

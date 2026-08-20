@@ -18,7 +18,7 @@ export function useHandleError() {
       }
     }
     if (isPayloadTooLarge(e)) {
-      addToast({ message: "파일은 최대 10MB까지 업로드할 수 있어요.", type: "error" })
+      addToast({ message: "파일은 최대 25MB까지 업로드할 수 있어요.", type: "error" })
       return
     }
     addToast({

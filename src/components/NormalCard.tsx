@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FaStar } from "react-icons/fa"
 import { toRelativeUrl } from "@/src/lib/file"
+import { parsePostContent } from "@/src/types/priceCard"
 
 interface NormalCardProps {
   id: number
@@ -13,22 +14,13 @@ interface NormalCardProps {
 }
 
 function getDescription(content: string): string {
-  try {
-    const parsed = JSON.parse(content)
-    return parsed.description ?? content
-  } catch {
-    return content
-  }
+  return parsePostContent(content).description || content
 }
 
 function getPrice(content: string, fallback?: string): string | null {
-  try {
-    const parsed = JSON.parse(content)
-    const price = parsed.plan?.price || fallback
-    return price ? `${Number(String(price).replace(/,/g, "")).toLocaleString()}원 ~` : null
-  } catch {
-    return fallback ? `${Number(String(fallback).replace(/,/g, "")).toLocaleString()}원 ~` : null
-  }
+  const { plans } = parsePostContent(content)
+  const price = plans[0]?.price || fallback
+  return price ? `${Number(String(price).replace(/,/g, "")).toLocaleString()}원 ~` : null
 }
 
 export default function NormalCard({ id, title, content, fileUrl, price, rating, category }: NormalCardProps) {
@@ -58,7 +50,7 @@ export default function NormalCard({ id, title, content, fileUrl, price, rating,
       {category && (
         <Link
           href={`/main?category=${category.id}`}
-          className="text-sm text-zinc-400 hover:text-main transition-colors"
+          className="w-full py-2 text-center text-sm font-medium text-zinc-600 border border-zinc-300 rounded-lg hover:bg-zinc-50 transition-colors"
         >
           {category.name} 관련 더보기
         </Link>

@@ -35,7 +35,7 @@ export default function WriteInputField({
   };
 
   return (
-    <div className="flex flex-col gap-1 w-124">
+    <div className="flex flex-col gap-1 w-full">
       <h1 className="text-xl font-bold">
         {name}
         {isEssential && <span className="text-red-500">*</span>}

@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { useAuthStore } from "@/src/store/authStore"
 import { createChatRoom } from "@/src/lib/chat"
 import { useHandleError } from "@/src/hooks/useHandleError"
@@ -17,22 +16,27 @@ const DEFAULT_PLAN: PriceCardPlan = {
 
 interface PriceCardProps {
   username?: string
-  plan?: PriceCardPlan
+  plans?: PriceCardPlan[]
   postId?: number
 }
 
-export default function PriceCard({ username, plan = DEFAULT_PLAN, postId }: PriceCardProps) {
+export default function PriceCard({ username, plans, postId }: PriceCardProps) {
   const router = useRouter()
   const token = useAuthStore((s) => s.accessToken)
   const handleError = useHandleError()
   const [loading, setLoading] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(0)
+
+  const safePlans = plans && plans.length > 0 ? plans : [DEFAULT_PLAN]
+  const active = Math.min(activeIndex, safePlans.length - 1)
+  const plan = safePlans[active]
 
   async function handleChat() {
     if (!token) { router.push("/login/signin"); return }
-    if (!username) return
+    if (!username || !postId) return
     setLoading(true)
     try {
-      const res = await createChatRoom(token, username)
+      const res = await createChatRoom(token, username, postId)
       const roomId = res.data?.roomId
       if (roomId) router.push(`/chat/${roomId}`)
     } catch (e) {
@@ -50,9 +54,17 @@ export default function PriceCard({ username, plan = DEFAULT_PLAN, postId }: Pri
     <div className="grow flex flex-col gap-2 border border-zinc-300 rounded-lg sticky top-24 self-start">
       {/* Header */}
       <div className="flex border-b border-zinc-300 h-12 font-medium">
-        <div className="flex items-center justify-center w-full py-2 border-b-2 font-semibold text-sm px-4 truncate">
-          {plan.planName || "서비스 플랜"}
-        </div>
+        {safePlans.map((p, i) => (
+          <button
+            key={i}
+            onClick={() => setActiveIndex(i)}
+            className={`flex items-center justify-center flex-1 py-2 border-b-2 font-semibold text-sm px-4 truncate cursor-pointer ${
+              i === active ? "border-main text-main" : "border-transparent text-zinc-400 hover:text-zinc-600"
+            }`}
+          >
+            {p.planName || `플랜 ${i + 1}`}
+          </button>
+        ))}
       </div>
 
       {/* Content */}
@@ -66,11 +78,11 @@ export default function PriceCard({ username, plan = DEFAULT_PLAN, postId }: Pri
         </div>
 
         {plan.items.length > 0 && (
-          <div className="flex flex-col items-center gap-1">
+          <div className="flex flex-col gap-1.5">
             {plan.items.map((item, i) => (
-              <div key={i} className="flex justify-between w-full">
+              <div key={i} className="flex items-center gap-2 w-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 shrink-0" />
                 <span className="text-sm text-zinc-400">{item.name}</span>
-                <span className="text-sm text-zinc-400">{item.included ? "O" : "X"}</span>
               </div>
             ))}
           </div>

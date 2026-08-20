@@ -15,19 +15,12 @@ import TopButton from "@/src/components/TopButton";
 import { FaStar } from "react-icons/fa";
 import { IoMdHeart, IoMdHeartEmpty } from "react-icons/io";
 import { getPost, getPosts, favoritePost, unfavoritePost, getFavoritePosts, type Post } from "@/src/lib/post"
-import { type PriceCardPlan } from "@/src/types/priceCard";
+import { parsePostContent } from "@/src/types/priceCard";
 import { useAuthStore } from "@/src/store/authStore";
 import { useHandleError } from "@/src/hooks/useHandleError";
 import { toRelativeUrl } from "@/src/lib/file"
+import ImageLightbox from "@/src/components/ImageLightbox"
 import { createReview, getReviews, type Review as ReviewData } from "@/src/lib/review"
-
-function parsePlan(content: string): { description: string; plan?: PriceCardPlan } {
-  try {
-    const parsed = JSON.parse(content)
-    if (parsed && typeof parsed === "object" && "description" in parsed) return parsed
-  } catch {}
-  return { description: content }
-}
 
 export default function Page() {
   const params = useParams();
@@ -45,6 +38,7 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteBusy, setFavoriteBusy] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [reviews, setReviews] = useState<ReviewData[]>([]);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewContent, setReviewContent] = useState("");
@@ -135,7 +129,7 @@ export default function Page() {
     }
   }
 
-  const { description, plan } = post ? parsePlan(post.content) : { description: "" };
+  const { description, plans } = post ? parsePostContent(post.content) : { description: "", plans: [] };
   const isOwner = !!(post?.member?.username && myUsername && post.member.username === myUsername);
   const reviewCount = reviews.length;
   const review = reviewCount > 0
@@ -165,10 +159,18 @@ export default function Page() {
 
               <div className="w-full flex items-start justify-between min-w-0">
                 <div className="flex gap-4">
-                  <div className="w-20 h-20 rounded-full bg-zinc-300" />
+                  <div className="w-20 h-20 rounded-full bg-zinc-300 overflow-hidden">
+                    {post?.member?.imageUrl && (
+                      <img
+                        src={toRelativeUrl(post.member.imageUrl) || "/profile.png"}
+                        alt={post.member.name ?? post.member.username}
+                        className="w-full h-full object-cover border border-zinc-300 rounded-full"
+                      />
+                    )}
+                  </div>
                   <div className="flex flex-col justify-between py-1">
-                    <span className="font-bold text-xl">{post?.member?.name ?? post?.member?.username ?? "오늘의 에어컨"}</span>
-                    <span className="text-sm text-zinc-400">{post?.title ?? "전문가의 꼼꼼한 시공"}</span>
+                    <span className="font-bold text-xl">{post?.title ?? "전문가의 꼼꼼한 시공"}</span>
+                    <span className="text-sm text-zinc-400">{post?.member?.name ?? post?.member?.username ?? "오늘의 에어컨"}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
@@ -217,29 +219,34 @@ export default function Page() {
               </div>
             </div>
 
-            {/* 포트폴리오 */}
-            <div className="flex justify-between">
-              <div className="flex items-baseline gap-2">
-                <h2 className="text-xl font-bold">포트폴리오</h2>
-                <span className="text-md text-zinc-400">(24)</span>
-              </div>
-              <button className="text-md text-zinc-400">전체 보기</button>
-            </div>
-            <div className="w-full flex gap-4">
-              <Portfolio />
-              <Portfolio />
-              <Portfolio />
-              <Portfolio />
-            </div>
+            {/* 포트폴리오 — 실제 데이터 연동 전까지는 숨김 */}
+            {false && (
+              <>
+                <div className="flex justify-between">
+                  <div className="flex items-baseline gap-2">
+                    <h2 className="text-xl font-bold">포트폴리오</h2>
+                    <span className="text-md text-zinc-400">(24)</span>
+                  </div>
+                  <button className="text-md text-zinc-400">전체 보기</button>
+                </div>
+                <div className="w-full flex gap-4">
+                  <Portfolio />
+                  <Portfolio />
+                  <Portfolio />
+                  <Portfolio />
+                </div>
+              </>
+            )}
 
             {/* 상세 설명 */}
             <div className="flex flex-col gap-4">
               <h2 className="text-xl font-bold">서비스 설명</h2>
               <p
                 ref={descriptionRef}
-                className={`${isExpanded || !canExpand
-                  ? "text-zinc-500"
-                  : "line-clamp-10 bg-linear-to-b from-zinc-500 via-zinc-300 to-white bg-clip-text text-transparent"
+                className={`whitespace-pre-line ${isExpanded ? "" : "line-clamp-10"} ${
+                  !isExpanded && canExpand
+                    ? "bg-linear-to-b from-zinc-500 via-zinc-300 to-white bg-clip-text text-transparent"
+                    : "text-zinc-500"
                 }`}
               >
                 {description || "서비스 설명이 없습니다."}
@@ -257,7 +264,11 @@ export default function Page() {
               {post?.fileUrls && post.fileUrls.length > 0 ? (
                 <div className="w-full flex gap-4">
                   {post.fileUrls.map((url, i) => (
-                    <div key={i} className="w-48 h-48 rounded-lg overflow-hidden bg-zinc-200">
+                    <div
+                      key={i}
+                      className="w-48 h-48 rounded-lg overflow-hidden bg-zinc-200 cursor-pointer"
+                      onClick={() => setLightboxSrc(toRelativeUrl(url))}
+                    >
                       <img src={toRelativeUrl(url)} alt={`이미지 ${i + 1}`} className="w-full h-full object-cover" />
                     </div>
                   ))}
@@ -266,6 +277,10 @@ export default function Page() {
                 <p>이미지가 없습니다</p>
               )}
             </div>
+
+            {lightboxSrc && (
+              <ImageLightbox src={lightboxSrc} alt="이미지" onClose={() => setLightboxSrc(null)} />
+            )}
 
             {/* 리뷰 */}
             <div className="flex flex-col gap-4">
@@ -322,7 +337,7 @@ export default function Page() {
           {/* right content */}
           <div className="flex flex-col gap-4">
             <div className="w-100 shrink-0">
-              <PriceCard username={post?.member?.username} plan={plan} postId={postId ?? undefined} />
+              <PriceCard username={post?.member?.username} plans={plans} postId={postId ?? undefined} />
             </div>
             <div className="bg-zinc-100 p-4 rounded-lg">
               <ul className="flex flex-col gap-1 list-disc list-inside">

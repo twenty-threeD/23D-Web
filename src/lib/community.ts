@@ -32,7 +32,7 @@ export async function searchPosts(keyword: string, token?: string | null) {
 
 export async function createPost(
   token: string,
-  data: { title: string; content: string; fileUrl?: string }
+  data: { title: string; content: string; fileUrls?: string[] }
 ) {
   const res = await fetch(`/api/community/post`, {
     method: 'POST',
@@ -46,7 +46,7 @@ export async function createPost(
 export async function updatePost(
   token: string,
   postId: number,
-  data: { title?: string; content?: string; fileUrl?: string }
+  data: { title?: string; content?: string; fileUrls?: string[] }
 ) {
   const res = await fetch(`/api/community/post`, {
     method: 'PATCH',
