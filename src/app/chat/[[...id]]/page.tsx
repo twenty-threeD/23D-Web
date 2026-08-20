@@ -9,6 +9,7 @@ import Search from "@/src/components/Search"
 import { HiDotsHorizontal } from "react-icons/hi"
 import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment } from "react-icons/md"
 import { useAuthStore } from "@/src/store/authStore"
+import { useProfileStore } from "@/src/store/profileStore"
 import { useChatRoomsStore } from "@/src/store/chatRoomsStore"
 import { getChatRooms, getChatMessages, deleteChatRoom } from "@/src/lib/chat"
 import { toRelativeUrl, uploadFile } from "@/src/lib/file"
@@ -65,6 +66,7 @@ export default function Page() {
       return p.username ?? p.sub ?? null
     } catch { return null }
   })
+  const myProfileImageUrl = useProfileStore((s) => s.imageUrl)
   const selectedId = params.id ? Number(Array.isArray(params.id) ? params.id[0] : params.id) : null
 
   const [tab, setTab] = useState<Tab>("received")
@@ -387,7 +389,13 @@ export default function Page() {
                   }`}
                 >
                   <div className="relative w-12 h-12 shrink-0">
-                    <Image src="/profile.png" alt={room.participantName} width={48} height={48} className="w-full h-full object-cover rounded-full" />
+                    <Image
+                      src={room.participantImageUrl ? toRelativeUrl(room.participantImageUrl) : "/profile.png"}
+                      alt={room.participantName}
+                      width={48}
+                      height={48}
+                      className="w-full h-full object-cover rounded-full"
+                    />
                     {isUnread && <span className="absolute top-0 -right-1 w-2 h-2 rounded-full bg-red-500 shrink-0" />}
                   </div>
                   <div className="flex flex-col flex-1 min-w-0">
@@ -422,7 +430,13 @@ export default function Page() {
               {/* 채팅 헤더 */}
               <div className="flex items-center gap-3 px-6 py-4 border-b border-zinc-200 shrink-0">
                 <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-zinc-200">
-                  <Image src="/profile.png" alt={selectedRoom.participantName} width={40} height={40} className="w-full h-full object-cover" />
+                  <Image
+                    src={selectedRoom.participantImageUrl ? toRelativeUrl(selectedRoom.participantImageUrl) : "/profile.png"}
+                    alt={selectedRoom.participantName}
+                    width={40}
+                    height={40}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <div className="flex flex-col">
                   <span className="font-semibold text-sm">{selectedRoom.participantName}</span>
@@ -485,6 +499,17 @@ export default function Page() {
                     </div>
                   ) : null
 
+                  // 계약서는 항상 을(수행자)이 제출하므로, 받은 사람(=갑/의뢰인)에게만 결제 버튼을 보여준다.
+                  const isContractSigned = msg.message.startsWith("[계약서 서명 완료]")
+                  const payButton = isContractSigned && !isSent && selectedRoom.postId ? (
+                    <button
+                      onClick={() => router.push(`/pay/${selectedRoom.postId}`)}
+                      className="px-4 py-2 rounded-xl bg-main text-white text-sm font-semibold hover:bg-orange-600 cursor-pointer"
+                    >
+                      결제하기
+                    </button>
+                  ) : null
+
                   return (
                     <div key={msg.messageId}>
                       {showDateDivider && (
@@ -497,20 +522,36 @@ export default function Page() {
                       {!isSent ? (
                         <div className="flex items-end gap-3">
                           <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 bg-zinc-200">
-                            <Image src="/profile.png" alt="" width={36} height={36} className="w-full h-full object-cover" />
+                            <Image
+                              src={selectedRoom.participantImageUrl ? toRelativeUrl(selectedRoom.participantImageUrl) : "/profile.png"}
+                              alt=""
+                              width={36}
+                              height={36}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
                           <div className="flex flex-col gap-1">
                             {attachment}
                             {textBubble}
+                            {payButton}
                           </div>
                           {showTime && <span className="text-xs text-zinc-400 shrink-0">{formatTime(msg.createdAt)}</span>}
                         </div>
                       ) : (
-                        <div className="flex justify-end items-end gap-2">
+                        <div className="flex justify-end items-end gap-3">
                           {showTime && <span className="text-xs text-zinc-400">{formatTime(msg.createdAt)}</span>}
                           <div className="flex flex-col gap-1 items-end">
                             {attachment}
                             {textBubble}
+                          </div>
+                          <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 bg-zinc-200">
+                            <Image
+                              src={myProfileImageUrl ? toRelativeUrl(myProfileImageUrl) : "/profile.png"}
+                              alt=""
+                              width={36}
+                              height={36}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
                         </div>
                       )}

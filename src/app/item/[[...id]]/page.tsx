@@ -111,7 +111,15 @@ export default function Page() {
 
               <div className="w-full flex items-start justify-between min-w-0">
                 <div className="flex gap-4">
-                  <div className="w-20 h-20 rounded-full bg-zinc-300" />
+                  <div className="w-20 h-20 rounded-full bg-zinc-300 overflow-hidden">
+                    {post?.member?.imageUrl && (
+                      <img
+                        src={toRelativeUrl(post.member.imageUrl) || "/profile.png"}
+                        alt={post.member.name ?? post.member.username}
+                        className="w-full h-full object-cover border border-zinc-300 rounded-full"
+                      />
+                    )}
+                  </div>
                   <div className="flex flex-col justify-between py-1">
                     <span className="font-bold text-xl">{post?.title ?? "전문가의 꼼꼼한 시공"}</span>
                     <span className="text-sm text-zinc-400">{post?.member?.name ?? post?.member?.username ?? "오늘의 에어컨"}</span>

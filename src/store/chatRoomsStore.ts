@@ -2,8 +2,10 @@ import { create } from 'zustand'
 
 export interface ChatRoom {
   roomId: number
+  postId?: number | null
   participantUsername: string
   participantName: string
+  participantImageUrl?: string | null
   lastMessagePreview: string
   lastMessageAt: string
 }

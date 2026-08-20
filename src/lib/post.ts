@@ -7,9 +7,10 @@ function authHeaders(token?: string | null) {
 }
 
 export interface PostMember {
+  id: number
   username: string
   name: string
-  email: string
+  imageUrl?: string | null
 }
 
 export interface PostCategory {
