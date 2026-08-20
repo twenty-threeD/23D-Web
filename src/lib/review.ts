@@ -1,5 +1,18 @@
 import { throwApiError } from './apiError'
 
+/**
+ * 후기 API 연결 위치
+ *
+ * 주의: 아래 API는 백엔드 명세를 확인하지 못한 상태에서 추정해서 연결한 API입니다.
+ * - 추정된 조회 API: GET /api/review?postId={게시글ID}&page={페이지}&size={개수}
+ * - 추정된 등록 API: POST /api/review
+ * - 추정된 등록 요청 본문: { postId, rating, content }
+ *
+ * 이 경로는 next.config.ts의 rewrite에 의해 백엔드 API 주소로 전달됩니다.
+ * 백엔드 명세가 확정되면 위 경로와 필드명을 실제 명세에 맞춰 수정해야 합니다.
+ * 사용처: src/app/item/[[...id]]/page.tsx의 서비스 상세 페이지 후기 영역
+ */
+
 function authHeaders(token?: string | null) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token) headers.Authorization = `Bearer ${token}`
@@ -77,6 +90,7 @@ function getReviewList(json: ReviewResponse | unknown) {
 }
 
 export async function getReviews(postId: number, token?: string | null, page = 0, size = 20) {
+  // TODO: 추정된 API입니다. 백엔드 후기 조회 엔드포인트 확정 후 경로를 확인하세요.
   const params = new URLSearchParams({ postId: String(postId), page: String(page), size: String(size) })
   const res = await fetch(`/api/review?${params}`, { headers: authHeaders(token) })
   if (!res.ok) await throwApiError(res)
@@ -87,6 +101,7 @@ export async function createReview(
   token: string,
   data: { postId: number; rating: number; content: string }
 ) {
+  // TODO: 추정된 API입니다. 백엔드 후기 등록 엔드포인트와 요청 필드를 확인하세요.
   const res = await fetch('/api/review', {
     method: 'POST',
     headers: authHeaders(token),

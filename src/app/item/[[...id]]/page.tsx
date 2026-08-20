@@ -71,6 +71,7 @@ export default function Page() {
 
   useEffect(() => {
     if (!postId) return;
+    // 추정된 후기 조회 API(/api/review)를 호출합니다. 실제 백엔드 명세 확인이 필요합니다.
     getReviews(postId, token)
       .then(setReviews)
       .catch(() => setReviews([]));
@@ -111,6 +112,7 @@ export default function Page() {
 
     setReviewBusy(true);
     try {
+      // 추정된 후기 등록 API(/api/review)에 게시글 ID, 별점, 내용을 전달합니다.
       const created = await createReview(token, {
         postId,
         rating: reviewRating,
