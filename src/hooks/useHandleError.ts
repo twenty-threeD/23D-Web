@@ -2,6 +2,7 @@ import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/src/store/authStore"
 import { useToast } from "./useToast"
 import { ApiError, isPayloadTooLarge } from "@/src/lib/apiError"
+import { ensureAccessToken } from "@/src/lib/session"
 
 export function useHandleError() {
   const router = useRouter()
@@ -9,9 +10,15 @@ export function useHandleError() {
   const clear = useAuthStore((s) => s.clear)
   const { addToast } = useToast()
 
-  return (e: unknown) => {
+  return async (e: unknown) => {
     if (e instanceof ApiError && e.status === 401) {
       if (token) {
+        // 액세스 토큰이 만료된 경우이므로 먼저 재발급을 시도한다
+        const reissued = await ensureAccessToken()
+        if (reissued) {
+          addToast({ message: "다시 시도해주세요.", type: "error" })
+          return
+        }
         clear()
         router.push("/login/signin")
         return

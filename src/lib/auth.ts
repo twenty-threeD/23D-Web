@@ -63,6 +63,20 @@ export async function login(email: string, password: string) {
   return json.data
 }
 
+// 액세스 토큰 재발급
+// 리프레시 토큰은 서버가 심은 쿠키로 전달되므로 body 없이 호출한다
+export async function reissueToken() {
+  const res = await fetch(`/api/token/reissue`, {
+    method: 'POST',
+    credentials: 'include',
+  })
+  if (!res.ok) throw new Error('토큰 재발급에 실패했습니다.')
+  const json = await res.json()
+  const accessToken = json?.data?.accessToken
+  if (!accessToken) throw new Error('토큰 재발급에 실패했습니다.')
+  return accessToken as string
+}
+
 // 로그아웃
 export async function logout(token?: string | null) {
   await fetch(`/api/auth/signout`, {
