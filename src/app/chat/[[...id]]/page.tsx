@@ -503,7 +503,12 @@ export default function Page() {
                   const isContractSigned = msg.message.startsWith("[계약서 서명 완료]")
                   const payButton = isContractSigned && !isSent && selectedRoom.postId ? (
                     <button
-                      onClick={() => router.push(`/pay/${selectedRoom.postId}`)}
+                      onClick={() =>
+                        router.push(
+                          // 결제 사전 등록에 계약서 URL 이 필요하므로 함께 넘긴다.
+                          `/pay/${selectedRoom.postId}?contractUrl=${encodeURIComponent(attachedUrls[0] ?? "")}`
+                        )
+                      }
                       className="px-4 py-2 rounded-xl bg-main text-white text-sm font-semibold hover:bg-orange-600 cursor-pointer"
                     >
                       결제하기
