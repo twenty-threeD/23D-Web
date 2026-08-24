@@ -1,6 +1,6 @@
 "use client";
-import { useState, useEffect, Suspense } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 
 import Header from "@/src/components/Header";
 import Footer from "@/src/components/Footer";
@@ -15,17 +15,19 @@ import { getPost, type Post } from "@/src/lib/post";
 import { useAuthStore } from "@/src/store/authStore";
 import { parsePostContent } from "@/src/types/priceCard";
 import { getEstimates, type Estimate as EstimateData } from "@/src/lib/estimate";
+import { useHandleError } from "@/src/hooks/useHandleError";
 
 const PayContent = () => {
   const params = useParams();
-  const searchParams = useSearchParams();
   const postId = params.id ? Number(Array.isArray(params.id) ? params.id[0] : params.id) : null;
   const token = useAuthStore((s) => s.accessToken);
   const username = useAuthStore((s) => s.username);
+  const handleError = useHandleError();
 
   const [isAgree, setIsAgree] = useState(false);
   const [post, setPost] = useState<Post | null>(null);
   const [estimate, setEstimate] = useState<EstimateData | null>(null);
+  const [estimateLoading, setEstimateLoading] = useState(true);
 
   useEffect(() => {
     if (!postId) return;
@@ -34,7 +36,11 @@ const PayContent = () => {
 
   // 결제 대상 견적서를 찾는다. 아직 결제되지 않은 것 중 가장 최근 것을 사용한다.
   useEffect(() => {
-    if (!token || !postId) return;
+    if (!token || !postId) {
+      setEstimateLoading(false);
+      return;
+    }
+    setEstimateLoading(true);
     getEstimates(token, postId)
       .then((list) => {
         const target = list
@@ -42,16 +48,17 @@ const PayContent = () => {
           .sort((a, b) => b.id - a.id)[0];
         setEstimate(target ?? null);
       })
-      .catch(() => {});
+      .catch(handleError)
+      .finally(() => setEstimateLoading(false));
   }, [token, postId]);
 
   const { plans } = post ? parsePostContent(post.content) : { plans: [] };
   const plan = plans[0];
 
-  // 결제 금액과 계약서 URL 은 견적서를 기준으로 한다.
-  const planPrice = plan?.price ? Number(plan.price.replace(/,/g, "")) : 0;
-  const price = estimate?.totalPay ?? planPrice;
-  const contractUrl = estimate?.url ?? searchParams.get("contractUrl") ?? undefined;
+  // 결제 금액과 계약서 URL 의 근거는 견적서 하나뿐이다.
+  // 게시글의 플랜 가격은 결제에 절대 쓰지 않는다 (견적서 금액과 다를 수 있다).
+  const price = estimate?.totalPay ?? 0;
+  const contractUrl = estimate?.url;
   const expertName = post?.member?.name ?? post?.member?.username ?? "";
   const expertUsername = post?.member?.username;
   const imgPath = post?.fileUrls?.[0] ?? "/profile.png";
@@ -78,18 +85,30 @@ const PayContent = () => {
         </div>
 
         <div className="flex items-start gap-10 justify-between">
-          <PriceCard username={expertUsername} plans={plans} />
+          <PriceCard username={expertUsername} plans={plans} postId={postId ?? undefined} />
           <div className="pr-25">
             <ApplyPay isAgree={isAgree} setIsAgree={setIsAgree} />
-            <OnClickPay
-              isAgree={isAgree}
-              price={price}
-              orderName={post?.title ?? "잇다 서비스"}
-              orderCustomerName={username ?? ""}
-              postId={postId ?? undefined}
-              contractUrl={contractUrl}
-              estimateId={estimate?.id}
-            />
+            {estimateLoading ? (
+              <p className="w-87.5 mt-5 py-3 text-center text-sm text-zinc-400">
+                견적서를 불러오는 중입니다...
+              </p>
+            ) : estimate ? (
+              <OnClickPay
+                isAgree={isAgree}
+                price={price}
+                orderName={post?.title ?? "잇다 서비스"}
+                orderCustomerName={username ?? ""}
+                postId={postId ?? undefined}
+                contractUrl={contractUrl}
+                estimateId={estimate.id}
+              />
+            ) : (
+              <p className="w-87.5 mt-5 py-3 text-center text-sm text-zinc-500">
+                견적서가 아직 발행되지 않았습니다.
+                <br />
+                전문가에게 견적서를 요청해주세요.
+              </p>
+            )}
           </div>
         </div>
       </main>
@@ -98,10 +117,4 @@ const PayContent = () => {
   );
 };
 
-const Page = () => (
-  <Suspense fallback={null}>
-    <PayContent />
-  </Suspense>
-);
-
-export default Page;
+export default PayContent;
