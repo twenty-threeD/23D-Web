@@ -32,21 +32,18 @@ const PayContent = () => {
     getPost(postId, token).then((res) => setPost(res.data ?? null)).catch(() => {});
   }, [postId, token]);
 
-  // 결제 대상 견적서를 찾는다.
-  // 견적서에는 postId 가 없으므로 게시글 작성자(전문가) 기준으로 매칭하고,
-  // 아직 결제되지 않은 것 중 가장 최근 것을 사용한다.
-  const professionalId = post?.member?.id;
+  // 결제 대상 견적서를 찾는다. 아직 결제되지 않은 것 중 가장 최근 것을 사용한다.
   useEffect(() => {
-    if (!token || !professionalId) return;
-    getEstimates(token)
+    if (!token || !postId) return;
+    getEstimates(token, postId)
       .then((list) => {
         const target = list
-          .filter((e) => e.professionalId === professionalId && !e.paid)
+          .filter((e) => e.status !== "PAID")
           .sort((a, b) => b.id - a.id)[0];
         setEstimate(target ?? null);
       })
       .catch(() => {});
-  }, [token, professionalId]);
+  }, [token, postId]);
 
   const { plans } = post ? parsePostContent(post.content) : { plans: [] };
   const plan = plans[0];
