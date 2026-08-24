@@ -32,7 +32,7 @@ export default function Page() {
   const [isWaiting, setIsWaiting] = useState(false);
   const [loading, setLoading] = useState(!!postId);
 
-  useEffect(() => { getPostCategories().then(setCategories).catch(() => {}); }, []);
+  useEffect(() => { getPostCategories().then(setCategories).catch(handleError); }, []);
 
   const fetchExisting = useCallback(async () => {
     if (!postId) return;
