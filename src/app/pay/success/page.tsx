@@ -17,6 +17,7 @@ function SuccessContent() {
     const paymentKey = searchParams.get("paymentKey");
     const orderId = searchParams.get("orderId");
     const amount = searchParams.get("amount");
+    const estimateId = searchParams.get("estimateId");
     const destination = postId ? `/item/${postId}` : "/main";
 
     async function run() {
@@ -26,7 +27,13 @@ function SuccessContent() {
         return;
       }
       try {
-        await confirmPayment(token, { paymentKey, orderId, amount: Number(amount) });
+        await confirmPayment(token, {
+          paymentKey,
+          orderId,
+          amount: Number(amount),
+          // 견적서 결제인 경우에만 함께 보낸다 (승인 후 해당 견적서가 결제완료로 잠긴다)
+          ...(estimateId ? { estimateId: Number(estimateId) } : {}),
+        });
         addToast({ message: "결제가 완료되었습니다.", type: "success" });
       } catch (e) {
         addToast({ message: e instanceof Error ? e.message : "결제 승인에 실패했습니다.", type: "error" });

@@ -3,6 +3,7 @@ import { create } from 'zustand'
 export interface ChatRoom {
   roomId: number
   postId?: number | null
+  participantId?: number | null
   participantUsername: string
   participantName: string
   participantImageUrl?: string | null

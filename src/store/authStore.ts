@@ -15,6 +15,11 @@ function decodeJwtUsername(token: string): string | null {
   return (payload.username as string) ?? (payload.sub as string) ?? null
 }
 
+function decodeJwtRole(token: string): string | null {
+  const role = decodeJwtPayload(token)?.role
+  return typeof role === 'string' ? role.replace(/^ROLE_/, '') : null
+}
+
 // 토큰 만료 여부 (exp 가 없으면 만료되지 않은 것으로 간주)
 export function isTokenExpired(token: string): boolean {
   const exp = decodeJwtPayload(token)?.exp
@@ -42,6 +47,7 @@ function setAuthCookie(token: string | null) {
 interface AuthStore {
   accessToken: string | null
   username: string | null
+  role: string | null
   // 리프레시 토큰은 httpOnly 쿠키라 읽을 수 없으므로,
   // 재발급을 시도해볼 만한 상태인지만 기록해둔다
   hasSession: boolean
@@ -56,6 +62,7 @@ export const useAuthStore = create<AuthStore>()(
     (set) => ({
       accessToken: null,
       username: null,
+      role: null,
       hasSession: false,
       hydrated: false,
       setHydrated: () => set({ hydrated: true }),
@@ -64,12 +71,13 @@ export const useAuthStore = create<AuthStore>()(
         set({
           accessToken: token,
           username: decodeJwtUsername(token),
+          role: decodeJwtRole(token),
           hasSession: true,
         })
       },
       clear: () => {
         setAuthCookie(null)
-        set({ accessToken: null, username: null, hasSession: false })
+        set({ accessToken: null, username: null, role: null, hasSession: false })
       },
     }),
     {
@@ -83,6 +91,7 @@ export const useAuthStore = create<AuthStore>()(
       partialize: (state) => ({
         accessToken: state.accessToken,
         username: state.username,
+        role: state.role,
         hasSession: state.hasSession,
       }),
       // 만료된 액세스 토큰이라도 지우지 않는다.

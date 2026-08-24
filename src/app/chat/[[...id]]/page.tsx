@@ -7,7 +7,7 @@ import Image from "next/image"
 import { IoClose, IoSend, IoAdd } from "react-icons/io5"
 import Search from "@/src/components/Search"
 import { HiDotsHorizontal } from "react-icons/hi"
-import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment } from "react-icons/md"
+import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment, MdOutlineReceiptLong } from "react-icons/md"
 import { useAuthStore } from "@/src/store/authStore"
 import { useProfileStore } from "@/src/store/profileStore"
 import { useChatRoomsStore } from "@/src/store/chatRoomsStore"
@@ -18,6 +18,8 @@ import { useToast } from "@/src/hooks/useToast"
 import { Client } from "@stomp/stompjs"
 import SockJS from "sockjs-client"
 import ContractModal from "@/src/components/chat/ContractModal"
+import EstimateModal from "@/src/components/chat/EstimateModal"
+import { createEstimate } from "@/src/lib/estimate"
 import ImageLightbox from "@/src/components/ImageLightbox"
 
 function isImageUrl(url: string) {
@@ -66,6 +68,7 @@ export default function Page() {
       return p.username ?? p.sub ?? null
     } catch { return null }
   })
+  const myRole = useAuthStore((s) => s.role)
   const myProfileImageUrl = useProfileStore((s) => s.imageUrl)
   const selectedId = params.id ? Number(Array.isArray(params.id) ? params.id[0] : params.id) : null
 
@@ -74,6 +77,8 @@ export default function Page() {
   const [message, setMessage] = useState("")
   const [showAttach, setShowAttach] = useState(false)
   const [showContract, setShowContract] = useState(false)
+  const [showEstimate, setShowEstimate] = useState(false)
+  const [estimateBusy, setEstimateBusy] = useState(false)
   const rooms = useChatRoomsStore((s) => s.rooms)
   const setRoomsInStore = useChatRoomsStore((s) => s.setRooms)
   const unreadRoomIds = useChatRoomsStore((s) => s.unreadRoomIds)
@@ -275,6 +280,42 @@ export default function Page() {
     clearPendingDoc()
   }
 
+  // 견적서는 전문가(을)가 발행한다. 발행 후 채팅방에도 안내 메시지를 남긴다.
+  async function handleEstimateSubmit(data: { url: string; totalPay: number }) {
+    if (!token || !selectedId || !selectedRoom?.postId) return
+    if (!selectedRoom.participantId) {
+      addToast({ message: "상대방 정보를 불러오지 못했습니다.", type: "error" })
+      return
+    }
+    setEstimateBusy(true)
+    try {
+      await createEstimate(token, {
+        postId: selectedRoom.postId,
+        clientId: selectedRoom.participantId,
+        url: data.url,
+        totalPay: data.totalPay,
+      })
+
+      const client = stompClientRef.current
+      if (client?.connected) {
+        client.publish({
+          destination: "/app/chat.send",
+          headers: { Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            roomId: selectedId,
+            message: `[견적서 발송]\n견적 금액: ${data.totalPay.toLocaleString()}원`,
+            fileUrls: [data.url],
+          }),
+        })
+      }
+      setShowEstimate(false)
+    } catch (e) {
+      handleError(e)
+    } finally {
+      setEstimateBusy(false)
+    }
+  }
+
   async function handleContractSubmit(data: { clientSig: string; professionalSig: string; clientName: string; professionalName: string }) {
     if (!token || !selectedId) return
     const client = stompClientRef.current
@@ -321,6 +362,15 @@ export default function Page() {
   return (
     <div className="flex flex-col h-screen">
       <Header />
+      {showEstimate && selectedRoom && token && (
+        <EstimateModal
+          token={token}
+          busy={estimateBusy}
+          onClose={() => setShowEstimate(false)}
+          onSubmit={handleEstimateSubmit}
+        />
+      )}
+
       {showContract && selectedRoom && (
         <ContractModal
           roomId={selectedId ?? 0}
@@ -602,6 +652,17 @@ export default function Page() {
                     </button>
                     <span className="text-xs text-zinc-500">계약서</span>
                   </div>
+                  {myRole === "PROFESSIONAL" && selectedRoom.postId && (
+                    <div className="flex flex-col items-center gap-1">
+                      <button
+                        onClick={() => { setShowAttach(false); setShowEstimate(true) }}
+                        className="w-12 h-12 rounded-full bg-emerald-400 flex items-center justify-center cursor-pointer"
+                      >
+                        <MdOutlineReceiptLong className="text-white text-2xl" />
+                      </button>
+                      <span className="text-xs text-zinc-500">견적서</span>
+                    </div>
+                  )}
                 </div>
               )}
 
