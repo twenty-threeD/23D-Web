@@ -25,6 +25,10 @@ const nextConfig: NextConfig = {
         source: '/files/:path*',
         destination: `${API_URL}/files/:path*`,
       },
+      {
+        source: '/phone/:path*',
+        destination: `${API_URL}/phone/:path*`,
+      },
     ]
   },
 }
