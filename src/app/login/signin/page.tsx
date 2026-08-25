@@ -70,19 +70,19 @@ export default function Page() {
       </div>
       <div className="w-200 h-150 rounded-3xl flex items-center mt-18.25 mb-18.25 shadow-lg">
         <div className="w-100 h-150 bg-linear-to-tr from-rose-500 to-indigo-500 rounded-l-3xl flex items-center justify-center"></div>
-        <div className="w-100 h-150 bg-white rounded-r-3xl flex flex-col items-center justify-center">
+        <div className="w-100 h-150 bg-white rounded-r-3xl flex flex-col gap-3 items-center justify-center">
           <Link href="/main">
             <Image
-              src="/logo.svg"
+              src="/icon.png"
               alt="Logo"
               width={80}
               height={40}
-              className="mb-15.25 bg-black"
+              className=""
             />
           </Link>
 
           {/* 인풋 필드 영역 */}
-          <div className="mb-2.5">
+          <div className="mt-13">
             <InputField
               label="이메일 입력"
               placeholder="이메일을 입력해주세요"
@@ -116,7 +116,7 @@ export default function Page() {
             로그인
           </button>
 
-          <div className="flex justify-between w-75 mt-2.5">
+          <div className="flex justify-between w-75">
             <Link href="#" className="text-[10px] text-zinc-500 underline underline-offset-2  hover:text-main transition-colors duration-100">
               비밀번호를 잊으셨나요?
             </Link>
@@ -129,7 +129,7 @@ export default function Page() {
           </div>
 
           {/* 소셜 로그인 */}
-          <div className="flex gap-4 mt-5">
+          <div className="flex gap-4">
             {[
               { src: "/login/google.svg", alt: "Google" },
               { src: "/login/kakao.svg", alt: "KakaoTalk" },
