@@ -41,7 +41,7 @@ function MainContent() {
 
   function categoryHref(label: string): string {
     const match = categories.find((c) => c.name === label);
-    return match ? `/main?category=${match.id}` : "/main";
+    return match ? `/search?categoryId=${match.id}` : "/search";
   }
 
   useEffect(() => {
@@ -54,8 +54,8 @@ function MainContent() {
   }, [token, keyword, categoryParam]);
 
   function handleSearch(value: string) {
-    if (value.trim()) router.push(`/main?keyword=${encodeURIComponent(value)}`);
-    else router.push("/main");
+    if (value.trim()) router.push(`/search?keyword=${encodeURIComponent(value)}`);
+    else router.push("/search");
   }
 
   const premiumPosts = posts.slice(0, 3);
