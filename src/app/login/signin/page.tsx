@@ -89,6 +89,7 @@ export default function Page() {
               isEssential={true}
               value={formData.email}
               onChange={(e) => handleChange("email", e.target.value)}
+              onKeyDown={enterLogin}
             />
             <InputField
               label="비밀번호 입력"

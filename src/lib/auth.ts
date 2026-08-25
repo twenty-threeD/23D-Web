@@ -20,6 +20,28 @@ export async function checkVerifyCode(email: string, verifyCode: string) {
   return res.json()
 }
 
+// 전화번호 인증코드 전송
+export async function sendPhoneVerifyCode(phone: string) {
+  const res = await fetch(`/phone/send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(phone),
+  })
+  if (!res.ok) throw new Error('인증코드 전송 실패')
+  return res.json()
+}
+
+// 전화번호 인증코드 확인
+export async function checkPhoneVerifyCode(phone: string, code: string) {
+  const res = await fetch(`/phone/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ recipientNumber: phone, code }),
+  })
+  if (!res.ok) throw new Error('인증코드 불일치')
+  return res.json()
+}
+
 // 회원가입
 export async function signup(
   name: string,

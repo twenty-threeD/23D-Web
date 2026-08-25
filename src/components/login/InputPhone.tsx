@@ -5,6 +5,8 @@ import { InputField } from "@/src/components/InputField";
 
 import { SignUpFormData } from "@/type/authData";
 import { checkPhone } from "@/src/lib/member";
+import { sendPhoneVerifyCode, checkPhoneVerifyCode } from "@/src/lib/auth";
+import { useToast } from "@/src/hooks/useToast";
 
 interface InputPhoneProps {
     formData: SignUpFormData;
@@ -20,6 +22,7 @@ function formatPhone(value: string): string {
 }
 
 const InputPhone = ({ formData, setFormData, onNext }: InputPhoneProps) => {
+    const { addToast } = useToast()
     const handleChange = (key: keyof SignUpFormData, value: string) => {
         setFormData((prev) => ({ ...prev, [key]: value }));
     };
@@ -32,7 +35,31 @@ const InputPhone = ({ formData, setFormData, onNext }: InputPhoneProps) => {
         /^010-\d{4}-\d{4}$/.test(formData.phone) &&
         (!showVerification || formData.phoneVerification.trim() !== "");
 
-    const VerificationCode = "123456"; // 실제로는 서버에서 받아와야 함. 임시
+    const handleSendCode = async () => {
+        setIsWaiting(true)
+        try {
+            await checkPhone(formData.phone)
+            await sendPhoneVerifyCode(formData.phone)
+            setShowVerification(true)
+            addToast({ message: "인증번호가 발송되었습니다.", type: "success" })
+        } catch (e) {
+            addToast({ message: e instanceof Error ? e.message : "인증번호 발송에 실패했습니다.", type: "error" })
+        } finally {
+            setIsWaiting(false)
+        }
+    }
+
+    const handleVerify = async () => {
+        setIsWaiting(true)
+        try {
+            await checkPhoneVerifyCode(formData.phone, formData.phoneVerification)
+            onNext()
+        } catch {
+            addToast({ message: "인증번호가 일치하지 않습니다.", type: "error" })
+        } finally {
+            setIsWaiting(false)
+        }
+    }
 
     return (
         <div className="mt-5">
@@ -50,30 +77,7 @@ const InputPhone = ({ formData, setFormData, onNext }: InputPhoneProps) => {
 
             <button
                 disabled={!isAllValid || isWaiting}
-                onClick={async () => {
-                    if (!showVerification) {
-                        setIsWaiting(true)
-                        try {
-                            await checkPhone(formData.phone)
-                            setShowVerification(true)
-                        } catch (e) {
-                            alert(e instanceof Error ? e.message : "전화번호 확인에 실패했습니다.")
-                        } finally {
-                            setIsWaiting(false)
-                        }
-                    } else {
-                        setIsWaiting(true)
-                        try {
-                            if (formData.phoneVerification === VerificationCode) {
-                                onNext()
-                            } else {
-                                alert("인증번호가 일치하지 않습니다.")
-                            }
-                        } finally {
-                            setIsWaiting(false)
-                        }
-                    }
-                }}
+                onClick={() => { showVerification ? handleVerify() : handleSendCode() }}
                 className={`w-75 h-10 mt-12.5 rounded-lg text-lg font-bold transition-colors
                 ${isAllValid && !isWaiting
                     ? 'bg-main text-white hover:bg-main/90'
@@ -81,12 +85,12 @@ const InputPhone = ({ formData, setFormData, onNext }: InputPhoneProps) => {
             >
                 {isWaiting ? "처리 중..." : showVerification ? "다음" : "인증번호 발송"}
             </button>
-            
+
             {/* 인증번호 재발송 버튼 */}
             {showVerification && (
                 <div className="flex items-center justify-center">
                     <button
-                        onClick={() => { alert("인증번호가 재발송되었습니다."); }}
+                        onClick={handleSendCode}
                         className="w-auto h-3 text-xs mt-2.5 font-normal cursor-pointer
                         text-zinc-500 underline underline-offset-2 hover:text-main transition-colors"
                     >
