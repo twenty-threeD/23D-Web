@@ -61,14 +61,26 @@ export async function getPost(postId: number, token?: string | null) {
   return { data: post }
 }
 
+export interface CreatedPost {
+  postId: number
+  username?: string
+  title?: string
+  content?: string | null
+  fileUrl?: string | null
+  updatedAt?: string | null
+}
+
 export async function createPost(token: string, data: { title: string; content: string; fileUrls?: string[]; categoryId?: number }) {
+  const { fileUrls, ...rest } = data
   const res = await fetch(`/api/post`, {
     method: 'POST',
     headers: authHeaders(token),
-    body: JSON.stringify(data),
+    // 생성 요청은 fileUrl(단수), 수정 요청은 fileUrls(복수) 로 서버 필드명이 다르다
+    body: JSON.stringify({ ...rest, fileUrl: fileUrls ?? [] }),
   })
   if (!res.ok) await throwApiError(res)
-  return res.json() as Promise<{ data: Post }>
+  // 생성 응답은 조회(PostResponse)와 달리 식별자가 postId 다
+  return res.json() as Promise<{ data: CreatedPost }>
 }
 
 export async function updatePost(token: string, data: { id: number; title: string; content: string; fileUrls?: string[]; categoryId?: number }) {
