@@ -107,7 +107,7 @@ export default function Page() {
         router.push(`/item/${postId}`);
       } else {
         const res = await createPost(token, { title, content, fileUrls: imageUrls, categoryId });
-        const newId = res.data?.postId;
+        const newId = res.data?.id;
         if (newId) router.push(`/item/${newId}`);
       }
     } catch (e) {
