@@ -100,6 +100,43 @@ export async function searchPosts(title: string, page = 0, size = 20) {
   return list
 }
 
+export interface PagedPosts {
+  posts: Post[]
+  page: number
+  totalPages: number
+  totalElements: number
+  last: boolean
+}
+
+// 검색 페이지용. 제목·카테고리 필터와 정렬을 서버에 맡기고 페이지 정보까지 함께 받는다.
+export async function searchPostsPaged(options: {
+  title?: string
+  categoryId?: number
+  page?: number
+  size?: number
+  sort?: string
+}): Promise<PagedPosts> {
+  const { title = '', categoryId, page = 0, size = 20, sort } = options
+  const params = new URLSearchParams({ title, page: String(page), size: String(size) })
+  if (categoryId) params.set('categoryId', String(categoryId))
+  if (sort) params.set('sort', sort)
+
+  const res = await fetch(`/api/post/search?${params}`)
+  if (!res.ok) await throwApiError(res)
+  const json = await res.json()
+  const raw = json?.data ?? json
+  const posts: Post[] = Array.isArray(raw) ? raw : (raw?.content ?? [])
+
+  return {
+    posts,
+    page: raw?.number ?? page,
+    totalPages: raw?.totalPages ?? 1,
+    totalElements: raw?.totalElements ?? posts.length,
+    // 배열만 오는 경우엔 더 불러올 페이지가 없는 것으로 본다
+    last: raw?.last ?? true,
+  }
+}
+
 export interface FavoriteResult {
   postId: number
   favoriteCount: number

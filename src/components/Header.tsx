@@ -69,7 +69,7 @@ export default function Header() {
 
   function handleSearch(keyword: string) {
     if (!keyword.trim()) return;
-    router.push(`/main?keyword=${encodeURIComponent(keyword)}`);
+    router.push(`/search?keyword=${encodeURIComponent(keyword)}`);
   }
 
   useEffect(() => {
@@ -101,7 +101,7 @@ export default function Header() {
           <img src="/logo.svg" alt="Logo" className="h-7 bg-black hover:bg-main transition-colors "/>
         </Link>
         <ul className="flex gap-4">
-          <li><Link href="/main" className="text-zinc-500 text-sm font-semibold ">능력자 찾기</Link></li>
+          <li><Link href="/search" className="text-zinc-500 text-sm font-semibold ">능력자 찾기</Link></li>
           <li><Link href="/chat" className="text-zinc-500 text-sm font-semibold">채팅</Link></li>
           <li><Link href="/community" className="text-zinc-500 text-sm font-semibold">커뮤니티</Link></li>
           <li><Link href="/upload" className="text-zinc-500 text-sm font-semibold">서비스 등록</Link></li>
