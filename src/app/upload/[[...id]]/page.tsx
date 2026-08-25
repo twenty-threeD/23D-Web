@@ -86,10 +86,22 @@ export default function Page() {
       addToast({ message: "사진을 업로드해주세요.", type: "warning" });
       return;
     }
+    if (title.length > 255) {
+      addToast({ message: "제목은 255자 이하여야 합니다.", type: "warning" });
+      return;
+    }
+
+    const effectivePlans = plans.map((p, i) => (i === 0 ? { ...p, price: price || p.price } : p));
+    const content = serializePostContent(description, effectivePlans);
+    // 서버가 본문을 2000자로 제한한다. 본문에는 플랜 정보까지 함께 직렬화되므로
+    // 화면에 보이는 설명 글자 수보다 길어진다.
+    if (content.length > 2000) {
+      addToast({ message: "본문과 가격 정보가 너무 깁니다. 내용을 줄여주세요.", type: "warning" });
+      return;
+    }
+
     setIsWaiting(true);
     try {
-      const effectivePlans = plans.map((p, i) => (i === 0 ? { ...p, price: price || p.price } : p));
-      const content = serializePostContent(description, effectivePlans);
       if (postId) {
         await updatePost(token, { id: postId, title, content, fileUrls: imageUrls, categoryId });
         router.push(`/item/${postId}`);
