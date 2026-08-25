@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Header from "@/src/components/Header";
 import BackButton from "@/src/components/BackButton";
@@ -30,36 +30,47 @@ export default function Page() {
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [categories, setCategories] = useState<PostCategory[]>([]);
   const [isWaiting, setIsWaiting] = useState(false);
-  const [loading, setLoading] = useState(!!postId);
+  // 불러오기를 끝낸 게시글 번호. 로딩 여부는 이 값으로 파생시킨다
+  // (effect 안에서 동기적으로 setState 하지 않기 위함).
+  const [loadedPostId, setLoadedPostId] = useState<number | null>(null);
+  const loading = !!postId && loadedPostId !== postId;
 
-  useEffect(() => { getPostCategories().then(setCategories).catch(() => {}); }, []);
+  useEffect(() => { getPostCategories().then(setCategories).catch(handleError); }, []);
 
-  const fetchExisting = useCallback(async () => {
+  // 수정 모드일 때 기존 게시글을 불러온다.
+  // 응답이 늦게 도착한 뒤 다른 글로 이동한 경우를 대비해 취소 플래그를 둔다.
+  useEffect(() => {
     if (!postId) return;
-    setLoading(true);
-    try {
-      const res = await getPost(postId, token);
-      const post = res.data;
-      if (post.member?.username && myUsername && post.member.username !== myUsername) {
-        router.replace(`/item/${postId}`);
-        return;
-      }
-      setTitle(post.title ?? "");
-      setImageUrls(post.fileUrls ?? []);
-      setCategoryId(post.category?.id ?? "");
-      const { description: desc, plans: existingPlans } = parsePostContent(post.content ?? "");
-      setDescription(desc ?? "");
-      setPlans(existingPlans.length > 0 ? existingPlans : [DEFAULT_PLAN]);
-      setPrice(existingPlans[0]?.price ?? "");
-    } catch (e) {
-      handleError(e);
-      router.replace("/main");
-    } finally {
-      setLoading(false);
-    }
-  }, [postId, token, myUsername]);
+    let cancelled = false;
 
-  useEffect(() => { fetchExisting(); }, [fetchExisting]);
+    async function fetchExisting() {
+      try {
+        const res = await getPost(postId!, token);
+        if (cancelled) return;
+        const post = res.data;
+        if (post.member?.username && myUsername && post.member.username !== myUsername) {
+          router.replace(`/item/${postId}`);
+          return;
+        }
+        setTitle(post.title ?? "");
+        setImageUrls(post.fileUrls ?? []);
+        setCategoryId(post.category?.id ?? "");
+        const { description: desc, plans: existingPlans } = parsePostContent(post.content ?? "");
+        setDescription(desc ?? "");
+        setPlans(existingPlans.length > 0 ? existingPlans : [DEFAULT_PLAN]);
+        setPrice(existingPlans[0]?.price ?? "");
+      } catch (e) {
+        if (cancelled) return;
+        handleError(e);
+        router.replace("/main");
+      } finally {
+        if (!cancelled) setLoadedPostId(postId);
+      }
+    }
+
+    fetchExisting();
+    return () => { cancelled = true; };
+  }, [postId, token, myUsername]);
 
   async function handleSubmit() {
     if (!token) { router.push("/login/signin"); return; }

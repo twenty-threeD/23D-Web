@@ -32,8 +32,9 @@ export interface Post {
   category?: PostCategory | null
 }
 
+// 게시글 카테고리는 직군 카테고리로 통합되었다 (구 /api/post-category)
 export async function getPostCategories() {
-  const res = await fetch(`/api/post-category`)
+  const res = await fetch(`/api/job-category`)
   if (!res.ok) await throwApiError(res)
   const json = await res.json()
   return (json.data ?? []) as PostCategory[]

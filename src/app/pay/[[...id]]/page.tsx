@@ -27,7 +27,9 @@ const PayContent = () => {
   const [isAgree, setIsAgree] = useState(false);
   const [post, setPost] = useState<Post | null>(null);
   const [estimate, setEstimate] = useState<EstimateData | null>(null);
-  const [estimateLoading, setEstimateLoading] = useState(true);
+  // 조회를 끝낸 게시글 번호. 로딩 여부는 이 값으로 파생시킨다
+  // (effect 안에서 동기적으로 setState 하지 않기 위함).
+  const [loadedPostId, setLoadedPostId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!postId) return;
@@ -36,11 +38,7 @@ const PayContent = () => {
 
   // 결제 대상 견적서를 찾는다. 아직 결제되지 않은 것 중 가장 최근 것을 사용한다.
   useEffect(() => {
-    if (!token || !postId) {
-      setEstimateLoading(false);
-      return;
-    }
-    setEstimateLoading(true);
+    if (!token || !postId) return;
     getEstimates(token, postId)
       .then((list) => {
         const target = list
@@ -49,11 +47,12 @@ const PayContent = () => {
         setEstimate(target ?? null);
       })
       .catch(handleError)
-      .finally(() => setEstimateLoading(false));
+      .finally(() => setLoadedPostId(postId));
   }, [token, postId]);
 
+  const estimateLoading = Boolean(token && postId) && loadedPostId !== postId;
+
   const { plans } = post ? parsePostContent(post.content) : { plans: [] };
-  const plan = plans[0];
 
   // 결제 금액과 계약서 URL 의 근거는 견적서 하나뿐이다.
   // 게시글의 플랜 가격은 결제에 절대 쓰지 않는다 (견적서 금액과 다를 수 있다).
