@@ -20,6 +20,17 @@ export async function checkVerifyCode(email: string, verifyCode: string) {
   return res.json()
 }
 
+// 이메일 변경용 인증코드 전송 (새 이메일로 발송)
+export async function sendEmailChangeCode(email: string) {
+  const res = await fetch(`/api/email/change/code/send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+  if (!res.ok) throw new Error('인증코드 전송 실패')
+  return res.json()
+}
+
 // 전화번호 인증코드 전송
 export async function sendPhoneVerifyCode(phone: string) {
   const res = await fetch(`/phone/send`, {
@@ -105,4 +116,20 @@ export async function logout(token?: string | null) {
     method: 'POST',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
+}
+
+// 현재 비밀번호 확인 (일치 여부를 boolean 으로 돌려준다)
+export async function verifyPassword(token: string, password: string) {
+  const res = await fetch(`/api/auth/verify/password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ password }),
+  })
+  if (!res.ok) throw new Error('비밀번호 확인에 실패했습니다.')
+  const json = await res.json()
+  // 응답이 boolean 그대로 오거나 공통 래퍼에 담겨 올 수 있다
+  return (typeof json === 'boolean' ? json : json?.data) === true
 }

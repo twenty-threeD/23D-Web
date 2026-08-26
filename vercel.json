@@ -10,6 +10,10 @@
       "destination": "https://api.idta.store/api/:path*"
     },
     {
+      "source": "/phone/:path*",
+      "destination": "https://api.idta.store/phone/:path*"
+    },
+    {
       "source": "/files/:path*",
       "destination": "https://api.idta.store/files/:path*"
     }

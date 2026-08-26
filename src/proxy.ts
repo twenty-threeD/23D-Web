@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const PROTECTED = ['/chat']
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const rt = req.cookies.get('accessToken')
   const isProtected = PROTECTED.some(
     (p) => req.nextUrl.pathname.startsWith(p)

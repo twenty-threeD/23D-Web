@@ -1,4 +1,5 @@
 import { throwApiError } from './apiError'
+import type { Post } from './post'
 
 function authHeaders(token: string) {
   return {
@@ -8,7 +9,13 @@ function authHeaders(token: string) {
 }
 
 export interface Profile {
+  memberId?: number
   username: string
+  email?: string | null
+  phone?: string | null
+  phoneVerified?: boolean
+  /** 본인이 등록한 게시글 */
+  posts?: Post[]
   imageUrl?: string | null
   sigCd?: string | null
   locationName?: string | null

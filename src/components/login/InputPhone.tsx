@@ -22,42 +22,66 @@ function formatPhone(value: string): string {
 }
 
 const InputPhone = ({ formData, setFormData, onNext }: InputPhoneProps) => {
-    const { addToast } = useToast()
+    const { addToast } = useToast();
+
     const handleChange = (key: keyof SignUpFormData, value: string) => {
         setFormData((prev) => ({ ...prev, [key]: value }));
     };
 
     const [showVerification, setShowVerification] = useState(false);
     const [isWaiting, setIsWaiting] = useState(false);
+    const [resending, setResending] = useState(false);
 
+    const isPhoneValid = /^010-\d{4}-\d{4}$/.test(formData.phone);
     const isAllValid =
-        formData.phone.trim() !== "" &&
-        /^010-\d{4}-\d{4}$/.test(formData.phone) &&
-        (!showVerification || formData.phoneVerification.trim() !== "");
+        isPhoneValid && (!showVerification || formData.phoneVerification.trim() !== "");
 
-    const handleSendCode = async () => {
-        setIsWaiting(true)
+    // 서버는 하이픈 유무를 가리지 않지만, 저장 형식을 하나로 맞춘다
+    const plainPhone = formData.phone.replace(/-/g, "");
+
+    async function sendCode() {
+        // 이미 가입된 번호인지 먼저 확인한 뒤 인증번호를 보낸다
+        await checkPhone(formData.phone);
+        await sendPhoneVerifyCode(plainPhone);
+    }
+
+    async function handleSubmit() {
+        if (!isAllValid || isWaiting) return;
+        setIsWaiting(true);
         try {
-            await checkPhone(formData.phone)
-            await sendPhoneVerifyCode(formData.phone)
-            setShowVerification(true)
-            addToast({ message: "인증번호가 발송되었습니다.", type: "success" })
+            if (!showVerification) {
+                await sendCode();
+                setShowVerification(true);
+                addToast({ message: "인증번호를 발송했습니다.", type: "success" });
+            } else {
+                await checkPhoneVerifyCode(plainPhone, formData.phoneVerification.trim());
+                addToast({ message: "전화번호 인증이 완료되었습니다.", type: "success" });
+                onNext();
+            }
         } catch (e) {
-            addToast({ message: e instanceof Error ? e.message : "인증번호 발송에 실패했습니다.", type: "error" })
+            addToast({
+                message: e instanceof Error ? e.message : "처리에 실패했습니다.",
+                type: "error",
+            });
         } finally {
-            setIsWaiting(false)
+            setIsWaiting(false);
         }
     }
 
-    const handleVerify = async () => {
-        setIsWaiting(true)
+    async function handleResend() {
+        if (resending) return;
+        setResending(true);
         try {
-            await checkPhoneVerifyCode(formData.phone, formData.phoneVerification)
-            onNext()
-        } catch {
-            addToast({ message: "인증번호가 일치하지 않습니다.", type: "error" })
+            await sendPhoneVerifyCode(plainPhone);
+            handleChange("phoneVerification", "");
+            addToast({ message: "인증번호를 재발송했습니다.", type: "success" });
+        } catch (e) {
+            addToast({
+                message: e instanceof Error ? e.message : "재발송에 실패했습니다.",
+                type: "error",
+            });
         } finally {
-            setIsWaiting(false)
+            setResending(false);
         }
     }
 
@@ -67,34 +91,35 @@ const InputPhone = ({ formData, setFormData, onNext }: InputPhoneProps) => {
             isEssential={true} value={formData.phone} onChange={(e) => handleChange("phone", formatPhone(e.target.value))} />
 
             {showVerification && (
-                <InputField 
-                    label="인증번호 입력" 
-                    placeholder="인증번호를 입력해주세요" 
-                    value={formData.phoneVerification} 
-                    onChange={(e) => handleChange("phoneVerification", e.target.value)} 
+                <InputField
+                    label="인증번호 입력"
+                    placeholder="인증번호를 입력해주세요"
+                    value={formData.phoneVerification}
+                    onChange={(e) => handleChange("phoneVerification", e.target.value)}
                 />
             )}
 
             <button
                 disabled={!isAllValid || isWaiting}
-                onClick={() => { showVerification ? handleVerify() : handleSendCode() }}
+                onClick={handleSubmit}
                 className={`w-75 h-10 mt-12.5 rounded-lg text-lg font-bold transition-colors
                 ${isAllValid && !isWaiting
-                    ? 'bg-main text-white hover:bg-main/90'
+                    ? 'bg-main text-white hover:bg-main/90 cursor-pointer'
                     : 'bg-zinc-300 text-zinc-500 cursor-not-allowed'}`}
             >
-                {isWaiting ? "처리 중..." : showVerification ? "다음" : "인증번호 발송"}
+                {isWaiting ? "처리 중..." : showVerification ? "인증 확인" : "인증번호 발송"}
             </button>
 
             {/* 인증번호 재발송 버튼 */}
             {showVerification && (
                 <div className="flex items-center justify-center">
                     <button
-                        onClick={handleSendCode}
+                        onClick={handleResend}
+                        disabled={resending}
                         className="w-auto h-3 text-xs mt-2.5 font-normal cursor-pointer
-                        text-zinc-500 underline underline-offset-2 hover:text-main transition-colors"
+                        text-zinc-500 underline underline-offset-2 hover:text-main transition-colors disabled:opacity-50"
                     >
-                        인증번호 재발송
+                        {resending ? "재발송 중..." : "인증번호 재발송"}
                     </button>
                 </div>
             )}
