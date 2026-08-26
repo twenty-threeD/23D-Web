@@ -100,6 +100,30 @@ export async function searchPosts(title: string, page = 0, size = 20) {
   return list
 }
 
+// 작성자로 거르는 서버 API 가 없어서 전체 목록을 훑어 걸러낸다.
+// 목록이 아주 많아지면 서버에 작성자 필터를 요청해야 한다.
+const MY_POSTS_MAX_PAGES = 5
+const MY_POSTS_PAGE_SIZE = 50
+
+export async function getMyPosts(token: string, username: string) {
+  const mine: Post[] = []
+
+  for (let page = 0; page < MY_POSTS_MAX_PAGES; page++) {
+    const params = new URLSearchParams({ page: String(page), size: String(MY_POSTS_PAGE_SIZE) })
+    const res = await fetch(`/api/post?${params}`, { headers: authHeaders(token) })
+    if (!res.ok) await throwApiError(res)
+    const json = await res.json()
+    const raw = json?.data ?? json
+    const list: Post[] = Array.isArray(raw) ? raw : (raw?.content ?? [])
+
+    mine.push(...list.filter((p) => p.member?.username === username))
+
+    if (Array.isArray(raw) || raw?.last !== false) break
+  }
+
+  return mine
+}
+
 export interface PagedPosts {
   posts: Post[]
   page: number

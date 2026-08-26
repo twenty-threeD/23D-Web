@@ -1,3 +1,5 @@
+import { throwApiError } from './apiError'
+
 function authHeaders(token: string) {
   return {
     'Content-Type': 'application/json',
@@ -70,6 +72,42 @@ export async function resetPassword(email: string, newPassword: string) {
     body: JSON.stringify({ email, newPassword }),
   })
   if (!res.ok) throw new Error('비밀번호 변경 실패')
+  return res.json()
+}
+
+// 이메일 변경 (새 이메일로 받은 인증코드 필요)
+export async function changeEmail(
+  token: string,
+  data: { password: string; newEmail: string; verifyCode: string }
+) {
+  const res = await fetch(`/api/member/email`, {
+    method: 'PATCH',
+    headers: authHeaders(token),
+    body: JSON.stringify({
+      password: data.password,
+      new_email: data.newEmail,
+      verify_code: data.verifyCode,
+    }),
+  })
+  if (!res.ok) await throwApiError(res)
+  return res.json()
+}
+
+// 전화번호 변경 (새 번호로 받은 인증코드 필요)
+export async function changePhone(
+  token: string,
+  data: { password: string; newPhone: string; code: string }
+) {
+  const res = await fetch(`/api/member/phone`, {
+    method: 'PATCH',
+    headers: authHeaders(token),
+    body: JSON.stringify({
+      password: data.password,
+      new_phone: data.newPhone,
+      code: data.code,
+    }),
+  })
+  if (!res.ok) await throwApiError(res)
   return res.json()
 }
 

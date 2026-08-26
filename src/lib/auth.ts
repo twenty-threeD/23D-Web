@@ -20,6 +20,17 @@ export async function checkVerifyCode(email: string, verifyCode: string) {
   return res.json()
 }
 
+// 이메일 변경용 인증코드 전송 (새 이메일로 발송)
+export async function sendEmailChangeCode(email: string) {
+  const res = await fetch(`/api/email/change/code/send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+  if (!res.ok) throw new Error('인증코드 전송 실패')
+  return res.json()
+}
+
 // 전화번호 인증코드 전송
 export async function sendPhoneVerifyCode(phone: string) {
   const res = await fetch(`/phone/send`, {

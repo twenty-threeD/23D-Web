@@ -25,7 +25,8 @@ import {
   type Sigungu,
 } from "@/src/lib/profile";
 import { resetUsername, deleteAccount } from "@/src/lib/member";
-import { getFavoritePosts, type Post } from "@/src/lib/post";
+import AccountEditModal from "@/src/components/profile/AccountEditModal";
+import { getFavoritePosts, getMyPosts, deletePost, type Post } from "@/src/lib/post";
 
 const DISTANCE_OPTIONS: { value: "TEN_KM" | "TWENTY_FIVE_KM" | "FIFTY_KM" | "OVER_HUNDRED_KM"; label: string }[] = [
   { value: "TEN_KM", label: "10km 이내" },
@@ -38,6 +39,7 @@ export default function Page() {
   const router = useRouter();
   const token = useAuthStore((s) => s.accessToken);
   const clear = useAuthStore((s) => s.clear);
+  const myUsername = useAuthStore((s) => s.username);
   const { addToast } = useToast();
   const handleError = useHandleError();
 
@@ -62,6 +64,10 @@ export default function Page() {
 
   const [favorites, setFavorites] = useState<Post[]>([]);
   const [favoritesLoading, setFavoritesLoading] = useState(true);
+  const [myPosts, setMyPosts] = useState<Post[]>([]);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [editingField, setEditingField] = useState<"email" | "phone" | null>(null);
+  const [verifyingPhone, setVerifyingPhone] = useState(false);
 
   const fetchProfile = useCallback(async () => {
     if (!token) return;
@@ -77,12 +83,23 @@ export default function Page() {
       setSigCd(data.sigCd ?? "");
       setMovableDistance((data.movableDistance as typeof movableDistance) ?? "");
       setUsernameInput(data.username ?? "");
+      // 프로필 응답에 posts 가 없으면 전체 목록을 훑어 걸러낸다
+      if (data.posts) {
+        setMyPosts(data.posts);
+      } else {
+        const name = data.username ?? myUsername;
+        if (name) {
+          setMyPosts(await getMyPosts(token, name).catch(() => []));
+        } else {
+          setMyPosts([]);
+        }
+      }
     } catch (e) {
       handleError(e);
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, myUsername]);
 
   useEffect(() => {
     if (!token) { router.push("/login/signin"); return; }
@@ -99,6 +116,21 @@ export default function Page() {
       .catch(() => setFavorites([]))
       .finally(() => setFavoritesLoading(false));
   }, [token]);
+
+  async function handleDeletePost(postId: number) {
+    if (!token) return;
+    if (!confirm("이 게시글을 삭제하시겠습니까? 되돌릴 수 없습니다.")) return;
+    setDeletingId(postId);
+    try {
+      await deletePost(token, postId);
+      setMyPosts((prev) => prev.filter((p) => p.id !== postId));
+      addToast({ message: "게시글을 삭제했습니다.", type: "success" });
+    } catch (e) {
+      handleError(e);
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   useEffect(() => {
     if (!ctprvnCd) { setSigunguList([]); return; }
@@ -332,6 +364,86 @@ export default function Page() {
           )}
         </div>
 
+        {/* 계정 정보 */}
+        <div className="flex flex-col gap-4">
+          <h2 className="text-xl font-bold">계정 정보</h2>
+          <div className="border border-zinc-200 rounded-lg divide-y divide-zinc-200">
+            <div className="flex items-center justify-between px-4 py-3">
+              <span className="text-sm text-zinc-500">이메일</span>
+              <div className="flex items-center gap-3">
+                <span className="text-sm">
+                  {profile?.email ?? <span className="text-zinc-400">등록된 정보가 없습니다</span>}
+                </span>
+                <button
+                  onClick={() => setEditingField("email")}
+                  className="text-xs text-zinc-500 underline underline-offset-2 hover:text-main transition-colors cursor-pointer"
+                >
+                  변경
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center justify-between px-4 py-3">
+              <span className="text-sm text-zinc-500">전화번호</span>
+              <div className="flex items-center gap-3">
+                {profile?.phone && (
+                  profile.phoneVerified ? (
+                    <span className="text-xs text-main border border-main rounded-full px-2 py-0.5">인증됨</span>
+                  ) : (
+                    <button
+                      onClick={() => setVerifyingPhone(true)}
+                      className="text-xs text-white bg-main rounded-full px-2 py-0.5 hover:bg-main/90 transition-colors cursor-pointer"
+                    >
+                      인증하기
+                    </button>
+                  )
+                )}
+                <span className="text-sm">
+                  {profile?.phone ?? <span className="text-zinc-400">등록된 정보가 없습니다</span>}
+                </span>
+                <button
+                  onClick={() => setEditingField("phone")}
+                  className="text-xs text-zinc-500 underline underline-offset-2 hover:text-main transition-colors cursor-pointer"
+                >
+                  변경
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 내가 올린 게시글 */}
+        <div className="flex flex-col gap-4">
+          <h2 className="text-xl font-bold">내가 올린 게시글</h2>
+          {loading ? (
+            <p className="text-zinc-400 text-sm">불러오는 중...</p>
+          ) : myPosts.length === 0 ? (
+            <p className="text-zinc-400 text-sm">등록한 게시글이 없습니다.</p>
+          ) : (
+            <div className="flex flex-wrap gap-4">
+              {myPosts.map((p) => (
+                <div key={p.id} className="flex flex-col">
+                  <NormalCard id={p.id} title={p.title} content={p.content} fileUrl={p.fileUrls?.[0]} category={p.category} />
+                  <div className="flex gap-2 px-3">
+                    <button
+                      onClick={() => router.push(`/upload/${p.id}`)}
+                      className="flex-1 py-1.5 rounded-md border border-zinc-300 text-xs font-semibold text-zinc-600 hover:border-main hover:text-main transition-colors cursor-pointer"
+                    >
+                      수정
+                    </button>
+                    <button
+                      onClick={() => handleDeletePost(p.id)}
+                      disabled={deletingId === p.id}
+                      className="flex-1 py-1.5 rounded-md border border-zinc-300 text-xs font-semibold text-red-500 hover:border-red-400 transition-colors disabled:opacity-50 cursor-pointer"
+                    >
+                      {deletingId === p.id ? "삭제 중..." : "삭제"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="flex flex-col gap-4">
           <h2 className="text-xl font-bold">찜한 목록</h2>
           {favoritesLoading ? (
@@ -356,6 +468,24 @@ export default function Page() {
           </button>
         </div>
       </main>
+      {verifyingPhone && token && profile?.phone && (
+        <AccountEditModal
+          field="phone"
+          token={token}
+          verifyOnlyPhone={profile.phone}
+          onClose={() => setVerifyingPhone(false)}
+          onDone={() => { setVerifyingPhone(false); fetchProfile(); }}
+        />
+      )}
+
+      {editingField && token && (
+        <AccountEditModal
+          field={editingField}
+          token={token}
+          onClose={() => setEditingField(null)}
+          onDone={() => { setEditingField(null); fetchProfile(); }}
+        />
+      )}
       <Footer />
     </div>
   );
