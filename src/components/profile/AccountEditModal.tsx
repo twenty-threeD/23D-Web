@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { sendEmailChangeCode, sendPhoneVerifyCode, checkPhoneVerifyCode } from "@/src/lib/auth";
+import { sendEmailChangeCode, sendPhoneVerifyCode, checkPhoneVerifyCode, verifyPassword } from "@/src/lib/auth";
 import { changeEmail, changePhone } from "@/src/lib/member";
 import { useToast } from "@/src/hooks/useToast";
 import { useHandleError } from "@/src/hooks/useHandleError";
@@ -38,6 +38,7 @@ export default function AccountEditModal({ field, token, verifyOnlyPhone, onClos
   const [value, setValue] = useState(verifyOnlyPhone ?? "");
   const [code, setCode] = useState("");
   const [codeSent, setCodeSent] = useState(false);
+  const [checkingPassword, setCheckingPassword] = useState(false);
   const [sending, setSending] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -47,6 +48,22 @@ export default function AccountEditModal({ field, token, verifyOnlyPhone, onClos
   const canSubmit = isVerifyOnly
     ? codeSent && code.trim() !== ""
     : isValueValid && codeSent && code.trim() !== "";
+
+  async function handleCheckPassword() {
+    if (password === "" || checkingPassword) return;
+    setCheckingPassword(true);
+    try {
+      if (!(await verifyPassword(token, password))) {
+        addToast({ message: "비밀번호가 일치하지 않습니다.", type: "error" });
+        return;
+      }
+      setStep("verify");
+    } catch (e) {
+      handleError(e);
+    } finally {
+      setCheckingPassword(false);
+    }
+  }
 
   async function handleSendCode() {
     if (!isValueValid) return;
@@ -101,7 +118,7 @@ export default function AccountEditModal({ field, token, verifyOnlyPhone, onClos
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && password !== "") setStep("verify"); }}
+              onKeyDown={(e) => { if (e.key === "Enter") handleCheckPassword(); }}
               placeholder="현재 비밀번호"
               autoFocus
               className="border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-main"
@@ -114,11 +131,11 @@ export default function AccountEditModal({ field, token, verifyOnlyPhone, onClos
                 취소
               </button>
               <button
-                onClick={() => setStep("verify")}
-                disabled={password === ""}
+                onClick={handleCheckPassword}
+                disabled={password === "" || checkingPassword}
                 className="px-4 py-2 rounded-lg bg-main text-white text-sm font-semibold disabled:opacity-50 cursor-pointer"
               >
-                다음
+                {checkingPassword ? "확인 중..." : "다음"}
               </button>
             </div>
           </>
