@@ -104,6 +104,7 @@ export default function Header() {
           <li><Link href="/search" className="text-zinc-500 text-sm font-semibold ">능력자 찾기</Link></li>
           <li><Link href="/chat" className="text-zinc-500 text-sm font-semibold">채팅</Link></li>
           <li><Link href="/community" className="text-zinc-500 text-sm font-semibold">커뮤니티</Link></li>
+          <li><Link href="/jobs" className="text-zinc-500 text-sm font-semibold">구인구직</Link></li>
           <li><Link href="/upload" className="text-zinc-500 text-sm font-semibold">서비스 등록</Link></li>
         </ul>
       </div>
