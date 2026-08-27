@@ -111,6 +111,7 @@ export default function Page() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const docInputRef = useRef<HTMLInputElement>(null)
+  const chatInputRef = useRef<HTMLInputElement>(null)
   const handleError = useHandleError()
   const { addToast } = useToast()
 
@@ -547,6 +548,20 @@ export default function Page() {
     return new Date(dateStr).toDateString()
   }
 
+  function chatHotKey() {
+    chatInputRef.current?.focus()
+  }
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "/") {
+        e.preventDefault()
+        chatHotKey()
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+  }, [])
+
   return (
     <div className="flex flex-col h-screen">
       <Header />
@@ -925,7 +940,8 @@ export default function Page() {
                   <IoAdd className={`text-xl transition-transform duration-200 ${showAttach ? "text-white rotate-45" : "text-zinc-500"}`} />
                 </button>
                 <input
-                  className="flex-1 text-sm focus:outline-none"
+                  ref={chatInputRef}
+                  className="flex-1 h-full text-sm focus:outline-none"
                   placeholder="메시지 입력"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
