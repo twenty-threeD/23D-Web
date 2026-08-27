@@ -10,7 +10,7 @@ import { useToast } from "@/src/hooks/useToast"
 import ImageLightbox from "@/src/components/ImageLightbox"
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"]
-const MAX_IMAGES = 4
+const MAX_IMAGES = 10
 const MAX_FILE_SIZE = 25 * 1024 * 1024
 
 interface UploadFileProps {

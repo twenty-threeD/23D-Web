@@ -1,6 +1,6 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 
 import Header from "@/src/components/Header";
 import Footer from "@/src/components/Footer";
@@ -19,6 +19,7 @@ import { useHandleError } from "@/src/hooks/useHandleError";
 
 const PayContent = () => {
   const params = useParams();
+  const searchParams = useSearchParams();
   const postId = params.id ? Number(Array.isArray(params.id) ? params.id[0] : params.id) : null;
   const token = useAuthStore((s) => s.accessToken);
   const username = useAuthStore((s) => s.username);
@@ -54,12 +55,18 @@ const PayContent = () => {
 
   const { plans } = post ? parsePostContent(post.content) : { plans: [] };
 
-  // 결제 금액과 계약서 URL 의 근거는 견적서 하나뿐이다.
-  // 게시글의 플랜 가격은 결제에 절대 쓰지 않는다 (견적서 금액과 다를 수 있다).
-  const price = estimate?.totalPay ?? 0;
-  const contractUrl = estimate?.url;
+  // 채팅 계약서 플로우(갑↔을 서명 완료)에서 넘어온 경우, 그 쪽 price/contractUrl을 우선 사용한다.
+  // 없으면 기존처럼 견적서 하나를 근거로 삼는다 (게시글 플랜 가격은 결제에 절대 쓰지 않는다).
+  const queryPrice = searchParams.get("price");
+  const queryContractUrl = searchParams.get("contractUrl");
+  const hasContractQuery = queryPrice !== null && queryContractUrl !== null;
+
+  const price = hasContractQuery ? Number(queryPrice) : (estimate?.totalPay ?? 0);
+  const contractUrl = hasContractQuery ? queryContractUrl : estimate?.url;
+
+  // post를 올린 사람이 을(파는 쪽, 대금을 받는 "능력자")이다. 문의해서 들어온 사람이 갑(결제하는 쪽).
   const expertName = post?.member?.name ?? post?.member?.username ?? "";
-  const expertUsername = post?.member?.username;
+  const postAuthorUsername = post?.member?.username;
   const imgPath = post?.fileUrls?.[0] ?? "/profile.png";
 
   return (
@@ -84,10 +91,19 @@ const PayContent = () => {
         </div>
 
         <div className="flex items-start gap-10 justify-between">
-          <PriceCard username={expertUsername} plans={plans} postId={postId ?? undefined} />
+          <PriceCard username={postAuthorUsername} plans={plans} postId={postId ?? undefined} />
           <div className="pr-25">
             <ApplyPay isAgree={isAgree} setIsAgree={setIsAgree} />
-            {estimateLoading ? (
+            {hasContractQuery ? (
+              <OnClickPay
+                isAgree={isAgree}
+                price={price}
+                orderName={post?.title ?? "잇다 서비스"}
+                orderCustomerName={username ?? ""}
+                postId={postId ?? undefined}
+                contractUrl={contractUrl}
+              />
+            ) : estimateLoading ? (
               <p className="w-87.5 mt-5 py-3 text-center text-sm text-zinc-400">
                 견적서를 불러오는 중입니다...
               </p>
@@ -116,4 +132,10 @@ const PayContent = () => {
   );
 };
 
-export default PayContent;
+export default function Page() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen"><p className="text-zinc-400">불러오는 중...</p></div>}>
+      <PayContent />
+    </Suspense>
+  );
+}

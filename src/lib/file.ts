@@ -1,6 +1,6 @@
 import { throwApiError } from './apiError'
 
-const BACKEND_ORIGIN = 'http://13.125.161.66:8080'
+const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.idta.store'
 
 export function toRelativeUrl(url: string | null | undefined): string {
   if (!url) return ''

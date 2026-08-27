@@ -9,17 +9,20 @@ import Search from "@/src/components/Search"
 import { HiDotsHorizontal } from "react-icons/hi"
 import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment, MdOutlineReceiptLong } from "react-icons/md"
 import { useAuthStore } from "@/src/store/authStore"
-import { useProfileStore } from "@/src/store/profileStore"
-import { useChatRoomsStore } from "@/src/store/chatRoomsStore"
+import { useChatRoomsStore, type ChatRoom } from "@/src/store/chatRoomsStore"
 import { getChatRooms, getChatMessages, deleteChatRoom } from "@/src/lib/chat"
 import { toRelativeUrl, uploadFile } from "@/src/lib/file"
 import { useHandleError } from "@/src/hooks/useHandleError"
 import { useToast } from "@/src/hooks/useToast"
 import { Client } from "@stomp/stompjs"
 import SockJS from "sockjs-client"
-import ContractModal from "@/src/components/chat/ContractModal"
+import ContractWizardModal, { type ContractData } from "@/src/components/chat/ContractWizardModal"
 import EstimateModal from "@/src/components/chat/EstimateModal"
-import { createEstimate } from "@/src/lib/estimate"
+import { createEstimate, getEstimates, type Estimate as EstimateData } from "@/src/lib/estimate"
+import { createContract } from "@/src/lib/contract"
+import { getMyProfile } from "@/src/lib/profile"
+import { getPost } from "@/src/lib/post"
+import { pdfBlobToFile } from "@/src/lib/contractPdf"
 import ImageLightbox from "@/src/components/ImageLightbox"
 
 function isImageUrl(url: string) {
@@ -44,7 +47,7 @@ function dataUrlToFile(dataUrl: string, filename: string): File {
   return new File([bytes], filename, { type: mime })
 }
 
-type Tab = "received" | "sent" | "done"
+type Tab = "all" | "received" | "done"
 
 interface Message {
   messageId: number
@@ -69,22 +72,33 @@ export default function Page() {
     } catch { return null }
   })
   const myRole = useAuthStore((s) => s.role)
-  const myProfileImageUrl = useProfileStore((s) => s.imageUrl)
   const selectedId = params.id ? Number(Array.isArray(params.id) ? params.id[0] : params.id) : null
 
-  const [tab, setTab] = useState<Tab>("received")
+  const [tab, setTab] = useState<Tab>("all")
   const [search, setSearch] = useState("")
   const [message, setMessage] = useState("")
   const [showAttach, setShowAttach] = useState(false)
-  const [showContract, setShowContract] = useState(false)
+  const [contractModalState, setContractModalState] = useState<{ mode: "propose" | "review"; initial: Partial<ContractData> } | null>(null)
+  const [contractBusy, setContractBusy] = useState(false)
+  const [phoneVerified, setPhoneVerified] = useState<boolean | undefined>(undefined)
+  const [myMemberId, setMyMemberId] = useState<number | undefined>(undefined)
   const [showEstimate, setShowEstimate] = useState(false)
   const [estimateBusy, setEstimateBusy] = useState(false)
+  const [estimates, setEstimates] = useState<EstimateData[]>([])
   const rooms = useChatRoomsStore((s) => s.rooms)
   const setRoomsInStore = useChatRoomsStore((s) => s.setRooms)
   const unreadRoomIds = useChatRoomsStore((s) => s.unreadRoomIds)
   const lastMessageOverride = useChatRoomsStore((s) => s.lastMessageOverride)
   const markRoomRead = useChatRoomsStore((s) => s.markRoomRead)
   const setActiveRoomId = useChatRoomsStore((s) => s.setActiveRoomId)
+  const selectedService = useChatRoomsStore((s) => s.selectedService)
+  const clearPendingGreeting = useChatRoomsStore((s) => s.clearPendingGreeting)
+  // post를 올린 사람이 을(파는 사람), 문의하기를 눌러 들어온 사람이 갑(사는 사람)이다.
+  // 계정 role이 아니라 방마다 정해지므로 글 작성자를 조회해서 판단한다.
+  const [postAuthorUsername, setPostAuthorUsername] = useState<string | null>(null)
+  // 글 작성자를 아직 못 불러왔으면 null (판별 전에는 계약서 버튼을 띄우지 않는다).
+  const myPartyRole: "client" | "professional" | null =
+    postAuthorUsername && myUsername ? (postAuthorUsername === myUsername ? "professional" : "client") : null
   const [messages, setMessages] = useState<Message[]>([])
   const [loadingRooms, setLoadingRooms] = useState(() => !useChatRoomsStore.getState().loaded)
   const [loadingMessages, setLoadingMessages] = useState(false)
@@ -130,6 +144,18 @@ export default function Page() {
             markRoomRead(selectedId)
           } catch {}
         })
+
+        // 문의하기에서 새로 만들어진 방이면 STOMP 연결 직후 인사말을 한 번 보낸다.
+        if (useChatRoomsStore.getState().pendingGreeting[selectedId]) {
+          const service = useChatRoomsStore.getState().selectedService[selectedId]
+          const greeting = `[채팅 시작]\n${myUsername ?? ""}님이 채팅을 시작했어요\n선택한 서비스: ${service?.planName ?? "기타"}`
+          client.publish({
+            destination: "/app/chat.send",
+            headers: { Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ roomId: selectedId, message: greeting, fileUrls: [] }),
+          })
+          clearPendingGreeting(selectedId)
+        }
       },
     })
 
@@ -140,7 +166,7 @@ export default function Page() {
       client.deactivate()
       stompClientRef.current = null
     }
-  }, [selectedId, token])
+  }, [selectedId, token, myUsername, clearPendingGreeting])
 
   const fetchRooms = useCallback(async () => {
     if (!token) return
@@ -170,8 +196,45 @@ export default function Page() {
     }
   }, [token, selectedId])
 
+  // 받은 견적/보낸 견적/완료된 거래 탭을 postId 기준으로 나누기 위해 내가 관련된 견적서를 전부 가져온다.
+  const fetchEstimates = useCallback(async () => {
+    if (!token) return
+    try {
+      const list = await getEstimates(token)
+      setEstimates(list)
+    } catch {
+      setEstimates([])
+    }
+  }, [token])
+
   useEffect(() => { fetchRooms() }, [fetchRooms])
   useEffect(() => { fetchMessages() }, [fetchMessages])
+  useEffect(() => { fetchEstimates() }, [fetchEstimates])
+
+  // 전화번호 인증 여부(서명 가능 조건)와 내 회원 ID(계약서 등록에 필요)를 함께 받아둔다.
+  useEffect(() => {
+    if (!token) return
+    getMyProfile(token)
+      .then((res) => {
+        setPhoneVerified(res.data?.phoneVerified ?? false)
+        setMyMemberId(res.data?.memberId)
+      })
+      .catch(() => setPhoneVerified(false))
+  }, [token])
+
+  // 이 방의 을(파는 사람)이 누구인지 = 그 글을 쓴 사람이 누구인지 조회한다.
+  const selectedPostId = rooms.find((r) => r.roomId === selectedId)?.postId
+  useEffect(() => {
+    if (!selectedPostId) {
+      setPostAuthorUsername(null)
+      return
+    }
+    let cancelled = false
+    getPost(selectedPostId, token)
+      .then((res) => { if (!cancelled) setPostAuthorUsername(res.data?.member?.username ?? null) })
+      .catch(() => { if (!cancelled) setPostAuthorUsername(null) })
+    return () => { cancelled = true }
+  }, [selectedPostId, token])
 
   async function handleDeleteRoom(e: React.MouseEvent, roomId: number) {
     e.stopPropagation()
@@ -189,12 +252,28 @@ export default function Page() {
   const selectedRoom = rooms.find((r) => r.roomId === selectedId)
 
   const tabs: { key: Tab; label: string }[] = [
-    { key: "received", label: "받은 견적" },
-    { key: "sent", label: "보낸 견적" },
+    { key: "all", label: "전체" },
+    { key: "received", label: "받은거래" },
     { key: "done", label: "완료된 거래" },
   ]
 
-  const filteredRooms = rooms.filter((r) => r.participantName.includes(search))
+  // 채팅방(postId + 상대방)에 딱 맞는 견적서를 찾는다. 견적서는 postId·의뢰인·전문가 조합으로 유일하게 정해진다.
+  function estimateForRoom(room: ChatRoom) {
+    if (!room.postId || !room.participantId) return undefined
+    return estimates.find((e) => {
+      if (e.postId !== room.postId) return false
+      return myRole === "PROFESSIONAL" ? e.clientId === room.participantId : e.professionalId === room.participantId
+    })
+  }
+
+  // 결제까지 끝난 견적서만 완료된 거래로, 나머지(견적서를 못 받았거나 아직 결제 전인 것)는 모두 받은거래로 묶는다.
+  function roomTab(room: ChatRoom): "received" | "done" {
+    return estimateForRoom(room)?.status === "PAID" ? "done" : "received"
+  }
+
+  const filteredRooms = rooms.filter(
+    (r) => r.participantName.includes(search) && (tab === "all" || roomTab(r) === tab)
+  )
 
   const MAX_CHAT_FILE_SIZE = 25 * 1024 * 1024
 
@@ -309,6 +388,7 @@ export default function Page() {
         })
       }
       setShowEstimate(false)
+      fetchEstimates()
     } catch (e) {
       handleError(e)
     } finally {
@@ -316,31 +396,126 @@ export default function Page() {
     }
   }
 
-  async function handleContractSubmit(data: { clientSig: string; professionalSig: string; clientName: string; professionalName: string }) {
-    if (!token || !selectedId) return
+  // 계약서 진행 순서: 을(글 올린 사람, 파는 쪽)이 [계약서 제안](propose) → 갑(문의한 사람, 사는 쪽)이
+  // 검토 후 서명하면 그 자리에서 양쪽 서명이 담긴 PDF를 만들어 서버에 등록([계약서 체결 완료], review)
+  // → 갑이 결제.
+  //
+  // 서명은 PDF 안에 그림으로 이미 들어가므로 서버에 따로 서명하는 단계는 없다
+  // (백엔드에서 /api/contract/sign 이 제거됨).
+  //
+  // 등록하는 사람은 항상 갑이므로 partA는 내 회원 ID, partB는 채팅 상대(을)의 ID다.
+  async function handleContractSubmit(data: ContractData, pdfBlob?: Blob) {
+    if (!token || !selectedId || !contractModalState || !selectedRoom) return
     const client = stompClientRef.current
     if (!client?.connected) return
 
-    const mySig = data.professionalSig || data.clientSig
-    const summary = `[계약서 서명 완료]\n갑(의뢰인): ${data.clientName}\n을(수행자): ${data.professionalName}`
+    setContractBusy(true)
+    try {
+      if (contractModalState.mode === "review") {
+        if (!pdfBlob) return
 
-    let fileUrls: string[] = []
-    if (mySig) {
-      try {
-        const file = dataUrlToFile(mySig, `contract-signature-${Date.now()}.png`)
+        const professionalMemberId = selectedRoom.participantId
+        if (!myMemberId || !professionalMemberId) {
+          addToast({ message: "계약 당사자 정보를 확인하지 못했습니다.", type: "error" })
+          return
+        }
+
+        const amount = Number(data.price.replace(/[^0-9]/g, "")) || 0
+        const pdfFile = pdfBlobToFile(pdfBlob, `contract-${Date.now()}.pdf`)
+        const { url: contractUrl } = await uploadFile(token, pdfFile)
+
+        const contract = await createContract(token, {
+          contractUrl,
+          partA: myMemberId,
+          partB: professionalMemberId,
+          amount,
+        })
+
+        // 결제에 필요한 값(금액·PDF 경로)을 메시지에 같이 실어둔다.
+        // 계약서 조회 API는 contractUrl만 돌려주므로 금액은 여기서 보관해야 한다.
+        const completed = { contractId: contract.id, amount, contractUrl }
+        client.publish({
+          destination: "/app/chat.send",
+          headers: { Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            roomId: selectedId,
+            message: `[계약서 체결 완료]\n${JSON.stringify(completed)}`,
+            fileUrls: [contractUrl],
+          }),
+        })
+        setContractModalState(null)
+        return
+      }
+
+      const myNewSig = myPartyRole === "client" ? data.clientSig : data.professionalSig
+      let myUploadedSig = myNewSig
+      if (myNewSig && myNewSig.startsWith("data:")) {
+        const file = dataUrlToFile(myNewSig, `contract-signature-${Date.now()}.png`)
         const { url } = await uploadFile(token, file)
-        fileUrls = [url]
-      } catch (e) {
-        handleError(e)
+        myUploadedSig = url
+      }
+
+      const payload: ContractData = {
+        ...data,
+        clientSig: myPartyRole === "client" ? myUploadedSig : data.clientSig,
+        professionalSig: myPartyRole === "professional" ? myUploadedSig : data.professionalSig,
+      }
+
+      // 서명 URL은 payload 안에 이미 들어있다. fileUrls로도 보내면 채팅에 서명 이미지가
+      // 그대로 첨부되어 보이므로 붙이지 않는다.
+      client.publish({
+        destination: "/app/chat.send",
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ roomId: selectedId, message: `[계약서 제안]\n${JSON.stringify(payload)}`, fileUrls: [] }),
+      })
+      setContractModalState(null)
+    } catch (e) {
+      handleError(e)
+    } finally {
+      setContractBusy(false)
+    }
+  }
+
+  // 계약 체결 후 결제 페이지로 이동한다. 금액·PDF 경로는 체결 메시지에 담겨 있다.
+  function handlePayNavigate(completed: CompletedContract) {
+    if (!selectedRoom?.postId) return
+    const qs = new URLSearchParams()
+    qs.set("price", String(completed.amount))
+    qs.set("contractUrl", completed.contractUrl)
+    router.push(`/pay/${selectedRoom.postId}?${qs.toString()}`)
+  }
+
+  interface CompletedContract {
+    contractId: number
+    amount: number
+    contractUrl: string
+  }
+
+  type ContractMessage =
+    | { kind: "propose"; data: ContractData }
+    | { kind: "completed"; data: CompletedContract }
+
+  function parseContractMessage(text: string): ContractMessage | null {
+    const PROPOSE = "[계약서 제안]\n"
+    const COMPLETED = "[계약서 체결 완료]\n"
+
+    if (text.startsWith(PROPOSE)) {
+      try {
+        return { kind: "propose", data: JSON.parse(text.slice(PROPOSE.length)) as ContractData }
+      } catch {
+        return null
       }
     }
 
-    client.publish({
-      destination: "/app/chat.send",
-      headers: { Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ roomId: selectedId, message: summary, fileUrls }),
-    })
-    setShowContract(false)
+    if (text.startsWith(COMPLETED)) {
+      try {
+        return { kind: "completed", data: JSON.parse(text.slice(COMPLETED.length)) as CompletedContract }
+      } catch {
+        return null
+      }
+    }
+
+    return null
   }
 
   function formatTime(dateStr: string) {
@@ -371,15 +546,14 @@ export default function Page() {
         />
       )}
 
-      {showContract && selectedRoom && (
-        <ContractModal
-          roomId={selectedId ?? 0}
-          client={{ name: selectedRoom.participantName, items: [{ label: "아이디", value: selectedRoom.participantUsername }] }}
-          professional={{ name: myUsername ?? "", items: [{ label: "아이디", value: myUsername ?? "" }] }}
-          contractContent=""
-          date={new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })}
-          myRole="professional"
-          onClose={() => setShowContract(false)}
+      {contractModalState && selectedRoom && myPartyRole && (
+        <ContractWizardModal
+          myRole={myPartyRole}
+          mode={contractModalState.mode}
+          initial={contractModalState.initial}
+          busy={contractBusy}
+          phoneVerified={phoneVerified}
+          onClose={() => setContractModalState(null)}
           onSubmit={handleContractSubmit}
         />
       )}
@@ -543,17 +717,36 @@ export default function Page() {
                     </div>
                   ) : null
 
+                  const contractMsg = parseContractMessage(msg.message)
+                  const greetingPrefix = "[채팅 시작]\n"
+                  const displayText = contractMsg
+                    ? contractMsg.kind === "propose"
+                      ? "📄 계약서를 보냈습니다."
+                      : "✅ 계약이 체결됐습니다."
+                    : msg.message.startsWith(greetingPrefix)
+                      ? msg.message.slice(greetingPrefix.length)
+                      : msg.message
+
                   const textBubble = msg.message ? (
                     <div className={`rounded-2xl px-4 py-2 max-w-xs ${isSent ? "bg-main rounded-br-none" : "bg-zinc-100 rounded-bl-none"}`}>
-                      <p className={`text-sm whitespace-pre-line ${isSent ? "text-white" : ""}`}>{msg.message}</p>
+                      <p className={`text-sm whitespace-pre-line ${isSent ? "text-white" : ""}`}>{displayText}</p>
                     </div>
                   ) : null
 
-                  // 계약서는 항상 을(수행자)이 제출하므로, 받은 사람(=갑/의뢰인)에게만 결제 버튼을 보여준다.
-                  const isContractSigned = msg.message.startsWith("[계약서 서명 완료]")
-                  const payButton = isContractSigned && !isSent && selectedRoom.postId ? (
+                  // 계약서는 을(파는 사람)이 갑(사는 사람)에게만 제안하므로, 받은 사람(=갑)만 검토·서명할 수 있다.
+                  const contractReviewButton = contractMsg?.kind === "propose" && !isSent ? (
                     <button
-                      onClick={() => router.push(`/pay/${selectedRoom.postId}`)}
+                      onClick={() => setContractModalState({ mode: "review", initial: contractMsg.data })}
+                      className="px-4 py-2 rounded-xl bg-main text-white text-sm font-semibold hover:bg-orange-600 cursor-pointer"
+                    >
+                      계약서 확인하기
+                    </button>
+                  ) : null
+
+                  // 계약 체결 메시지는 갑이 서명하면서 보낸 것이므로, 보낸 사람(=갑, 결제하는 쪽)에게 결제 버튼을 보여준다.
+                  const payButton = contractMsg?.kind === "completed" && isSent && selectedRoom.postId ? (
+                    <button
+                      onClick={() => handlePayNavigate(contractMsg.data)}
                       className="px-4 py-2 rounded-xl bg-main text-white text-sm font-semibold hover:bg-orange-600 cursor-pointer"
                     >
                       결제하기
@@ -583,7 +776,7 @@ export default function Page() {
                           <div className="flex flex-col gap-1">
                             {attachment}
                             {textBubble}
-                            {payButton}
+                            {contractReviewButton}
                           </div>
                           {showTime && <span className="text-xs text-zinc-400 shrink-0">{formatTime(msg.createdAt)}</span>}
                         </div>
@@ -593,15 +786,7 @@ export default function Page() {
                           <div className="flex flex-col gap-1 items-end">
                             {attachment}
                             {textBubble}
-                          </div>
-                          <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 bg-zinc-200">
-                            <Image
-                              src={myProfileImageUrl ? toRelativeUrl(myProfileImageUrl) : "/profile.png"}
-                              alt=""
-                              width={36}
-                              height={36}
-                              className="w-full h-full object-cover"
-                            />
+                            {payButton}
                           </div>
                         </div>
                       )}
@@ -643,15 +828,27 @@ export default function Page() {
                     </button>
                     <span className="text-xs text-zinc-500">문서</span>
                   </div>
-                  <div className="flex flex-col items-center gap-1">
-                    <button
-                      onClick={() => { setShowAttach(false); setShowContract(true) }}
-                      className="w-12 h-12 rounded-full bg-yellow-400 flex items-center justify-center cursor-pointer"
-                    >
-                      <MdOutlineAssignment className="text-white text-2xl" />
-                    </button>
-                    <span className="text-xs text-zinc-500">계약서</span>
-                  </div>
+                  {myPartyRole === "professional" && (
+                    <div className="flex flex-col items-center gap-1">
+                      <button
+                        onClick={() => {
+                          setShowAttach(false)
+                          setContractModalState({
+                            mode: "propose",
+                            initial: {
+                              clientName: selectedRoom.participantName,
+                              professionalName: "",
+                              price: selectedId ? selectedService[selectedId]?.price ?? "" : "",
+                            },
+                          })
+                        }}
+                        className="w-12 h-12 rounded-full bg-yellow-400 flex items-center justify-center cursor-pointer"
+                      >
+                        <MdOutlineAssignment className="text-white text-2xl" />
+                      </button>
+                      <span className="text-xs text-zinc-500">계약서</span>
+                    </div>
+                  )}
                   {myRole === "PROFESSIONAL" && selectedRoom.postId && (
                     <div className="flex flex-col items-center gap-1">
                       <button

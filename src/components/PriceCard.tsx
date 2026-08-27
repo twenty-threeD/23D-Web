@@ -3,9 +3,11 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/src/store/authStore"
+import { useChatRoomsStore } from "@/src/store/chatRoomsStore"
 import { createChatRoom } from "@/src/lib/chat"
 import { useHandleError } from "@/src/hooks/useHandleError"
 import { type PriceCardPlan } from "@/src/types/priceCard"
+import ServicePickerModal from "@/src/components/item/ServicePickerModal"
 
 const DEFAULT_PLAN: PriceCardPlan = {
   planName: "기본 플랜",
@@ -26,23 +28,29 @@ export default function PriceCard({ username, plans, postId }: PriceCardProps) {
   const handleError = useHandleError()
   const [loading, setLoading] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
+  const [showPicker, setShowPicker] = useState(false)
+  const setSelectedService = useChatRoomsStore((s) => s.setSelectedService)
 
   const safePlans = plans && plans.length > 0 ? plans : [DEFAULT_PLAN]
   const active = Math.min(activeIndex, safePlans.length - 1)
   const plan = safePlans[active]
 
-  async function handleChat() {
+  async function handleSelectService(service: { planName: string; price: string }) {
     if (!token) { router.push("/login/signin"); return }
     if (!username || !postId) return
     setLoading(true)
     try {
       const res = await createChatRoom(token, username, postId)
       const roomId = res.data?.roomId
-      if (roomId) router.push(`/chat/${roomId}`)
+      if (roomId) {
+        setSelectedService(roomId, service, !res.data?.existingRoom)
+        router.push(`/chat/${roomId}`)
+      }
     } catch (e) {
       handleError(e)
     } finally {
       setLoading(false)
+      setShowPicker(false)
     }
   }
 
@@ -89,13 +97,22 @@ export default function PriceCard({ username, plans, postId }: PriceCardProps) {
         )}
 
         <button
-          onClick={handleChat}
+          onClick={() => setShowPicker(true)}
           disabled={loading || !username}
           className="w-full py-2 border text-center bg-main border-zinc-300 text-white font-semibold rounded-md disabled:opacity-50 cursor-pointer"
         >
           {loading ? "연결 중..." : "문의하기"}
         </button>
       </div>
+
+      {showPicker && (
+        <ServicePickerModal
+          plans={safePlans}
+          busy={loading}
+          onClose={() => setShowPicker(false)}
+          onSelect={handleSelectService}
+        />
+      )}
     </div>
   )
 }
