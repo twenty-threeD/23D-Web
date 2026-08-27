@@ -27,3 +27,21 @@ body {
 	animation: bell-ring 0.6s ease-in-out;
 	transform-origin: top center;
 }
+
+@keyframes modal-backdrop-in {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+@keyframes modal-panel-in {
+	from { opacity: 0; transform: scale(0.96) translateY(8px); }
+	to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.animate-modal-backdrop {
+	animation: modal-backdrop-in 0.18s ease-out;
+}
+
+.animate-modal-panel {
+	animation: modal-panel-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
