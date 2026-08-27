@@ -13,17 +13,17 @@ export interface Contract {
   id: number
   contractUrl: string
   // 갑(의뢰인, 대금 지급자)의 memberId
-  partA: number
+  clientId: number
   // 을(전문가, 대금 수령자)의 memberId
-  partB: number
-  amount: number
+  professionalId: number
+  price: number
   writerId: number
   status: ContractStatus
   signed: boolean
-  partASigned: boolean
-  partBSigned: boolean
-  partASignedAt?: string | null
-  partBSignedAt?: string | null
+  clientSigned: boolean
+  professionalSigned: boolean
+  clientSignedAt?: string | null
+  professionalSignedAt?: string | null
   createdAt?: string | null
   updatedAt?: string | null
 }
@@ -32,7 +32,7 @@ export interface Contract {
 // 서명은 PDF 안에 이미 그려서 넣으므로 별도의 서명 API는 없다.
 export async function createContract(
   token: string,
-  data: { contractUrl: string; partA: number; partB: number; amount: number }
+  data: { contractUrl: string; clientId: number; professionalId: number; price: number }
 ) {
   const res = await fetch(`/api/contract`, {
     method: 'POST',

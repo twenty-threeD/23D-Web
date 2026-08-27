@@ -402,7 +402,7 @@ export default function Page() {
   // 서명은 PDF 안에 그림으로 이미 들어가므로 서버에 따로 서명하는 단계는 없다
   // (백엔드에서 /api/contract/sign 이 제거됨).
   //
-  // 등록하는 사람은 항상 갑이므로 partA는 내 회원 ID, partB는 채팅 상대(을)의 ID다.
+  // 등록하는 사람은 항상 갑이므로 clientId는 내 회원 ID, professionalId는 채팅 상대(을)의 ID다.
   async function handleContractSubmit(data: ContractData, pdfBlob?: Blob) {
     if (!token || !selectedId || !contractModalState || !selectedRoom) return
     const client = stompClientRef.current
@@ -413,26 +413,26 @@ export default function Page() {
       if (contractModalState.mode === "review") {
         if (!pdfBlob) return
 
-        const professionalMemberId = selectedRoom.participantId
-        if (!myMemberId || !professionalMemberId) {
+        const professionalId = selectedRoom.participantId
+        if (!myMemberId || !professionalId) {
           addToast({ message: "계약 당사자 정보를 확인하지 못했습니다.", type: "error" })
           return
         }
 
-        const amount = Number(data.price.replace(/[^0-9]/g, "")) || 0
+        const price = Number(data.price.replace(/[^0-9]/g, "")) || 0
         const pdfFile = pdfBlobToFile(pdfBlob, `contract-${Date.now()}.pdf`)
         const { url: contractUrl } = await uploadFile(token, pdfFile)
 
         const contract = await createContract(token, {
           contractUrl,
-          partA: myMemberId,
-          partB: professionalMemberId,
-          amount,
+          clientId: myMemberId,
+          professionalId,
+          price,
         })
 
         // 결제에 필요한 값(금액·PDF 경로)을 메시지에 같이 실어둔다.
         // 계약서 조회 API는 contractUrl만 돌려주므로 금액은 여기서 보관해야 한다.
-        const completed = { contractId: contract.id, amount, contractUrl }
+        const completed = { contractId: contract.id, price, contractUrl }
         client.publish({
           destination: "/app/chat.send",
           headers: { Authorization: `Bearer ${token}` },
@@ -479,14 +479,14 @@ export default function Page() {
   function handlePayNavigate(completed: CompletedContract) {
     if (!selectedRoom?.postId) return
     const qs = new URLSearchParams()
-    qs.set("price", String(completed.amount))
+    qs.set("price", String(completed.price))
     qs.set("contractUrl", completed.contractUrl)
     router.push(`/pay/${selectedRoom.postId}?${qs.toString()}`)
   }
 
   interface CompletedContract {
     contractId: number
-    amount: number
+    price: number
     contractUrl: string
   }
 
