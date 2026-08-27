@@ -14,7 +14,7 @@ import NormalCard from "@/src/components/NormalCard";
 import TopButton from "@/src/components/TopButton";
 import { FaStar } from "react-icons/fa";
 import { IoMdHeart, IoMdHeartEmpty } from "react-icons/io";
-import { getPost, getPosts, favoritePost, unfavoritePost, getFavoritePosts, type Post } from "@/src/lib/post"
+import { getPost, getPosts, favoritePost, unfavoritePost, getFavoritePosts, getPostMainImage, type Post } from "@/src/lib/post"
 import { parsePostContent } from "@/src/types/priceCard";
 import { useAuthStore } from "@/src/store/authStore";
 import { useHandleError } from "@/src/hooks/useHandleError";
@@ -135,6 +135,10 @@ export default function Page() {
   const review = reviewCount > 0
     ? reviews.reduce((total, item) => total + item.rating, 0) / reviewCount
     : 0;
+  const headerImage = post?.fileUrls?.[0];
+  const contentImages = post?.fileUrls && post.fileUrls.length > 1
+    ? post.fileUrls.slice(1)
+    : post?.fileUrls ?? [];
 
   if (loading) {
     return (
@@ -149,7 +153,7 @@ export default function Page() {
   return (
     <div>
       <Header />
-      <Banner />
+      <Banner imageUrl={headerImage ? toRelativeUrl(headerImage) : undefined} />
       <div className="flex flex-col px-20 py-8 gap-16">
         <div className="flex gap-16 justify-between items-start">
           {/* left content */}
@@ -261,9 +265,9 @@ export default function Page() {
             {/* 이미지 */}
             <div className="flex flex-col gap-4">
               <h2 className="text-xl font-bold">이미지</h2>
-              {post?.fileUrls && post.fileUrls.length > 0 ? (
+              {contentImages.length > 0 ? (
                 <div className="w-full flex gap-4">
-                  {post.fileUrls.map((url, i) => (
+                  {contentImages.map((url, i) => (
                     <div
                       key={i}
                       className="w-48 h-48 rounded-lg overflow-hidden bg-zinc-200 transition-opacity hover:opacity-90 cursor-pointer"
@@ -352,7 +356,7 @@ export default function Page() {
           <h2 className="text-2xl font-bold shrink-0">이웃들이<br/>많이 찾아요</h2>
           <div className="flex gap-4">
             {relatedPosts.slice(0, 4).map((p) => (
-              <NormalCard key={p.id} id={p.id} title={p.title} content={p.content} fileUrl={p.fileUrls?.[0]} category={p.category} />
+              <NormalCard key={p.id} id={p.id} title={p.title} content={p.content} fileUrl={getPostMainImage(p.fileUrls)} category={p.category} />
             ))}
           </div>
         </div>
@@ -361,7 +365,7 @@ export default function Page() {
           <h2 className="text-2xl font-bold shrink-0">재방문율이<br/>높아요</h2>
           <div className="flex gap-4">
             {relatedPosts.slice(4, 8).map((p) => (
-              <NormalCard key={p.id} id={p.id} title={p.title} content={p.content} fileUrl={p.fileUrls?.[0]} category={p.category} />
+              <NormalCard key={p.id} id={p.id} title={p.title} content={p.content} fileUrl={getPostMainImage(p.fileUrls)} category={p.category} />
             ))}
           </div>
         </div>

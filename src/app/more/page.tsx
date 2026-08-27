@@ -11,6 +11,7 @@ import NormalCardSkeleton from "@/src/components/NormalCardSkeleton";
 import TopButton from "@/src/components/TopButton";
 import {
   getPostCategories,
+  getPostMainImage,
   searchPostsPaged,
   type Post,
   type PostCategory,
@@ -182,7 +183,7 @@ function MoreContent() {
                 id={post.id}
                 title={post.title}
                 content={post.content}
-                fileUrl={post.fileUrls?.[0]}
+                fileUrl={getPostMainImage(post.fileUrls)}
                 category={post.category}
               />
             ))
