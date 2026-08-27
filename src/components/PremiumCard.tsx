@@ -19,7 +19,10 @@ function getDescription(content: string): string {
 
 export default function PremiumCard({ id, title, content, fileUrls }: PremiumCardProps) {
   const description = getDescription(content)
-  const images = (fileUrls ?? []).slice(0, 2)
+  // 새 게시물은 [헤더, 메인, 상세...] 순서이므로 카드에는 메인 이미지를 우선 보여준다.
+  const images = (fileUrls ?? []).length > 1
+    ? (fileUrls ?? []).slice(1, 3)
+    : (fileUrls ?? []).slice(0, 2)
 
   return (
     <Link href={`/item/${id}`} className="flex flex-col w-lg h-72 p-3 rounded-lg hover:shadow-sm transition-transform duration-300">

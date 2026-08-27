@@ -26,7 +26,7 @@ import {
 } from "@/src/lib/profile";
 import { resetUsername, deleteAccount } from "@/src/lib/member";
 import AccountEditModal from "@/src/components/profile/AccountEditModal";
-import { getFavoritePosts, getMyPosts, deletePost, type Post } from "@/src/lib/post";
+import { getFavoritePosts, getMyPosts, deletePost, getPostMainImage, type Post } from "@/src/lib/post";
 
 const DISTANCE_OPTIONS: { value: "TEN_KM" | "TWENTY_FIVE_KM" | "FIFTY_KM" | "OVER_HUNDRED_KM"; label: string }[] = [
   { value: "TEN_KM", label: "10km 이내" },
@@ -422,7 +422,7 @@ export default function Page() {
             <div className="flex flex-wrap gap-4">
               {myPosts.map((p) => (
                 <div key={p.id} className="flex flex-col">
-                  <NormalCard id={p.id} title={p.title} content={p.content} fileUrl={p.fileUrls?.[0]} />
+                  <NormalCard id={p.id} title={p.title} content={p.content} fileUrl={getPostMainImage(p.fileUrls)} />
                   <div className="flex gap-2 px-3">
                     <button
                       onClick={() => router.push(`/upload/${p.id}`)}
@@ -453,7 +453,7 @@ export default function Page() {
           ) : (
             <div className="flex flex-wrap gap-4">
               {favorites.map((p) => (
-                <NormalCard key={p.id} id={p.id} title={p.title} content={p.content} fileUrl={p.fileUrls?.[0]} category={p.category} />
+                  <NormalCard key={p.id} title={p.title} content={p.content} fileUrl={getPostMainImage(p.fileUrls)} id={p.id} category={p.category} />
               ))}
             </div>
           )}

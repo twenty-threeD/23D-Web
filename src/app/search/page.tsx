@@ -8,7 +8,7 @@ import Search from "@/src/components/Search";
 import NormalCard from "@/src/components/NormalCard";
 import NormalCardSkeleton from "@/src/components/NormalCardSkeleton";
 import TopButton from "@/src/components/TopButton";
-import { searchPostsPaged, getPostCategories, type Post, type PostCategory } from "@/src/lib/post";
+import { searchPostsPaged, getPostCategories, getPostMainImage, type Post, type PostCategory } from "@/src/lib/post";
 
 const SORT_OPTIONS = [
   { label: "최신순", value: "updatedAt,desc" },
@@ -170,7 +170,7 @@ function SearchContent() {
                 id={post.id}
                 title={post.title}
                 content={post.content}
-                fileUrl={post.fileUrls?.[0]}
+                fileUrl={getPostMainImage(post.fileUrls)}
                 category={post.category}
               />
             ))

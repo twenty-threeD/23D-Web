@@ -10,7 +10,7 @@ import PremiumCardSkeleton from "@/src/components/PremiumCardSkeleton";
 import NormalCard from "@/src/components/NormalCard";
 import NormalCardSkeleton from "@/src/components/NormalCardSkeleton";
 import Search from "@/src/components/Search";
-import { getPosts, searchPosts, getPostCategories, type Post, type PostCategory } from "@/src/lib/post";
+import { getPosts, searchPosts, getPostCategories, getPostMainImage, type Post, type PostCategory } from "@/src/lib/post";
 import { useAuthStore } from "@/src/store/authStore";
 import { FiArrowUpRight } from "react-icons/fi";
 
@@ -132,7 +132,7 @@ function MainContent() {
               ? Array.from({ length: 4 }).map((_, i) => <NormalCardSkeleton key={i} />)
               : popularPosts.length > 0
                 ? popularPosts.map((post) => (
-                    <NormalCard key={post.id} id={post.id} title={post.title} content={post.content} fileUrl={post.fileUrls?.[0]} category={post.category} />
+                    <NormalCard key={post.id} id={post.id} title={post.title} content={post.content} fileUrl={getPostMainImage(post.fileUrls)} category={post.category} />
                   ))
                 : <p className="text-zinc-400 text-sm self-center">등록된 항목이 없습니다</p>
             }
@@ -154,7 +154,7 @@ function MainContent() {
               ? Array.from({ length: 4 }).map((_, i) => <NormalCardSkeleton key={i} />)
               : revisitPosts.length > 0
                 ? revisitPosts.map((post) => (
-                    <NormalCard key={post.id} id={post.id} title={post.title} content={post.content} fileUrl={post.fileUrls?.[0]} category={post.category} />
+                    <NormalCard key={post.id} id={post.id} title={post.title} content={post.content} fileUrl={getPostMainImage(post.fileUrls)} category={post.category} />
                   ))
                 : <p className="text-zinc-400 text-sm self-center">등록된 항목이 없습니다</p>
             }

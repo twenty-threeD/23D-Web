@@ -53,6 +53,7 @@ export default function Page() {
           return;
         }
         setTitle(post.title ?? "");
+        // 서버 이미지 순서: 헤더 이미지, 메인 이미지, 나머지 이미지
         setImageUrls(post.fileUrls ?? []);
         setCategoryId(post.category?.id ?? "");
         const { description: desc, plans: existingPlans } = parsePostContent(post.content ?? "");
@@ -82,8 +83,12 @@ export default function Page() {
       addToast({ message: "카테고리를 선택해주세요.", type: "warning" });
       return;
     }
-    if (imageUrls.length === 0) {
-      addToast({ message: "사진을 업로드해주세요.", type: "warning" });
+    if (!imageUrls[0]) {
+      addToast({ message: "헤더 이미지를 업로드해주세요.", type: "warning" });
+      return;
+    }
+    if (!imageUrls[1]) {
+      addToast({ message: "메인 이미지를 업로드해주세요.", type: "warning" });
       return;
     }
     if (title.length > 255) {
@@ -162,7 +167,7 @@ export default function Page() {
         <div className="w-px self-stretch bg-zinc-300" />
 
         <Preview
-          imageUrl={imageUrls[0]}
+          imageUrl={imageUrls[1] ?? imageUrls[0]}
           title={title}
           description={description}
           price={price || plans[0]?.price}

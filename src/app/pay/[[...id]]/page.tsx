@@ -11,7 +11,7 @@ import { ApplyPay } from "@/src/components/pay/ApplyPay";
 import { OnClickPay } from "@/src/components/pay/OnClickPay";
 
 import PriceCard from "@/src/components/PriceCard";
-import { getPost, type Post } from "@/src/lib/post";
+import { getPost, getPostMainImage, type Post } from "@/src/lib/post";
 import { useAuthStore } from "@/src/store/authStore";
 import { parsePostContent } from "@/src/types/priceCard";
 import { getEstimates, type Estimate as EstimateData } from "@/src/lib/estimate";
@@ -67,7 +67,7 @@ const PayContent = () => {
   // post를 올린 사람이 을(파는 쪽, 대금을 받는 "능력자")이다. 문의해서 들어온 사람이 갑(결제하는 쪽).
   const expertName = post?.member?.name ?? post?.member?.username ?? "";
   const postAuthorUsername = post?.member?.username;
-  const imgPath = post?.fileUrls?.[0] ?? "/profile.png";
+  const imgPath = getPostMainImage(post?.fileUrls) ?? "/profile.png";
 
   return (
     <div>
