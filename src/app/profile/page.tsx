@@ -215,7 +215,7 @@ export default function Page() {
   return (
     <div>
       <Header />
-      <main className="flex flex-col gap-10 px-20 py-10 max-w-3xl mx-auto">
+      <main className="flex flex-col gap-10 px-20 py-10 mx-auto">
         <h1 className="text-2xl font-bold">프로필</h1>
 
         <div className="flex flex-col gap-6 border border-zinc-200 rounded-lg p-8">
@@ -422,7 +422,7 @@ export default function Page() {
             <div className="flex flex-wrap gap-4">
               {myPosts.map((p) => (
                 <div key={p.id} className="flex flex-col">
-                  <NormalCard id={p.id} title={p.title} content={p.content} fileUrl={p.fileUrls?.[0]} category={p.category} />
+                  <NormalCard id={p.id} title={p.title} content={p.content} fileUrl={p.fileUrls?.[0]} />
                   <div className="flex gap-2 px-3">
                     <button
                       onClick={() => router.push(`/upload/${p.id}`)}

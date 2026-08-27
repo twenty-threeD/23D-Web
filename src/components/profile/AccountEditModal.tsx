@@ -35,16 +35,17 @@ export default function AccountEditModal({ field, token, verifyOnlyPhone, onClos
   // 인증만 하는 경우엔 비밀번호 단계를 건너뛴다
   const [step, setStep] = useState<"password" | "verify">(isVerifyOnly ? "verify" : "password");
   const [password, setPassword] = useState("");
-  const [value, setValue] = useState(verifyOnlyPhone ?? "");
+  const [value, setValue] = useState(verifyOnlyPhone ? formatPhone(verifyOnlyPhone) : "");
   const [code, setCode] = useState("");
   const [codeSent, setCodeSent] = useState(false);
   const [checkingPassword, setCheckingPassword] = useState(false);
   const [sending, setSending] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const phoneDigits = value.replace(/\D/g, "");
   const isValueValid = isEmail
     ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-    : /^010-\d{4}-\d{4}$/.test(value);
+    : /^010\d{8}$/.test(phoneDigits);
   const canSubmit = isVerifyOnly
     ? codeSent && code.trim() !== ""
     : isValueValid && codeSent && code.trim() !== "";
@@ -70,7 +71,7 @@ export default function AccountEditModal({ field, token, verifyOnlyPhone, onClos
     setSending(true);
     try {
       if (isEmail) await sendEmailChangeCode(value);
-      else await sendPhoneVerifyCode(value.replace(/-/g, ""));
+      else await sendPhoneVerifyCode(phoneDigits);
       setCodeSent(true);
       addToast({ message: "인증번호를 발송했습니다.", type: "success" });
     } catch (e) {
@@ -85,13 +86,13 @@ export default function AccountEditModal({ field, token, verifyOnlyPhone, onClos
     setSaving(true);
     try {
       if (isVerifyOnly) {
-        await checkPhoneVerifyCode(value.replace(/-/g, ""), code.trim());
+        await checkPhoneVerifyCode(phoneDigits, code.trim());
         addToast({ message: "전화번호 인증이 완료되었습니다.", type: "success" });
       } else if (isEmail) {
         await changeEmail(token, { password, newEmail: value, verifyCode: code.trim() });
         addToast({ message: "이메일을 변경했습니다.", type: "success" });
       } else {
-        await changePhone(token, { password, newPhone: value.replace(/-/g, ""), code: code.trim() });
+        await changePhone(token, { password, newPhone: phoneDigits, code: code.trim() });
         addToast({ message: "전화번호를 변경했습니다.", type: "success" });
       }
       onDone();

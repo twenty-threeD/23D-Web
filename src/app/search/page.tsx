@@ -101,7 +101,7 @@ function SearchContent() {
   return (
     <div>
       <Header />
-      <main className="flex flex-col items-center px-20 py-8 gap-8">
+      <main className="flex flex-col items-center justify-center px-20 py-8 gap-8">
         <div className="w-full max-w-3xl">
           <Search
             where="post"
@@ -111,7 +111,7 @@ function SearchContent() {
         </div>
 
         {/* 카테고리 필터 */}
-        <div className="w-full flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => updateQuery({ categoryId: null })}
             className={`px-4 py-1.5 rounded-full border text-sm transition-colors cursor-pointer ${
