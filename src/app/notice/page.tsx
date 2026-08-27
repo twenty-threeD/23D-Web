@@ -18,7 +18,7 @@ function NoticeContent() {
       <p className="text-sm text-zinc-400">빠른 시일 내에 찾아뵙겠습니다.</p>
       <button
         onClick={() => router.back()}
-        className="mt-4 px-6 py-2 rounded-lg bg-main text-white font-semibold hover:bg-main/90 cursor-pointer"
+        className="mt-4 px-6 py-2 rounded-xl bg-main text-white text-sm font-semibold transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
       >
         돌아가기
       </button>

@@ -31,7 +31,7 @@ function SinglePlanEditor({ plan, onChange }: SinglePlanEditorProps) {
       <div className="flex flex-col gap-1">
         <label className="text-sm font-semibold text-zinc-600">플랜 이름</label>
         <input
-          className="border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-main"
+          className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
           placeholder="예) 에어컨 청소 (1회 기준)"
           value={plan.planName}
           onChange={(e) => update({ planName: e.target.value })}
@@ -40,7 +40,7 @@ function SinglePlanEditor({ plan, onChange }: SinglePlanEditorProps) {
 
       <div className="flex flex-col gap-1">
         <label className="text-sm font-semibold text-zinc-600">가격 (최소)</label>
-        <div className="flex items-center border border-zinc-300 rounded-md px-3 py-2 gap-1">
+        <div className="flex items-center gap-1 border border-zinc-300 rounded-lg px-3 py-2.5 transition-colors focus-within:border-main hover:border-zinc-400">
           <input
             className="flex-1 text-sm focus:outline-none"
             placeholder="예) 150000"
@@ -55,7 +55,7 @@ function SinglePlanEditor({ plan, onChange }: SinglePlanEditorProps) {
       <div className="flex flex-col gap-1">
         <label className="text-sm font-semibold text-zinc-600">플랜 설명</label>
         <textarea
-          className="border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-main resize-none"
+          className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500 resize-none"
           rows={2}
           placeholder="예) 실외기 실내기 고압세척, 필터 교체/세척"
           value={plan.description}
@@ -78,7 +78,7 @@ function SinglePlanEditor({ plan, onChange }: SinglePlanEditorProps) {
         {plan.items.map((item, i) => (
           <div key={i} className="flex items-center gap-2">
             <input
-              className="flex-1 border border-zinc-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-main"
+              className="flex-1 border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
               placeholder="항목명"
               value={item.name}
               onChange={(e) => updateItem(i, { name: e.target.value })}

@@ -91,7 +91,6 @@ export default function Page() {
   const lastMessageOverride = useChatRoomsStore((s) => s.lastMessageOverride)
   const markRoomRead = useChatRoomsStore((s) => s.markRoomRead)
   const setActiveRoomId = useChatRoomsStore((s) => s.setActiveRoomId)
-  const selectedService = useChatRoomsStore((s) => s.selectedService)
   const clearPendingGreeting = useChatRoomsStore((s) => s.clearPendingGreeting)
   // post를 올린 사람이 을(파는 사람), 문의하기를 눌러 들어온 사람이 갑(사는 사람)이다.
   // 계정 role이 아니라 방마다 정해지므로 글 작성자를 조회해서 판단한다.
@@ -518,6 +517,20 @@ export default function Page() {
     return null
   }
 
+  // 채팅 목록 미리보기. 대괄호 접두사로 주고받는 특수 메시지는 원문 대신 짧은 문구로 보여준다
+  // (JSON 본문이 그대로 노출되거나 줄바꿈이 이어붙어 길어지는 걸 막는다).
+  function previewOf(text: string) {
+    if (!text) return ""
+    if (text.startsWith("[계약서 제안]")) return "📄 계약서를 보냈습니다."
+    if (text.startsWith("[계약서 체결 완료]")) return "✅ 계약이 체결됐습니다."
+    if (text.startsWith("[견적서 발송]")) return "🧾 견적서를 보냈습니다."
+    if (text.startsWith("[채팅 시작]")) {
+      const service = text.split("\n").find((line) => line.startsWith("선택한 서비스:"))
+      return service ?? "채팅을 시작했어요"
+    }
+    return text.replace(/\n+/g, " ")
+  }
+
   function formatTime(dateStr: string) {
     return new Date(dateStr).toLocaleString("ko-KR", {
       hour: "2-digit", minute: "2-digit",
@@ -560,7 +573,7 @@ export default function Page() {
 
       <div className="flex flex-1 px-20 pt-8 overflow-hidden">
         {/* 왼쪽 채팅 목록 */}
-        <div className="flex flex-col pr-4 shrink-0 border-r border-zinc-200">
+        <div className="flex flex-col w-80 pr-4 shrink-0 border-r border-zinc-200">
           {/* 탭 */}
           <div className="flex border-b border-zinc-200">
             {tabs.map((t) => (
@@ -600,7 +613,9 @@ export default function Page() {
             ) : (
               filteredRooms.map((room) => {
                 const isUnread = !!unreadRoomIds[room.roomId]
-                const previewText = isUnread ? "새 메시지" : (lastMessageOverride[room.roomId] ?? room.lastMessagePreview)
+                const previewText = isUnread
+                  ? "새 메시지"
+                  : previewOf(lastMessageOverride[room.roomId] ?? room.lastMessagePreview)
                 return (
                 <div
                   key={room.roomId}
@@ -694,7 +709,7 @@ export default function Page() {
                           {imageUrls.map((url) => (
                             <div
                               key={url}
-                              className="w-24 h-24 rounded-xl overflow-hidden cursor-pointer"
+                              className="w-24 h-24 rounded-xl overflow-hidden transition-opacity hover:opacity-90 cursor-pointer"
                               onClick={() => setLightboxSrc(toRelativeUrl(url))}
                             >
                               <img src={toRelativeUrl(url)} alt="첨부 이미지" className="w-full h-full object-cover" />
@@ -737,7 +752,7 @@ export default function Page() {
                   const contractReviewButton = contractMsg?.kind === "propose" && !isSent ? (
                     <button
                       onClick={() => setContractModalState({ mode: "review", initial: contractMsg.data })}
-                      className="px-4 py-2 rounded-xl bg-main text-white text-sm font-semibold hover:bg-orange-600 cursor-pointer"
+                      className="px-4 py-2 rounded-xl bg-main text-white text-sm font-semibold hover:bg-orange-600 transition-colors cursor-pointer"
                     >
                       계약서 확인하기
                     </button>
@@ -747,7 +762,7 @@ export default function Page() {
                   const payButton = contractMsg?.kind === "completed" && isSent && selectedRoom.postId ? (
                     <button
                       onClick={() => handlePayNavigate(contractMsg.data)}
-                      className="px-4 py-2 rounded-xl bg-main text-white text-sm font-semibold hover:bg-orange-600 cursor-pointer"
+                      className="px-4 py-2 rounded-xl bg-main text-white text-sm font-semibold hover:bg-orange-600 transition-colors cursor-pointer"
                     >
                       결제하기
                     </button>
@@ -813,7 +828,7 @@ export default function Page() {
                   <div className="flex flex-col items-center gap-1">
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-12 h-12 rounded-full bg-main flex items-center justify-center cursor-pointer"
+                      className="w-12 h-12 rounded-full bg-main flex items-center justify-center transition-opacity hover:opacity-85 cursor-pointer"
                     >
                       <MdOutlineImage className="text-white text-2xl" />
                     </button>
@@ -822,7 +837,7 @@ export default function Page() {
                   <div className="flex flex-col items-center gap-1">
                     <button
                       onClick={() => docInputRef.current?.click()}
-                      className="w-12 h-12 rounded-full bg-orange-300 flex items-center justify-center cursor-pointer"
+                      className="w-12 h-12 rounded-full bg-orange-300 flex items-center justify-center transition-opacity hover:opacity-85 cursor-pointer"
                     >
                       <MdOutlineDescription className="text-white text-2xl" />
                     </button>
@@ -838,11 +853,12 @@ export default function Page() {
                             initial: {
                               clientName: selectedRoom.participantName,
                               professionalName: "",
-                              price: selectedId ? selectedService[selectedId]?.price ?? "" : "",
+                              // 금액은 계약서를 쓰는 을이 직접 입력한다.
+                              // (문의 시 고른 서비스 가격은 갑의 기기에만 남아 있어 여기서는 알 수 없다)
                             },
                           })
                         }}
-                        className="w-12 h-12 rounded-full bg-yellow-400 flex items-center justify-center cursor-pointer"
+                        className="w-12 h-12 rounded-full bg-yellow-400 flex items-center justify-center transition-opacity hover:opacity-85 cursor-pointer"
                       >
                         <MdOutlineAssignment className="text-white text-2xl" />
                       </button>
@@ -853,7 +869,7 @@ export default function Page() {
                     <div className="flex flex-col items-center gap-1">
                       <button
                         onClick={() => { setShowAttach(false); setShowEstimate(true) }}
-                        className="w-12 h-12 rounded-full bg-emerald-400 flex items-center justify-center cursor-pointer"
+                        className="w-12 h-12 rounded-full bg-emerald-400 flex items-center justify-center transition-opacity hover:opacity-85 cursor-pointer"
                       >
                         <MdOutlineReceiptLong className="text-white text-2xl" />
                       </button>
@@ -875,7 +891,7 @@ export default function Page() {
                       ) : (
                         <button
                           onClick={() => clearPendingImage(i)}
-                          className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center cursor-pointer"
+                          className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center transition-colors hover:bg-black/70 cursor-pointer"
                         >
                           <IoClose className="text-white text-xs" />
                         </button>

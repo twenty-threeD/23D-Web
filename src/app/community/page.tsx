@@ -57,7 +57,7 @@ export default function Page() {
             <Search where="post" onSearch={setKeyword} />
             <button
               onClick={() => router.push("/community/write")}
-              className="text-lg px-4 py-2 border text-center bg-main border-zinc-300 text-white font-semibold rounded-md whitespace-nowrap cursor-pointer hover:bg-orange-600"
+              className="px-4 py-2 text-center bg-main text-white text-sm font-semibold rounded-xl whitespace-nowrap transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
             >
               글작성
             </button>

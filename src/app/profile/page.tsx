@@ -271,7 +271,7 @@ export default function Page() {
                 <input
                   value={usernameInput}
                   onChange={(e) => setUsernameInput(e.target.value)}
-                  className="border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-main"
+                  className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
                 />
               </div>
 
@@ -282,7 +282,7 @@ export default function Page() {
                   onChange={(e) => setShortDescription(e.target.value.slice(0, 100))}
                   maxLength={100}
                   rows={3}
-                  className="border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-main resize-none"
+                  className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500 resize-none"
                 />
                 <span className="text-xs text-zinc-400 self-end">{shortDescription.length} / 100</span>
               </div>
@@ -292,7 +292,7 @@ export default function Page() {
                 <select
                   value={jobCategoryId}
                   onChange={(e) => setJobCategoryId(e.target.value ? Number(e.target.value) : "")}
-                  className="border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-main"
+                  className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
                 >
                   <option value="">선택 안 함</option>
                   {jobCategories.map((c) => (
@@ -307,7 +307,7 @@ export default function Page() {
                   <select
                     value={ctprvnCd}
                     onChange={(e) => { setCtprvnCd(e.target.value); setSigCd(""); }}
-                    className="border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-main"
+                    className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
                   >
                     <option value="">선택</option>
                     {sidoList.map((s) => (
@@ -321,7 +321,7 @@ export default function Page() {
                     value={sigCd}
                     onChange={(e) => setSigCd(e.target.value)}
                     disabled={!ctprvnCd}
-                    className="border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-main disabled:bg-zinc-100"
+                    className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
                   >
                     <option value="">선택</option>
                     {sigunguList.map((s) => (
@@ -336,7 +336,7 @@ export default function Page() {
                 <select
                   value={movableDistance}
                   onChange={(e) => setMovableDistance(e.target.value as typeof movableDistance)}
-                  className="border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-main"
+                  className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
                 >
                   <option value="">선택 안 함</option>
                   {DISTANCE_OPTIONS.map((o) => (
@@ -355,7 +355,7 @@ export default function Page() {
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-4 py-2 rounded-lg bg-main text-white text-sm font-semibold hover:bg-main/90 disabled:opacity-50 cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-main text-white text-sm font-semibold transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
                 >
                   {saving ? "저장 중..." : "저장"}
                 </button>
@@ -391,7 +391,7 @@ export default function Page() {
                   ) : (
                     <button
                       onClick={() => setVerifyingPhone(true)}
-                      className="text-xs text-white bg-main rounded-full px-2 py-0.5 hover:bg-main/90 transition-colors cursor-pointer"
+                      className="text-xs text-white bg-main rounded-full px-2 py-0.5 hover:bg-orange-600 transition-colors cursor-pointer"
                     >
                       인증하기
                     </button>
@@ -426,14 +426,14 @@ export default function Page() {
                   <div className="flex gap-2 px-3">
                     <button
                       onClick={() => router.push(`/upload/${p.id}`)}
-                      className="flex-1 py-1.5 rounded-md border border-zinc-300 text-xs font-semibold text-zinc-600 hover:border-main hover:text-main transition-colors cursor-pointer"
+                      className="flex-1 py-1.5 rounded-lg border border-zinc-300 text-xs font-semibold text-zinc-600 hover:border-main hover:text-main transition-colors cursor-pointer"
                     >
                       수정
                     </button>
                     <button
                       onClick={() => handleDeletePost(p.id)}
                       disabled={deletingId === p.id}
-                      className="flex-1 py-1.5 rounded-md border border-zinc-300 text-xs font-semibold text-red-500 hover:border-red-400 transition-colors disabled:opacity-50 cursor-pointer"
+                      className="flex-1 py-1.5 rounded-lg border border-zinc-300 text-xs font-semibold text-red-500 hover:border-red-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                     >
                       {deletingId === p.id ? "삭제 중..." : "삭제"}
                     </button>

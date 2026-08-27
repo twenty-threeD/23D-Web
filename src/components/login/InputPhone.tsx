@@ -104,7 +104,7 @@ const InputPhone = ({ formData, setFormData, onNext }: InputPhoneProps) => {
                 onClick={handleSubmit}
                 className={`w-75 h-10 mt-12.5 rounded-lg text-lg font-bold transition-colors
                 ${isAllValid && !isWaiting
-                    ? 'bg-main text-white hover:bg-main/90 cursor-pointer'
+                    ? 'bg-main text-white hover:bg-orange-600 cursor-pointer'
                     : 'bg-zinc-300 text-zinc-500 cursor-not-allowed'}`}
             >
                 {isWaiting ? "처리 중..." : showVerification ? "인증 확인" : "인증번호 발송"}

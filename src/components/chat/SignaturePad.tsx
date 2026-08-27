@@ -103,13 +103,13 @@ export default function SignaturePad({ label, onSave, savedUrl }: SignaturePadPr
           <div className="flex gap-2">
             <button
               onClick={handleClear}
-              className="flex-1 py-1.5 text-xs border border-zinc-300 rounded-md text-zinc-500 cursor-pointer hover:bg-zinc-50 transition-colors"
+              className="flex-1 py-1.5 text-xs font-semibold border border-zinc-300 rounded-lg text-zinc-600 cursor-pointer hover:border-main hover:text-main transition-colors"
             >
               지우기
             </button>
             <button
               onClick={handleSave}
-              className="flex-1 py-1.5 text-xs bg-main text-white rounded-md cursor-pointer hover:bg-orange-600 transition-colors"
+              className="flex-1 py-1.5 text-xs bg-main text-white font-semibold rounded-lg transition-colors hover:bg-orange-600 cursor-pointer"
             >
               서명 확인
             </button>

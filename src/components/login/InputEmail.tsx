@@ -72,7 +72,7 @@ const InputEmail = ({ formData, setFormData, onNext }: InputEmailProps) => {
                 onClick={() => { showVerification ? handleVerify() : handleSendCode() }}
                 className={`w-75 h-10 mt-10 rounded-lg text-lg font-bold transition-colors cursor-pointer
                 ${isAllValid && !isWaiting
-                    ? 'bg-main text-white hover:bg-main/90'
+                    ? 'bg-main text-white hover:bg-orange-600'
                     : 'bg-zinc-300 text-zinc-500 cursor-not-allowed'}`}
             >
                 {isWaiting ? "처리 중..." : showVerification ? "다음" : "인증번호 발송"}

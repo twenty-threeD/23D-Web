@@ -351,7 +351,7 @@ export default function Page() {
                   <button
                     onClick={handleCommentSubmit}
                     disabled={submitting || !token}
-                    className="self-end px-4 py-2 bg-main text-white font-semibold rounded-lg hover:bg-orange-600 disabled:opacity-50"
+                    className="self-end px-4 py-2 bg-main text-white text-sm font-semibold rounded-xl transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
                   >
                     {submitting ? "등록 중..." : "등록"}
                   </button>

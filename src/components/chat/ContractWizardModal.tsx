@@ -1,9 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { IoClose, IoCheckmark } from "react-icons/io5"
+import { IoCheckmark } from "react-icons/io5"
 import SignaturePad from "./SignaturePad"
 import { buildContractPdf } from "@/src/lib/contractPdf"
+import Modal from "@/src/components/ui/Modal"
+import Button from "@/src/components/ui/Button"
+import { inputClass, inputShellClass } from "@/src/components/ui/Field"
 
 export interface ContractData {
   clientName: string
@@ -62,7 +65,7 @@ export default function ContractWizardModal({ myRole, mode, initial, busy, phone
   const [endDate, setEndDate] = useState(initial.endDate ?? "")
   const [inspectionDays, setInspectionDays] = useState(initial.inspectionDays ?? "")
   const [serviceContent, setServiceContent] = useState(initial.serviceContent ?? "")
-  const [price] = useState(initial.price ?? "")
+  const [price, setPrice] = useState(initial.price ?? "")
   const [clientSig, setClientSig] = useState(initial.clientSig ?? "")
   const [professionalSig, setProfessionalSig] = useState(initial.professionalSig ?? "")
   const [generatingPdf, setGeneratingPdf] = useState(false)
@@ -76,7 +79,12 @@ export default function ContractWizardModal({ myRole, mode, initial, busy, phone
   const step1Valid =
     clientName.trim() !== "" &&
     professionalName.trim() !== "" &&
-    (!termsEditable || (startDate !== "" && endDate !== "" && inspectionDays.trim() !== "" && serviceContent.trim() !== ""))
+    (!termsEditable ||
+      (startDate !== "" &&
+        endDate !== "" &&
+        inspectionDays.trim() !== "" &&
+        serviceContent.trim() !== "" &&
+        Number(price.replace(/[^0-9]/g, "")) > 0))
 
   const mySig = myRole === "client" ? clientSig : professionalSig
   // review는 갑이 마지막으로 서명하는 단계라, 제출하려면 양쪽 서명이 다 있어야 한다(=바로 서버에 등록되므로).
@@ -127,19 +135,13 @@ export default function ContractWizardModal({ myRole, mode, initial, busy, phone
   const showSignatures = step === 2
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-modal-backdrop">
-      <div className="bg-white w-full max-w-5xl max-h-[90vh] rounded-2xl shadow-2xl mx-4 flex flex-col overflow-hidden animate-modal-panel">
-        <div className="flex items-center justify-between px-8 py-5 border-b border-zinc-200 shrink-0">
-          <span className="text-lg font-bold">계약서 {mode === "propose" ? "작성" : "검토 및 서명"}</span>
-          <button
-            onClick={onClose}
-            className="w-9 h-9 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors cursor-pointer"
-          >
-            <IoClose className="text-2xl" />
-          </button>
-        </div>
-
-        <div className="flex flex-1 overflow-hidden">
+    <Modal
+      title={`계약서 ${mode === "propose" ? "작성" : "검토 및 서명"}`}
+      width="lg"
+      closeOnBackdrop={false}
+      bare
+      onClose={onClose}
+    >
           {/* 계약서 미리보기 */}
           <div className="flex-1 overflow-y-auto px-10 py-8 border-r border-zinc-200 bg-zinc-50/60">
             <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-sm ring-1 ring-zinc-100 px-10 py-10 flex flex-col gap-6">
@@ -208,7 +210,7 @@ export default function ContractWizardModal({ myRole, mode, initial, busy, phone
                     onChange={(e) => setClientName(e.target.value)}
                     disabled={!canEditClientName}
                     placeholder="갑 성명"
-                    className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-main hover:border-zinc-400 transition-colors disabled:bg-zinc-100 disabled:text-zinc-500 disabled:hover:border-zinc-300"
+                    className={inputClass}
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-sm">
@@ -218,7 +220,7 @@ export default function ContractWizardModal({ myRole, mode, initial, busy, phone
                     onChange={(e) => setProfessionalName(e.target.value)}
                     disabled={!canEditProfessionalName}
                     placeholder="을 성명"
-                    className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-main hover:border-zinc-400 transition-colors disabled:bg-zinc-100 disabled:text-zinc-500 disabled:hover:border-zinc-300"
+                    className={inputClass}
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-sm">
@@ -228,7 +230,7 @@ export default function ContractWizardModal({ myRole, mode, initial, busy, phone
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                     disabled={!termsEditable}
-                    className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-main hover:border-zinc-400 transition-colors disabled:bg-zinc-100 disabled:text-zinc-500 disabled:hover:border-zinc-300"
+                    className={inputClass}
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-sm">
@@ -238,12 +240,12 @@ export default function ContractWizardModal({ myRole, mode, initial, busy, phone
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     disabled={!termsEditable}
-                    className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-main hover:border-zinc-400 transition-colors disabled:bg-zinc-100 disabled:text-zinc-500 disabled:hover:border-zinc-300"
+                    className={inputClass}
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-sm">
                   검수 일수
-                  <div className="flex items-center border border-zinc-300 rounded-lg px-3 py-2.5 gap-1 focus-within:border-main hover:border-zinc-400 transition-colors">
+                  <div className={inputShellClass}>
                     <input
                       type="number"
                       min={0}
@@ -257,6 +259,21 @@ export default function ContractWizardModal({ myRole, mode, initial, busy, phone
                   </div>
                 </label>
                 <label className="flex flex-col gap-1 text-sm">
+                  계약 금액
+                  <div className={inputShellClass}>
+                    <input
+                      type="number"
+                      min={0}
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      disabled={!termsEditable}
+                      placeholder="계약 금액"
+                      className="flex-1 text-sm focus:outline-none disabled:bg-transparent disabled:text-zinc-500"
+                    />
+                    <span className="text-sm text-zinc-400">원</span>
+                  </div>
+                </label>
+                <label className="flex flex-col gap-1 text-sm">
                   1조 내용 (용역 내용)
                   <textarea
                     value={serviceContent}
@@ -264,17 +281,13 @@ export default function ContractWizardModal({ myRole, mode, initial, busy, phone
                     disabled={!termsEditable}
                     rows={3}
                     placeholder="어떤 용역을 수행하는지 적어주세요"
-                    className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-main hover:border-zinc-400 transition-colors resize-none disabled:bg-zinc-100 disabled:text-zinc-500 disabled:hover:border-zinc-300"
+                    className={`${inputClass} resize-none`}
                   />
                 </label>
 
-                <button
-                  disabled={!step1Valid}
-                  onClick={() => setStep(2)}
-                  className="w-full py-3 rounded-xl text-white font-semibold text-sm bg-main hover:bg-orange-600 transition-colors disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
-                >
+                <Button size="lg" disabled={!step1Valid} onClick={() => setStep(2)}>
                   다음
-                </button>
+                </Button>
               </div>
             ) : (
               <div className="flex flex-col gap-4">
@@ -298,18 +311,12 @@ export default function ContractWizardModal({ myRole, mode, initial, busy, phone
                   이전으로
                 </button>
 
-                <button
-                  disabled={!canSubmit || busy || generatingPdf}
-                  onClick={handleSubmit}
-                  className="w-full py-3 rounded-xl text-white font-semibold text-sm bg-main hover:bg-orange-600 transition-colors disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
-                >
+                <Button size="lg" disabled={!canSubmit || busy || generatingPdf} onClick={handleSubmit}>
                   {generatingPdf ? "PDF 생성 중..." : busy ? (isReview ? "등록 중..." : "전송 중...") : mode === "propose" ? "제안하기" : "서명하고 계약서 등록"}
-                </button>
+                </Button>
               </div>
             )}
           </div>
-        </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

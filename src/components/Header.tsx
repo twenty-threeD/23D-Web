@@ -178,7 +178,7 @@ export default function Header() {
           <div ref={menuRef} className="relative">
             <button
               onClick={() => setShowMenu((v) => !v)}
-              className="w-9 h-9 rounded-full overflow-hidden border border-zinc-300 cursor-pointer"
+              className="w-9 h-9 rounded-full overflow-hidden border border-zinc-300 transition-colors hover:border-main cursor-pointer"
             >
               <Image
                 src={profileImageUrl ? toRelativeUrl(profileImageUrl) : "/profile.png"}
