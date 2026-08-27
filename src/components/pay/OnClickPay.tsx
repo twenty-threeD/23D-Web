@@ -108,9 +108,9 @@ export const OnClickPay = ({ isAgree, price, orderName, orderCustomerName, postI
       <button
         onClick={handlePayment}
         disabled={!isAgree}
-        className={`w-87.5 mt-5 py-3 rounded-lg text-lg font-bold transition-colors
+        className={`w-87.5 mt-5 py-3 rounded-xl text-lg font-bold transition-colors
           ${isAgree
-            ? "bg-main text-white hover:bg-main/90 cursor-pointer"
+            ? "bg-main text-white hover:bg-orange-600 cursor-pointer"
             : "bg-zinc-300 text-zinc-500 cursor-not-allowed"
           }`}
       >

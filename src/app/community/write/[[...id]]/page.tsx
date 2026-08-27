@@ -136,7 +136,7 @@ export default function Page() {
               <button
                 onClick={handleSubmit}
                 disabled={!isReady || submitting}
-                className="px-5 py-2 rounded-lg bg-main text-white text-sm font-semibold hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-5 py-2 rounded-xl bg-main text-white text-sm font-semibold transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
               >
                 {submitting ? (postId ? "수정 중..." : "등록 중...") : (postId ? "수정" : "등록")}
               </button>

@@ -153,7 +153,7 @@ export default function Page() {
           <button
             onClick={isWaiting ? undefined : handleSubmit}
             disabled={isWaiting}
-            className="w-32 h-10 bg-main text-white rounded-lg font-bold self-end disabled:opacity-50 cursor-pointer"
+            className="w-32 h-10 bg-main text-white text-sm rounded-xl font-semibold self-end transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
           >
             {isWaiting ? "등록 중..." : "등록하기"}
           </button>

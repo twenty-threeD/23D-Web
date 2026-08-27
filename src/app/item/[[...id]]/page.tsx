@@ -266,7 +266,7 @@ export default function Page() {
                   {post.fileUrls.map((url, i) => (
                     <div
                       key={i}
-                      className="w-48 h-48 rounded-lg overflow-hidden bg-zinc-200 cursor-pointer"
+                      className="w-48 h-48 rounded-lg overflow-hidden bg-zinc-200 transition-opacity hover:opacity-90 cursor-pointer"
                       onClick={() => setLightboxSrc(toRelativeUrl(url))}
                     >
                       <img src={toRelativeUrl(url)} alt={`이미지 ${i + 1}`} className="w-full h-full object-cover" />
@@ -316,7 +316,7 @@ export default function Page() {
                       type="button"
                       onClick={handleCreateReview}
                       disabled={reviewBusy || !reviewContent.trim()}
-                      className="rounded-lg bg-main px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 cursor-pointer"
+                      className="rounded-xl bg-main px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
                     >
                       {reviewBusy ? "등록 중..." : "후기 등록"}
                     </button>

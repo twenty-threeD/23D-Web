@@ -33,7 +33,7 @@ export default function WriteSection({
           <select
             value={categoryId}
             onChange={(e) => onCategoryChange(e.target.value ? Number(e.target.value) : "")}
-            className="w-full h-10 border border-zinc-300 rounded-lg pl-3 pr-10 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full h-10 border border-zinc-300 rounded-lg pl-3 pr-10 text-sm appearance-none transition-colors focus:outline-none focus:border-main hover:border-zinc-400"
           >
             <option value="">카테고리를 선택해주세요</option>
             {categories.map((c) => (

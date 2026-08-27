@@ -36,7 +36,7 @@ export default function Search({ isTop, where, initialValue = "", onSearch }: Se
   return (
     <div className={styleClass}>
       <IoIosSearch
-        className="text-zinc-500 text-2xl cursor-pointer"
+        className="text-zinc-500 hover:text-main text-2xl transition-colors cursor-pointer"
         onClick={() => onSearch?.(value)}
       />
       <input

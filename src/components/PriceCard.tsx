@@ -99,7 +99,7 @@ export default function PriceCard({ username, plans, postId }: PriceCardProps) {
         <button
           onClick={() => setShowPicker(true)}
           disabled={loading || !username}
-          className="w-full py-2 border text-center bg-main border-zinc-300 text-white font-semibold rounded-md disabled:opacity-50 cursor-pointer"
+          className="w-full py-3 text-center bg-main text-white text-sm font-semibold rounded-xl transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
         >
           {loading ? "연결 중..." : "문의하기"}
         </button>

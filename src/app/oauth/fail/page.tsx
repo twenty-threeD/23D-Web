@@ -15,7 +15,7 @@ export default function page () {
         <p className='font-medium text-zinc-400'>다시 시도해주세요</p>
         <button
           onClick={() => router.push('/login/signin')}
-          className='px-4 py-2 bg-main text-white font-bold rounded-md hover:bg-orange-600 transition-colors'
+          className='px-4 py-2 bg-main text-white text-sm font-semibold rounded-xl transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer'
         >
           다시하기
         </button>

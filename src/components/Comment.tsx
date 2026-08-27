@@ -61,7 +61,7 @@ export default function Comment({ authorName, content, createdAt, profileImage, 
                   handleSave()
                 }
               }}
-              className="w-full text-sm border border-zinc-300 rounded-md p-2 focus:outline-none focus:border-main resize-none"
+              className="w-full border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500 resize-none"
               rows={2}
             />
             <div className="flex gap-2 self-end">

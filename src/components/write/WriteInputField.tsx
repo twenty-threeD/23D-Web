@@ -43,13 +43,13 @@ export default function WriteInputField({
 
       {isText ? (
         <textarea
-          className="w-full h-64 border border-zinc-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          className="w-full h-64 border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500 resize-none"
           placeholder={`${name}을 입력해주세요.`}
           value={value}
           onChange={handleChange}
         />
       ) : isInputPrice ? (
-        <div className="flex items-center w-full h-10 border border-zinc-300 rounded-lg px-3 focus-within:ring-2 focus-within:ring-blue-500">
+        <div className="w-full flex items-center gap-1 border border-zinc-300 rounded-lg px-3 py-2.5 transition-colors focus-within:border-main hover:border-zinc-400">
           <input
             type="text"
             className="flex-1 focus:outline-none"
@@ -62,7 +62,7 @@ export default function WriteInputField({
       ) : (
         <input
           type="text"
-          className="w-full h-10 border border-zinc-300 rounded-lg px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
           placeholder={`${name}을 입력해주세요.`}
           value={value}
           onChange={handleChange}

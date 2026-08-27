@@ -104,7 +104,7 @@ const InputData = ({ formData, setFormData, onNext }: InputDataProps) => {
                 onClick={handleNext}
                 className={`w-75 mt-10 h-10 rounded-lg text-lg font-bold transition-colors
                 ${isAllValid && !checking
-                    ? 'bg-main text-white hover:bg-main/90'
+                    ? 'bg-main text-white hover:bg-orange-600'
                     : 'bg-zinc-300 text-zinc-500 cursor-not-allowed'}`}
             >
                 다음

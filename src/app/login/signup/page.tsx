@@ -114,7 +114,7 @@ export default function Page() {
                                 disabled={isWaiting}
                                 onClick={handleSignup}
                                 className={`w-75 h-10 mt-12.5 rounded-lg text-lg font-bold transition-colors
-                                ${isWaiting ? 'bg-zinc-300 text-zinc-500 cursor-not-allowed' : 'bg-main text-white hover:bg-main/90'}`}
+                                ${isWaiting ? 'bg-zinc-300 text-zinc-500 cursor-not-allowed' : 'bg-main text-white hover:bg-orange-600'}`}
                             >
                                 {isWaiting ? "처리 중..." : "시작하기"}
                             </button>

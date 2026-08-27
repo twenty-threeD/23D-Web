@@ -110,7 +110,7 @@ export default function Page() {
             className={`w-75 h-10 rounded-lg text-lg font-bold transition-colors cursor-pointer
             ${
               canLogin
-                ? "bg-main text-white hover:bg-main/90"
+                ? "bg-main text-white hover:bg-orange-600"
                 : "bg-zinc-100 text-zinc-500 cursor-not-allowed"
             }`}
           >

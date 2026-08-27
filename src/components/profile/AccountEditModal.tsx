@@ -5,11 +5,14 @@ import { sendEmailChangeCode, sendPhoneVerifyCode, checkPhoneVerifyCode, verifyP
 import { changeEmail, changePhone } from "@/src/lib/member";
 import { useToast } from "@/src/hooks/useToast";
 import { useHandleError } from "@/src/hooks/useHandleError";
+import Modal, { ModalActions } from "@/src/components/ui/Modal";
+import Button from "@/src/components/ui/Button";
+import Field, { inputClass } from "@/src/components/ui/Field";
 
-type Field = "email" | "phone";
+type AccountField = "email" | "phone";
 
 interface AccountEditModalProps {
-  field: Field;
+  field: AccountField;
   token: string;
   /** 번호 변경 없이 기존 번호를 인증만 할 때 사용한다 */
   verifyOnlyPhone?: string;
@@ -106,96 +109,76 @@ export default function AccountEditModal({ field, token, verifyOnlyPhone, onClos
   const title = isVerifyOnly ? "전화번호 인증" : `${label} 변경`;
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl w-100 p-6 flex flex-col gap-4">
-        <h2 className="text-lg font-bold">{title}</h2>
-
-        {step === "password" ? (
-          <>
-            <p className="text-sm text-zinc-500">
-              본인 확인을 위해 현재 비밀번호를 입력해주세요.
-            </p>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleCheckPassword(); }}
-              placeholder="현재 비밀번호"
-              autoFocus
-              className="border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-main"
-            />
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={onClose}
-                className="px-4 py-2 rounded-lg text-sm text-zinc-500 hover:bg-zinc-100 cursor-pointer"
+    <Modal title={title} width="md" closeOnBackdrop={false} onClose={onClose}>
+      {step === "password" ? (
+        <>
+          <p className="text-sm text-zinc-500">
+            본인 확인을 위해 현재 비밀번호를 입력해주세요.
+          </p>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleCheckPassword(); }}
+            placeholder="현재 비밀번호"
+            autoFocus
+            className={inputClass}
+          />
+          <ModalActions>
+            <Button variant="ghost" onClick={onClose}>취소</Button>
+            <Button
+              onClick={handleCheckPassword}
+              disabled={password === "" || checkingPassword}
+            >
+              {checkingPassword ? "확인 중..." : "다음"}
+            </Button>
+          </ModalActions>
+        </>
+      ) : (
+        <>
+          <Field label={isVerifyOnly ? "전화번호" : `새 ${label}`}>
+            <div className="flex gap-2">
+              <input
+                type={isEmail ? "email" : "tel"}
+                value={value}
+                onChange={(e) => setValue(isEmail ? e.target.value : formatPhone(e.target.value))}
+                placeholder={isEmail ? "new@example.com" : "010-0000-0000"}
+                disabled={isVerifyOnly}
+                className={`flex-1 ${inputClass}`}
+              />
+              <Button
+                variant="secondary"
+                onClick={handleSendCode}
+                disabled={!isValueValid || sending}
+                className="whitespace-nowrap"
               >
-                취소
-              </button>
-              <button
-                onClick={handleCheckPassword}
-                disabled={password === "" || checkingPassword}
-                className="px-4 py-2 rounded-lg bg-main text-white text-sm font-semibold disabled:opacity-50 cursor-pointer"
-              >
-                {checkingPassword ? "확인 중..." : "다음"}
-              </button>
+                {sending ? "발송 중..." : codeSent ? "재발송" : "인증번호"}
+              </Button>
             </div>
-          </>
-        ) : (
-          <>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm text-zinc-500">
-                {isVerifyOnly ? "전화번호" : `새 ${label}`}
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type={isEmail ? "email" : "tel"}
-                  value={value}
-                  onChange={(e) => setValue(isEmail ? e.target.value : formatPhone(e.target.value))}
-                  placeholder={isEmail ? "new@example.com" : "010-0000-0000"}
-                  disabled={isVerifyOnly}
-                  className="flex-1 border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-main disabled:bg-zinc-100 disabled:text-zinc-500"
-                />
-                <button
-                  onClick={handleSendCode}
-                  disabled={!isValueValid || sending}
-                  className="px-3 rounded-lg border border-zinc-300 text-sm font-semibold text-zinc-600 hover:border-main hover:text-main transition-colors disabled:opacity-50 cursor-pointer whitespace-nowrap"
-                >
-                  {sending ? "발송 중..." : codeSent ? "재발송" : "인증번호"}
-                </button>
-              </div>
-            </div>
+          </Field>
 
-            {codeSent && (
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-zinc-500">인증번호</label>
-                <input
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  placeholder="인증번호를 입력해주세요"
-                  autoFocus
-                  className="border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-main"
-                />
-              </div>
-            )}
+          {codeSent && (
+            <Field label="인증번호">
+              <input
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="인증번호를 입력해주세요"
+                autoFocus
+                className={inputClass}
+              />
+            </Field>
+          )}
 
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={isVerifyOnly ? onClose : () => setStep("password")}
-                className="px-4 py-2 rounded-lg text-sm text-zinc-500 hover:bg-zinc-100 cursor-pointer"
-              >
-                {isVerifyOnly ? "취소" : "이전"}
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={!canSubmit || saving}
-                className="px-4 py-2 rounded-lg bg-main text-white text-sm font-semibold disabled:opacity-50 cursor-pointer"
-              >
-                {saving ? "처리 중..." : isVerifyOnly ? "인증" : "변경"}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+          <ModalActions>
+            <Button variant="ghost" onClick={isVerifyOnly ? onClose : () => setStep("password")}>
+              {isVerifyOnly ? "취소" : "이전"}
+            </Button>
+            <Button onClick={handleSubmit} disabled={!canSubmit || saving}>
+              {saving ? "처리 중..." : isVerifyOnly ? "인증" : "변경"}
+            </Button>
+          </ModalActions>
+        </>
+      )}
+    </Modal>
   );
 }
