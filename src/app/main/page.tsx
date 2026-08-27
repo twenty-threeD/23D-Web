@@ -140,8 +140,15 @@ function MainContent() {
         </div>
 
         {/* 재방문율이 높아요 */}
-        <div className="w-full flex gap-8 justify-between">
+        <div className="relative w-full flex gap-8 justify-between">
           <h2 className="text-2xl font-bold shrink-0">재방문율이<br/>높아요</h2>
+          <Link
+            href="/more"
+            className="absolute right-0 -top-6 z-10 flex items-center gap-1 text-sm font-semibold text-zinc-400 hover:text-main transition-colors"
+          >
+            더보기
+            <FiArrowUpRight aria-hidden="true" />
+          </Link>
           <div className="flex gap-4">
             {loading
               ? Array.from({ length: 4 }).map((_, i) => <NormalCardSkeleton key={i} />)
