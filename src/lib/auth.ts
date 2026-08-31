@@ -70,8 +70,6 @@ export async function signup(
       email,
       password,
       ...(phone ? { phone } : {}),
-      role: 'USER',
-      provider: 'AUTH'
     }),
   })
   if (!res.ok) {
