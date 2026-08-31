@@ -45,3 +45,29 @@ body {
 .animate-modal-panel {
 	animation: modal-panel-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
+@keyframes chat-card-in {
+	from { opacity: 0; transform: translateY(10px) scale(0.98); }
+	to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-chat-card {
+	animation: chat-card-in 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes contract-dot {
+	0%, 100% { opacity: 0.25; transform: translateY(0); }
+	40% { opacity: 1; transform: translateY(-2px); }
+}
+
+.animate-contract-dot {
+	animation: contract-dot 1.2s ease-in-out infinite;
+}
+
+@keyframes contract-sweep {
+	from { left: -30%; }
+	to { left: 100%; }
+}
+
+.animate-contract-sweep {
+	animation: contract-sweep 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}

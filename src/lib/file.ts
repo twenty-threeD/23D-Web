@@ -10,9 +10,9 @@ export function toRelativeUrl(url: string | null | undefined): string {
 
 export async function uploadFile(token: string, file: File): Promise<{ url: string }> {
   const formData = new FormData()
-  formData.append('file', file, file.name)
+  formData.append('multipartFile', file, file.name)
 
-  const res = await fetch('/api/upload', {
+  const res = await fetch('/api/files/upload', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${token}` },
     body: formData,

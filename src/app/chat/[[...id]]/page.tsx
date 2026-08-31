@@ -21,7 +21,9 @@ import EstimateModal from "@/src/components/chat/EstimateModal"
 import { createEstimate, getEstimates, type Estimate as EstimateData } from "@/src/lib/estimate"
 import { createContract } from "@/src/lib/contract"
 import { getMyProfile } from "@/src/lib/profile"
-import { getPost } from "@/src/lib/post"
+import { getPost, getPostMainImage, type Post } from "@/src/lib/post"
+import ChatStartCard from "@/src/components/chat/ChatStartCard"
+import ContractCard from "@/src/components/chat/ContractCard"
 import { pdfBlobToFile } from "@/src/lib/contractPdf"
 import ImageLightbox from "@/src/components/ImageLightbox"
 
@@ -94,7 +96,9 @@ export default function Page() {
   const clearPendingGreeting = useChatRoomsStore((s) => s.clearPendingGreeting)
   // post를 올린 사람이 을(파는 사람), 문의하기를 눌러 들어온 사람이 갑(사는 사람)이다.
   // 계정 role이 아니라 방마다 정해지므로 글 작성자를 조회해서 판단한다.
-  const [postAuthorUsername, setPostAuthorUsername] = useState<string | null>(null)
+  // 채팅 시작 카드에도 제목·썸네일이 필요해서 글을 통째로 들고 있는다.
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null)
+  const postAuthorUsername = selectedPost?.member?.username ?? null
   // 글 작성자를 아직 못 불러왔으면 null (판별 전에는 계약서 버튼을 띄우지 않는다).
   const myPartyRole: "client" | "professional" | null =
     postAuthorUsername && myUsername ? (postAuthorUsername === myUsername ? "professional" : "client") : null
@@ -148,7 +152,12 @@ export default function Page() {
         // 문의하기에서 새로 만들어진 방이면 STOMP 연결 직후 인사말을 한 번 보낸다.
         if (useChatRoomsStore.getState().pendingGreeting[selectedId]) {
           const service = useChatRoomsStore.getState().selectedService[selectedId]
-          const greeting = `[채팅 시작]\n${myUsername ?? ""}님이 채팅을 시작했어요\n선택한 서비스: ${service?.planName ?? "기타"}`
+          // 안내 카드로 그려야 하므로 사람이 읽는 문장 대신 구조화된 payload를 실어 보낸다.
+          const greeting = `[채팅 시작]\n${JSON.stringify({
+            starter: myUsername ?? "",
+            planName: service?.planName ?? "기타",
+            price: service?.price ?? "",
+          })}`
           client.publish({
             destination: "/app/chat.send",
             headers: { Authorization: `Bearer ${token}` },
@@ -226,13 +235,13 @@ export default function Page() {
   const selectedPostId = rooms.find((r) => r.roomId === selectedId)?.postId
   useEffect(() => {
     if (!selectedPostId) {
-      setPostAuthorUsername(null)
+      setSelectedPost(null)
       return
     }
     let cancelled = false
     getPost(selectedPostId, token)
-      .then((res) => { if (!cancelled) setPostAuthorUsername(res.data?.member?.username ?? null) })
-      .catch(() => { if (!cancelled) setPostAuthorUsername(null) })
+      .then((res) => { if (!cancelled) setSelectedPost(res.data ?? null) })
+      .catch(() => { if (!cancelled) setSelectedPost(null) })
     return () => { cancelled = true }
   }, [selectedPostId, token])
 
@@ -495,6 +504,36 @@ export default function Page() {
     | { kind: "propose"; data: ContractData }
     | { kind: "completed"; data: CompletedContract }
 
+  interface ChatStartInfo {
+    starter: string
+    planName: string
+    price: string
+  }
+
+  // 문의하기로 방이 열릴 때 자동 발송되는 안내 메시지.
+  // 예전에는 평문이었고 지금은 JSON이라 둘 다 읽을 수 있어야 한다.
+  function parseChatStart(text: string): ChatStartInfo | null {
+    const PREFIX = "[채팅 시작]\n"
+    if (!text.startsWith(PREFIX)) return null
+    const body = text.slice(PREFIX.length)
+
+    try {
+      const parsed = JSON.parse(body)
+      return {
+        starter: parsed.starter ?? "",
+        planName: parsed.planName ?? "",
+        price: parsed.price ?? "",
+      }
+    } catch {
+      const lines = body.split("\n")
+      return {
+        starter: lines[0]?.replace(/님이 채팅을 시작했어요$/, "") ?? "",
+        planName: lines.find((l) => l.startsWith("선택한 서비스:"))?.replace("선택한 서비스:", "").trim() ?? "",
+        price: "",
+      }
+    }
+  }
+
   function parseContractMessage(text: string): ContractMessage | null {
     const PROPOSE = "[계약서 제안]\n"
     const COMPLETED = "[계약서 체결 완료]\n"
@@ -525,10 +564,8 @@ export default function Page() {
     if (text.startsWith("[계약서 제안]")) return "📄 계약서를 보냈습니다."
     if (text.startsWith("[계약서 체결 완료]")) return "✅ 계약이 체결됐습니다."
     if (text.startsWith("[견적서 발송]")) return "🧾 견적서를 보냈습니다."
-    if (text.startsWith("[채팅 시작]")) {
-      const service = text.split("\n").find((line) => line.startsWith("선택한 서비스:"))
-      return service ?? "채팅을 시작했어요"
-    }
+    const start = parseChatStart(text)
+    if (start) return start.planName ? `선택한 서비스: ${start.planName}` : "채팅을 시작했어요"
     return text.replace(/\n+/g, " ")
   }
 
@@ -748,39 +785,39 @@ export default function Page() {
                   ) : null
 
                   const contractMsg = parseContractMessage(msg.message)
-                  const greetingPrefix = "[채팅 시작]\n"
-                  const displayText = contractMsg
-                    ? contractMsg.kind === "propose"
-                      ? "📄 계약서를 보냈습니다."
-                      : "✅ 계약이 체결됐습니다."
-                    : msg.message.startsWith(greetingPrefix)
-                      ? msg.message.slice(greetingPrefix.length)
-                      : msg.message
+                  const chatStart = parseChatStart(msg.message)
+                  const displayText = msg.message
 
-                  const textBubble = msg.message ? (
+                  const textBubble = msg.message && !contractMsg ? (
                     <div className={`rounded-2xl px-4 py-2 max-w-xs ${isSent ? "bg-main rounded-br-none" : "bg-zinc-100 rounded-bl-none"}`}>
                       <p className={`text-sm whitespace-pre-line ${isSent ? "text-white" : ""}`}>{displayText}</p>
                     </div>
                   ) : null
 
-                  // 계약서는 을(파는 사람)이 갑(사는 사람)에게만 제안하므로, 받은 사람(=갑)만 검토·서명할 수 있다.
-                  const contractReviewButton = contractMsg?.kind === "propose" && !isSent ? (
-                    <button
-                      onClick={() => setContractModalState({ mode: "review", initial: contractMsg.data })}
-                      className="px-4 py-2 rounded-xl bg-main text-white text-sm font-semibold hover:bg-orange-600 transition-colors cursor-pointer"
-                    >
-                      계약서 확인하기
-                    </button>
-                  ) : null
-
-                  // 계약 체결 메시지는 갑이 서명하면서 보낸 것이므로, 보낸 사람(=갑, 결제하는 쪽)에게 결제 버튼을 보여준다.
-                  const payButton = contractMsg?.kind === "completed" && isSent && selectedRoom.postId ? (
-                    <button
-                      onClick={() => handlePayNavigate(contractMsg.data)}
-                      className="px-4 py-2 rounded-xl bg-main text-white text-sm font-semibold hover:bg-orange-600 transition-colors cursor-pointer"
-                    >
-                      결제하기
-                    </button>
+                  // 계약서는 을(파는 사람)이 갑(사는 사람)에게만 제안하므로 받은 사람(=갑)만 검토·서명할 수 있고,
+                  // 체결 메시지는 갑이 서명하면서 보낸 것이라 보낸 사람(=갑)에게만 결제 버튼이 붙는다.
+                  const contractCard = contractMsg ? (
+                    contractMsg.kind === "propose" ? (
+                      <ContractCard
+                        kind="propose"
+                        isSent={isSent}
+                        price={contractMsg.data.price}
+                        startDate={contractMsg.data.startDate}
+                        endDate={contractMsg.data.endDate}
+                        serviceContent={contractMsg.data.serviceContent}
+                        sentAt={msg.createdAt}
+                        onReview={!isSent ? () => setContractModalState({ mode: "review", initial: contractMsg.data }) : undefined}
+                      />
+                    ) : (
+                      <ContractCard
+                        kind="completed"
+                        isSent={isSent}
+                        price={contractMsg.data.price}
+                        contractUrl={contractMsg.data.contractUrl}
+                        signedAt={msg.createdAt}
+                        onPay={isSent && selectedRoom.postId ? () => handlePayNavigate(contractMsg.data) : undefined}
+                      />
+                    )
                   ) : null
 
                   return (
@@ -792,7 +829,16 @@ export default function Page() {
                           </span>
                         </div>
                       )}
-                      {!isSent ? (
+                      {chatStart ? (
+                        <ChatStartCard
+                          postId={selectedRoom.postId}
+                          postTitle={selectedPost?.title}
+                          imageUrl={getPostMainImage(selectedPost?.fileUrls)}
+                          partnerName={selectedRoom.participantName}
+                          planName={chatStart.planName}
+                          price={chatStart.price}
+                        />
+                      ) : !isSent ? (
                         <div className="flex items-end gap-3">
                           <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 bg-zinc-200">
                             <Image
@@ -806,7 +852,7 @@ export default function Page() {
                           <div className="flex flex-col gap-1">
                             {attachment}
                             {textBubble}
-                            {contractReviewButton}
+                            {contractCard}
                           </div>
                           {showTime && <span className="text-xs text-zinc-400 shrink-0">{formatTime(msg.createdAt)}</span>}
                         </div>
@@ -816,7 +862,7 @@ export default function Page() {
                           <div className="flex flex-col gap-1 items-end">
                             {attachment}
                             {textBubble}
-                            {payButton}
+                            {contractCard}
                           </div>
                         </div>
                       )}
