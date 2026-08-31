@@ -4,7 +4,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { IoNotificationsOutline, IoCheckmark } from "react-icons/io5";
-import Search from "./Search";
 import { useAuthStore } from "@/src/store/authStore";
 import { useProfileStore } from "@/src/store/profileStore";
 import { logout } from "@/src/lib/auth";
@@ -107,9 +106,6 @@ export default function Header() {
           <li><Link href="/upload" className="text-zinc-500 text-sm font-semibold">서비스 등록</Link></li>
         </ul>
       </div>
-
-      {/* 검색창 */}
-      <Search isTop={isPostPage ? true : isTop} where="header" onSearch={handleSearch} />
 
       {/* 로그인 / 프로필 */}
       {token ? (

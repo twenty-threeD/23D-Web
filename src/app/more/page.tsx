@@ -100,30 +100,14 @@ function MoreContent() {
       <Header />
       <main className="flex flex-col items-center px-5 lg:px-20 py-10 lg:py-14 gap-8 lg:gap-10">
         <div className="w-full flex flex-col gap-8">
-          <Link
-            href="/main"
-            className="flex items-center gap-1 self-start text-sm font-semibold text-zinc-400 hover:text-main transition-colors"
-          >
-            <FiArrowLeft aria-hidden="true" />
-            메인으로 돌아가기
-          </Link>
-
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 border-b border-zinc-200 pb-8">
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2 text-main">
-                <FiTrendingUp aria-hidden="true" />
                 <span className="text-sm font-bold">이웃들이 많이 찾는 서비스</span>
               </div>
               <h1 className="text-3xl lg:text-4xl font-bold tracking-tight">이웃들이<br className="sm:hidden" /> 많이 찾아요</h1>
               <p className="text-zinc-500">지금 이웃들이 관심 있게 보고 있는 능력자들을 모아봤어요.</p>
             </div>
-            <Link
-              href="/search"
-              className="flex items-center gap-1 self-start sm:self-auto text-sm font-semibold text-zinc-500 hover:text-main transition-colors"
-            >
-              능력자 전체 보기
-              <FiArrowUpRight aria-hidden="true" />
-            </Link>
           </div>
         </div>
 

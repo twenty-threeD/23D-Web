@@ -12,7 +12,6 @@ import NormalCardSkeleton from "@/src/components/NormalCardSkeleton";
 import Search from "@/src/components/Search";
 import { getPosts, searchPosts, getPostCategories, getPostMainImage, type Post, type PostCategory } from "@/src/lib/post";
 import { useAuthStore } from "@/src/store/authStore";
-import { FiArrowUpRight } from "react-icons/fi";
 
 const CATEGORY_ICONS: { label: string; icon: string; color: string }[] = [
   { label: "이사/청소", icon: "/category/brush.png", color: "bg-red-200" },
@@ -124,8 +123,7 @@ function MainContent() {
             href="/more"
             className="absolute right-0 -top-6 z-10 flex items-center gap-1 text-sm font-semibold text-zinc-400 hover:text-main transition-colors"
           >
-            더보기
-            <FiArrowUpRight aria-hidden="true" />
+            더보기 →
           </Link>
           <div className="flex gap-4">
             {loading
@@ -146,8 +144,7 @@ function MainContent() {
             href="/more"
             className="absolute right-0 -top-6 z-10 flex items-center gap-1 text-sm font-semibold text-zinc-400 hover:text-main transition-colors"
           >
-            더보기
-            <FiArrowUpRight aria-hidden="true" />
+            더보기 →
           </Link>
           <div className="flex gap-4">
             {loading
