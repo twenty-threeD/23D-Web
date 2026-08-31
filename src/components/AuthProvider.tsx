@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useAuthStore, getTokenRemainingTime } from '@/src/store/authStore'
+import { useAuthStore, getTokenRemainingTime, setSessionCookie } from '@/src/store/authStore'
 import { ensureAccessToken } from '@/src/lib/session'
 
 // 만료 직전에 미리 갱신해 요청 도중 만료되는 것을 막는다
@@ -13,13 +13,11 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const hasSession = useAuthStore((s) => s.hasSession)
   const hydrated = useAuthStore((s) => s.hydrated)
 
-  // 저장된 토큰을 쿠키에 동기화하고, 만료가 임박하면 재발급한다
+  // 세션 마커 쿠키를 동기화하고, 만료가 임박하면 재발급한다
   useEffect(() => {
     if (!hydrated || !hasSession) return
 
-    if (token) {
-      document.cookie = `accessToken=${token}; path=/; SameSite=Lax`
-    }
+    setSessionCookie(true)
 
     const remaining = token ? getTokenRemainingTime(token) : null
 
