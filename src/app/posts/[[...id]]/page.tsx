@@ -31,6 +31,7 @@ import TopButton from "@/src/components/TopButton"
 interface Post {
   id: number
   username: string
+  profileImageUrl?: string
   title: string
   content: string
   fileUrl?: string
@@ -241,7 +242,7 @@ export default function Page() {
               </div>
               <div className="flex gap-2">
                 <div className="w-12 h-12 bg-zinc-400 rounded-full overflow-hidden border border-zinc-300 shrink-0">
-                  <Image src="/profile.png" alt="프로필사진" className="object-cover" width={48} height={48} />
+                  <Image src={post.profileImageUrl ? toRelativeUrl(post.profileImageUrl) : "/profile.png"} alt="프로필사진" className="object-cover" width={48} height={48} />
                 </div>
                 <div className="flex flex-col justify-center w-full">
                   <h3 className="text-sm font-medium">{post.username}</h3>
