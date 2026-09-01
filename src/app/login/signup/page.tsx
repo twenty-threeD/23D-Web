@@ -1,6 +1,7 @@
 'use client';
 import { useState } from "react";
 import Image from "next/image";
+import { useToast } from "@/src/hooks/useToast";
 import { useRouter } from "next/navigation";
 import TermsAgreement from "@/src/components/login/TermsAgreement";
 import InputData from "@/src/components/login/inputData";
@@ -9,12 +10,15 @@ import InputPhone from "@/src/components/login/InputPhone";
 import Link from "next/link";
 
 import { signup } from '@/src/lib/auth'
+import BackButton from "@/src/components/BackButton";
 
 
 export default function Page() {
+    const { addToast } = useToast();
     const router = useRouter();
 
     const [step, setStep] = useState(1);
+    const [isWaiting, setIsWaiting] = useState(false);
 
     const [formData, setFormData] = useState({
         name: "",
@@ -42,27 +46,38 @@ export default function Page() {
         setStep((prev) => prev + 1);
     };
 
-    // 회원가입
     const handleSignup = async () => {
-    await signup(formData.name, formData.username, formData.email, formData.password, formData.phone)
-    router.push('/login/signin')
+        setIsWaiting(true)
+        try {
+            await signup(formData.name, formData.username, formData.email, formData.password, formData.phone)
+            addToast(
+                { message: "회원가입에 성공했습니다. 로그인 페이지로 이동합니다.", type: "success" }
+            )
+            router.push('/login/signin')
+        } catch (e) {
+            addToast(
+                { message: e instanceof Error ? `회원가입에 실패하였습니다. ${e.message}` : '회원가입에 실패했습니다.', type: "error" },
+            );
+        } finally {
+            setIsWaiting(false)
+        }
     }
 
     return (
         <div className="flex justify-center items-center bg-zinc-100 h-full">
-            <button onClick={() => router.back()} className="absolute left-4 top-4 text-2xl text-gray-500 w-10 h-10 flex items-center justify-center rounded-full hover:bg-zinc-300 transition-colors">
-                ←
-            </button>
+            <div className="flex fixed left-4 top-4 px-4 py-4">
+                <BackButton />
+            </div>
             <main 
                 style={{ height: getHeight() }}
                 className={`
-                    w-106 py-16 rounded-3xl border border-gray-300 bg-white 
+                    w-106 py-16 rounded-3xl border border-zinc-300 bg-white 
                     flex flex-col items-center justify-center
                     transition-[height] duration-500 ease-in-out overflow-hidden
                 `}
             >
                 <Link href="/main">
-                    <Image src="/icon.png" alt="Logo" width={80} height={40} className="mb-5" />
+                    <Image src="/logo.svg" alt="Logo" width={80} height={40} className="mb-5 bg-black" />
                 </Link>
                 <div className="w-full flex flex-col gap-3 items-center transition-opacity duration-300">
                     {step === 1 && (
@@ -92,14 +107,16 @@ export default function Page() {
                     )}
                     {step === 5 && (
                         <>
-                            <h1 className="font-bold text-lg">{formData.name}님, 이제 
+                            <h1 className="font-bold text-lg">{formData.name || formData.username}님, 이제
                                 <span className="text-[#FF884D]"> 사람과 사람을 이으러 </span> 
                                 가볼까요?</h1>
-                            <button 
-                                className="w-75 h-10 mt-12.5 rounded-lg text-lg font-bold transition-colors bg-main text-white hover:bg-main/90"
+                            <button
+                                disabled={isWaiting}
                                 onClick={handleSignup}
+                                className={`w-75 h-10 mt-12.5 rounded-lg text-lg font-bold transition-colors
+                                ${isWaiting ? 'bg-zinc-300 text-zinc-500 cursor-not-allowed' : 'bg-main text-white hover:bg-orange-600'}`}
                             >
-                                시작하기
+                                {isWaiting ? "처리 중..." : "시작하기"}
                             </button>
                         </>
                     )}

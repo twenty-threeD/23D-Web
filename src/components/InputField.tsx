@@ -8,10 +8,11 @@ interface InputProps {
   placeholder: string;
   type?: string;
   showIcon?: boolean;
-  isEssential?: boolean; // 필수 여부 추가
-  isError?: boolean; // 에러 상태 추가
-  value: string; // 부모로부터 받는 값
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; // 값 변경 함수
+  isEssential?: boolean;
+  isError?: boolean;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
 
 export const InputField = ({
@@ -19,10 +20,10 @@ export const InputField = ({
   placeholder,
   type = "text",
   showIcon,
-  isEssential = false,
   value,
   isError = false,
   onChange,
+  onKeyDown,
 }: InputProps) => {
   const [inputType, setInputType] = useState(type);
 
@@ -39,10 +40,11 @@ export const InputField = ({
             placeholder=" "
             value={value}
             onChange={onChange}
+            onKeyDown={onKeyDown}
             className={`peer w-full border-b-2 ${isError ? "border-[#FF0000]" : "border-zinc-400"} 
                   outline-none p-2 pt-3 bg-transparent
                   ${isError ? "text-[#FF0000]" : "text-black"} 
-                  focus:text-main focus:border-[#FE6A4C]
+                  focus:text-main focus:border-main
                   transition-colors`}
           />
           <label

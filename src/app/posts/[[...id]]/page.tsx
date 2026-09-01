@@ -1,66 +1,261 @@
 "use client"
 
+import { useState, useEffect, useCallback, isValidElement, Children } from "react"
+import { useParams, useRouter } from "next/navigation"
 import Header from "@/src/components/Header"
 import Footer from "@/src/components/Footer"
-import CommunityMenu from "@/src/components/CommunitySideBar";
-import Comment from "@/src/components/Comment";
-import { IoIosArrowUp, IoMdHeart, IoMdHeartEmpty } from "react-icons/io";
-import { IoChatboxOutline } from "react-icons/io5";
-import MDEditor from '@uiw/react-md-editor'
-import Image from "next/image";
-import PostItem from "@/src/components/PostItem";
+import CommunityMenu from "@/src/components/CommunitySideBar"
+import Comment from "@/src/components/Comment"
+import PostItem from "@/src/components/PostItem"
+import { IoMdHeart, IoMdHeartEmpty } from "react-icons/io"
+import { IoChatboxOutline } from "react-icons/io5"
+import MDEditor from "@uiw/react-md-editor"
+import Image from "next/image"
+import {
+  getPost,
+  getPosts,
+  getComments,
+  createComment,
+  updateComment,
+  deleteComment,
+  addLike,
+  removeLike,
+  deletePost,
+} from "@/src/lib/community"
+import { useAuthStore } from "@/src/store/authStore"
+import { useLikeStore } from "@/src/store/likeStore"
+import { toRelativeUrl } from "@/src/lib/file"
+import { ApiError } from "@/src/lib/apiError"
+import { useHandleError } from "@/src/hooks/useHandleError"
+import TopButton from "@/src/components/TopButton"
+
+interface Post {
+  id: number
+  username: string
+  title: string
+  content: string
+  fileUrl?: string
+  viewCount: number
+  likeCount: number
+  commentCount: number
+  updatedAt: string
+  edited: boolean
+  isLiked?: boolean
+}
+
+interface PostListItem {
+  id: number
+  username: string
+  title: string
+  content: string
+  fileUrl?: string
+  updatedAt: string
+}
+
+interface CommentData {
+  id: number
+  username: string
+  content: string
+  updatedAt: string
+  edited?: boolean
+}
 
 export default function Page() {
-  const content = `
-# R5 번들과 짭짭트로 가볍게 시작했던 심레이싱.  
+  const params = useParams()
+  const router = useRouter()
+  const postId = Number(Array.isArray(params.id) ? params.id[0] : params.id)
+  const token = useAuthStore((s) => s.accessToken)
+  const myUsername = useAuthStore((s) => {
+    if (s.username) return s.username
+    if (!s.accessToken) return null
+    try {
+      const p = JSON.parse(atob(s.accessToken.split('.')[1]))
+      return p.username ?? p.sub ?? null
+    } catch { return null }
+  })
 
-**입문하고부터 시뮬 세계에 진심 모드가 되어 현재진행형으로 꾸준히 업데이트 중이지만,**  
+  const handleError = useHandleError()
+  const likeStore = useLikeStore()
+  const [post, setPost] = useState<Post | null>(null)
+  const [comments, setComments] = useState<CommentData[]>([])
+  const [relatedPosts, setRelatedPosts] = useState<PostListItem[]>([])
+  const [commentText, setCommentText] = useState("")
+  const [isLiked, setIsLiked] = useState<boolean>(false)
+  const [likeCount, setLikeCount] = useState(0)
+  const [submitting, setSubmitting] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-이제 KS pro, 엠부스트 외에는 크게 관심 있는 품목이 없어 당분간 현행으로 유지될 것 같아 제 장비를 소개해 드립니다.  
+  const fetchPost = useCallback(async () => {
+    if (!postId) return
+    setLoading(true)
+    try {
+      const res = await getPost(postId, token)
+      const data = Array.isArray(res.data)
+        ? (res.data.find((p: Post) => p.id === postId) ?? res.data[0])
+        : res.data
+      setPost(data)
+      setLikeCount(data?.likeCount ?? 0)
+      setIsLiked(data?.isLiked ?? likeStore.isLiked(postId))
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) router.replace("/community")
+    } finally {
+      setLoading(false)
+    }
+  }, [postId, token, router])
 
-여기까지 대략 업그레이드와 중복 투자를 하며 현재 장비 소개를 해드렸는데, 중간중간 누락된 부분도 많은 것 같고 생각나는 대로 정리해서 적어 보았습니다.
+  const fetchComments = useCallback(async () => {
+    if (!postId) return
+    try {
+      const res = await getComments(postId, token)
+      setComments(res.data ?? [])
+    } catch {
+      setComments([])
+    }
+  }, [postId, token])
 
-처음 시작할 때만 해도 이렇게까지 될 줄은 몰랐는데 나름 저렴하게? 가성비적인 시점으로 구성해서 만족도가 상당히 높은 것 같습니다.
+  const fetchRelated = useCallback(async () => {
+    try {
+      const res = await getPosts(token)
+      const list: PostListItem[] = res.data ?? []
+      setRelatedPosts(list.filter((p) => p.id !== postId).slice(0, 4))
+    } catch {
+      setRelatedPosts([])
+    }
+  }, [postId, token])
 
-다음 업그레이드가 어떤 것이 될지 아직 모르지만, 현재에 만족하며 열심히 즐기고 있습니다.
+  useEffect(() => {
+    fetchPost()
+    fetchComments()
+    fetchRelated()
+  }, [fetchPost, fetchComments, fetchRelated])
 
-긴 글 읽어주셔서 감사합니다.
+  async function handleLike() {
+    if (!token) { router.push("/login/signin"); return }
+    try {
+      if (isLiked) {
+        await removeLike(token, postId)
+        setIsLiked(false)
+        setLikeCount((c) => c - 1)
+        likeStore.unlike(postId)
+      } else {
+        const res = await addLike(token, postId)
+        if (res?.alreadyLiked) { setIsLiked(true); likeStore.like(postId); return }
+        setIsLiked(true)
+        setLikeCount((c) => c + 1)
+        likeStore.like(postId)
+      }
+    } catch (e) { handleError(e) }
+  }
 
-모두들 즐거운 심레이싱 되세요!
-  `.trim();
+  async function handleDelete() {
+    if (!token) return
+    if (!confirm("게시글을 삭제하시겠습니까?")) return
+    try {
+      await deletePost(token, postId)
+      router.push("/community")
+    } catch (e) {
+      handleError(e)
+    }
+  }
+
+  async function handleCommentEdit(commentId: number, content: string) {
+    if (!token) return
+    try {
+      await updateComment(token, commentId, content)
+      await fetchComments()
+    } catch (e) {
+      handleError(e)
+    }
+  }
+
+  async function handleCommentDelete(commentId: number) {
+    if (!token) return
+    if (!confirm("댓글을 삭제하시겠습니까?")) return
+    try {
+      await deleteComment(token, commentId)
+      await fetchComments()
+    } catch (e) {
+      handleError(e)
+    }
+  }
+
+  async function handleCommentSubmit() {
+    if (!token) { router.push("/login/signin"); return }
+    if (!commentText.trim()) return
+    setSubmitting(true)
+    try {
+      await createComment(token, postId, commentText)
+      setCommentText("")
+      await fetchComments()
+    } catch (e) {
+      handleError(e)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (loading || !post) {
+    return (
+      <div>
+        <Header />
+        <p className="text-center py-20 text-zinc-400">불러오는 중...</p>
+        <Footer />
+      </div>
+    )
+  }
+
+  const dateStr = post.updatedAt
+    ? new Date(post.updatedAt).toLocaleString("ko-KR", {
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit",
+      })
+    : ""
 
   return (
     <div>
       <Header />
       <div className="flex items-start justify-between px-20 py-8 gap-8">
-        {/* 메뉴바 */}
-        <CommunityMenu/>
+        <CommunityMenu />
 
-        {/* 게시물 리스트 */}
         <main className="flex flex-col gap-8 w-full">
           <div className="flex flex-col gap-4 w-full border-zinc-200 border rounded-lg p-8">
             {/* 헤더 */}
             <header className="flex flex-col gap-3">
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-main">이거 궁금해요 &gt;</span>
-                <h1 className="text-2xl font-medium">입문 7개월차 나름? 가성비 뉴비의 심리그 소개</h1>
+              <div className="flex justify-between items-start gap-4">
+                <h1 className="text-2xl font-medium">{post.title}</h1>
+                {myUsername === post.username && (
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={() => router.push(`/community/write/${postId}`)}
+                      className="px-3 py-1 text-sm text-zinc-600 border border-zinc-300 rounded-lg hover:bg-zinc-50 cursor-pointer"
+                    >
+                      수정
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="px-3 py-1 text-sm text-red-500 border border-red-300 rounded-lg hover:bg-red-50 cursor-pointer"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                )}
               </div>
-              {/* 프로필 */}
               <div className="flex gap-2">
                 <div className="w-12 h-12 bg-zinc-400 rounded-full overflow-hidden border border-zinc-300 shrink-0">
                   <Image src="/profile.png" alt="프로필사진" className="object-cover" width={48} height={48} />
                 </div>
                 <div className="flex flex-col justify-center w-full">
-                  <h3 className="text-sm font-medium">권민기</h3>
+                  <h3 className="text-sm font-medium">{post.username}</h3>
                   <div className="flex justify-between">
                     <div className="flex gap-2">
-                      <span className="text-sm font-medium text-zinc-400">2026.06.04. 17:25</span>
-                      <span className="text-sm font-medium text-zinc-400">조회 1,521</span>
-                    </div >
+                      <span className="text-sm font-medium text-zinc-400">{dateStr}</span>
+                      <span className="text-sm font-medium text-zinc-400">조회 {(post.viewCount ?? 0).toLocaleString()}</span>
+                      {post.edited && <span className="text-xs text-zinc-400">(수정됨)</span>}
+                    </div>
                     <div className="flex items-center gap-1">
                       <IoChatboxOutline className="text-xl" />
                       <span className="text-zinc-500 text-sm font-semibold">댓글</span>
-                      <p className="text-sm font-semibold">20</p>
+                      <p className="text-sm font-semibold">{post.commentCount ?? 0}</p>
                     </div>
                   </div>
                 </div>
@@ -69,49 +264,96 @@ export default function Page() {
 
             <hr className="text-zinc-300" />
 
+            {/* 첨부 이미지 */}
+            {post.fileUrl && (
+              <img src={toRelativeUrl(post.fileUrl)} alt="첨부 이미지" className="max-w-full rounded-lg" />
+            )}
+
             {/* 게시물 내용 */}
             <style>{`
-              .wmde-markdown h1 {
-                border-bottom: none !important;
-              }
-              .wmde-markdown h1 .anchor {
-                display: none !important;
-              }
+              .wmde-markdown h1 { border-bottom: none !important; }
+              .wmde-markdown h1 .anchor { display: none !important; }
             `}</style>
             <div data-color-mode="light" className="flex flex-col gap-8 py-2">
-              <MDEditor.Markdown source={content} />
+              <MDEditor.Markdown
+                source={post.content}
+                components={{
+                  p: ({ children }) => {
+                    const childArray = Children.toArray(children)
+                    const imgs = childArray.filter(c => isValidElement(c) && c.type === 'img')
+                    const texts = childArray.filter(c => !(isValidElement(c) && c.type === 'img'))
+                    return (
+                      <>
+                        {texts.length > 0 && <p>{texts}</p>}
+                        {imgs.length > 0 && (
+                          <div className="flex flex-wrap gap-3">
+                            {imgs.map((img, i) => (
+                              <div key={i} className="w-60 rounded-lg overflow-hidden [&_img]:w-full [&_img]:h-auto">
+                                {img}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )
+                  },
+                }}
+              />
               <div className="flex gap-4">
-                <div className="flex items-center gap-1">
-                  <IoMdHeartEmpty className="text-2xl text-main" />
+                <button onClick={handleLike} className="flex items-center gap-1 cursor-pointer">
+                  {isLiked
+                    ? <IoMdHeart className="text-2xl text-main" />
+                    : <IoMdHeartEmpty className="text-2xl text-main" />
+                  }
                   <span className="text-zinc-500 text-sm font-semibold">좋아요</span>
-                  <p className="text-sm font-semibold">20</p>
-                </div>
+                  <p className="text-sm font-semibold">{likeCount}</p>
+                </button>
                 <div className="flex items-center gap-1">
                   <IoChatboxOutline className="text-xl" />
                   <span className="text-zinc-500 text-sm font-semibold">댓글</span>
-                  <p className="text-sm font-semibold">20</p>
+                  <p className="text-sm font-semibold">{comments.length}</p>
                 </div>
               </div>
             </div>
 
             <hr className="text-zinc-300" />
 
-            {/* 댓글 */}
+            {/* 댓글 목록 */}
             <div className="flex flex-col gap-2 divide-zinc-200 divide-y">
-              <Comment />
-              <Comment />
-              <Comment />
-              <Comment />
+              {comments.map((c) => (
+                <Comment
+                  key={c.id}
+                  authorName={c.username}
+                  content={c.content}
+                  edited={c.edited}
+                  isOwner={myUsername === c.username}
+                  onEdit={(content) => handleCommentEdit(c.id, content)}
+                  onDelete={() => handleCommentDelete(c.id)}
+                  createdAt={new Date(c.updatedAt).toLocaleString("ko-KR", {
+                    year: "numeric", month: "2-digit", day: "2-digit",
+                    hour: "2-digit", minute: "2-digit",
+                  })}
+                />
+              ))}
               {/* 댓글 달기 */}
               <div className="flex items-start gap-4 pt-4">
                 <div className="flex flex-col gap-2 w-full p-6 border border-zinc-300 rounded-lg">
-                  <h3 className="text-md font-bold">권민기</h3>
+                  <h3 className="text-md font-bold">
+                    {token ? "댓글 작성" : "로그인 후 댓글을 작성할 수 있습니다"}
+                  </h3>
                   <textarea
                     placeholder="댓글을 입력하세요..."
                     className="w-full h-24 focus:outline-none resize-none"
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    disabled={!token}
                   />
-                  <button className="self-end px-4 py-2 bg-main text-white font-semibold rounded-lg hover:bg-orange-600">
-                    등록
+                  <button
+                    onClick={handleCommentSubmit}
+                    disabled={submitting || !token}
+                    className="self-end px-4 py-2 bg-main text-white text-sm font-semibold rounded-xl transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {submitting ? "등록 중..." : "등록"}
                   </button>
                 </div>
               </div>
@@ -119,25 +361,27 @@ export default function Page() {
           </div>
 
           {/* 관련 게시물 */}
-          <div className="flex flex-col gap-2">
-            <h2 className="text-xl font-bold">관련 게시물</h2>
-            <div className="flex flex-col divide-y divide-zinc-300">
-              <PostItem/>
-              <PostItem/>
-              <PostItem/>
-              <PostItem/>
+          {relatedPosts.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <h2 className="text-xl font-bold">관련 게시물</h2>
+              <div className="flex flex-col divide-y divide-zinc-300">
+                {relatedPosts.map((p) => (
+                  <PostItem
+                    key={p.id}
+                    id={p.id}
+                    title={p.title}
+                    content={p.content}
+                    imageUrl={p.fileUrl}
+                    createdAt={new Date(p.updatedAt).toLocaleDateString("ko-KR")}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </main>
       </div>
-      <button
-        type="button"
-        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className="fixed bottom-6 right-6 z-20 flex items-center justify-center rounded-full bg-main p-3 text-white shadow-lg hover:bg-orange-600"
-        aria-label="맨위로 이동"
-      >
-        <IoIosArrowUp className="text-2xl" />
-      </button>
+
+      <TopButton />
       <Footer />
     </div>
   )

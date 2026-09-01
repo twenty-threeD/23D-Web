@@ -24,9 +24,9 @@ export const Estimate = ({ imgPath, title, avgRating, reviewCount,
                 <div className="flex items-center gap-2.5">
                     {/* 이미지 */}
                     <div className="w-20 h-20 border border-zinc-300 rounded-full overflow-hidden relative"> 
-                        <Image 
-                            src={imgPath} 
-                            alt="견적서 임시 이미지" 
+                        <Image
+                            src={imgPath}
+                            alt="견적서 이미지"
                             fill
                             className="object-cover"
                         />
@@ -37,8 +37,10 @@ export const Estimate = ({ imgPath, title, avgRating, reviewCount,
                         <h1 className="text-2xl font-bold">{title}</h1>
                         <div className="flex items-center gap-1">
                             <FaStar className="text-main size-5"/>
-                            <h1 className="text-lg">{avgRating?.toFixed(1) || "5.0"}</h1>
-                            <p className="text-sm text-zinc-400">({reviewCount?.toLocaleString() || "123"})</p>
+                            <h1 className="text-lg">{avgRating != null ? avgRating.toFixed(1) : "-"}</h1>
+                            {reviewCount != null && (
+                                <p className="text-sm text-zinc-400">({reviewCount.toLocaleString()})</p>
+                            )}
                         </div>
                     </div>
                 </div>

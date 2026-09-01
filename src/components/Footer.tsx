@@ -15,7 +15,9 @@ export default function Footer() {
           </div>
           <div className="flex gap-2">
             <FaInstagram className="text-zinc-500 w-10 h-10 border-2 border-zinc-500 rounded-lg p-1" />
-            <FaGithub className="text-zinc-500 w-10 h-10 border-2 border-zinc-500 rounded-lg p-1" />
+            <a href="https://github.com/twenty-threeD/23D-Web" target="_blank" rel="noreferrer">
+              <FaGithub className="text-zinc-500 w-10 h-10 border-2 border-zinc-500 rounded-lg p-1 hover:text-zinc-700 hover:border-zinc-700 transition-colors" />
+            </a>
           </div>
         </div>
 
@@ -24,16 +26,16 @@ export default function Footer() {
           <h3 className="text-black text-xl font-bold">빠른 링크</h3>
           <ul className="flex flex-col gap-1">
             <li className="text-sm">
-              <Link href="/">프로젝트 소개</Link>
+              <Link href="/notice?title=프로젝트 소개">프로젝트 소개</Link>
             </li>
             <li className="text-sm">
-              <Link href="/">문의하기</Link>
+              <Link href="/notice?title=문의하기">문의하기</Link>
             </li>
             <li className="text-sm">
-              <Link href="/">커뮤니티</Link>
+              <Link href="/community">커뮤니티</Link>
             </li>
             <li className="text-sm">
-              <Link href="/">팀원 소개</Link>
+              <Link href="/notice?title=팀원 소개">팀원 소개</Link>
             </li>
           </ul>
         </div>
@@ -43,16 +45,16 @@ export default function Footer() {
           <h3 className="text-black text-xl font-bold">커뮤니티</h3>
           <ul className="flex flex-col gap-1">
             <li className="text-sm">
-              <Link href="/">문서</Link>
+              <Link href="/notice?title=문서">문서</Link>
             </li>
             <li className="text-sm">
-              <Link href="/">자주 묻는 질문</Link>
+              <Link href="/notice?title=자주 묻는 질문">자주 묻는 질문</Link>
             </li>
             <li className="text-sm">
-              <Link href="/">개인정보처리방침</Link>
+              <Link href="/notice?title=개인정보처리방침">개인정보처리방침</Link>
             </li>
             <li className="text-sm">
-              <Link href="/">이용약관</Link>
+              <Link href="/notice?title=이용약관">이용약관</Link>
             </li>
           </ul>
         </div>

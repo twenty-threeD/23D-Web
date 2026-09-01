@@ -1,0 +1,12 @@
+<svg width="92" height="46" viewBox="0 0 92 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+<style>
+  .icon-path { fill: #000000; }
+  @media (prefers-color-scheme: dark) {
+    .icon-path { fill: #ffffff; }
+  }
+</style>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M55 6H69V0H49V17C49 28.0457 57.9543 37 69 37V31C61.268 31 55 24.732 55 17V6Z" class="icon-path"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M18.5 37C28.7173 37 37 28.7173 37 18.5V0H18.5C8.28273 0 0 8.28273 0 18.5C0 28.7173 8.28273 37 18.5 37ZM31 6V18.5C31 25.4036 25.4036 31 18.5 31C11.5964 31 6 25.4036 6 18.5C6 11.5964 11.5964 6 18.5 6H31Z" class="icon-path"/>
+<path d="M26 46C33.1773 46 39.4716 42.2193 43 36.5408C46.5284 42.2193 52.8227 46 60 46V40C52.268 40 46 33.732 46 26V0H40V26C40 33.732 33.732 40 26 40H18.5V46H26Z" class="icon-path"/>
+<path d="M78 46V14.2829C81.6075 17.8194 86.5491 20 92 20V14C84.268 14 78 7.73199 78 0H72V46H78Z" class="icon-path"/>
+</svg>

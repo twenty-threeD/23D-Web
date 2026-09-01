@@ -2,6 +2,7 @@
 
 @theme {
 	--color-main: #FE6A4C;
+	--color-contract: #1A2747;
 }
 
 html,
@@ -11,4 +12,62 @@ body {
 
 body {
 	margin: 0;
+}
+
+@keyframes bell-ring {
+	0%, 100% { transform: rotate(0deg); }
+	15% { transform: rotate(15deg); }
+	30% { transform: rotate(-12deg); }
+	45% { transform: rotate(9deg); }
+	60% { transform: rotate(-6deg); }
+	75% { transform: rotate(3deg); }
+}
+
+.animate-bell-ring {
+	animation: bell-ring 0.6s ease-in-out;
+	transform-origin: top center;
+}
+
+@keyframes modal-backdrop-in {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+@keyframes modal-panel-in {
+	from { opacity: 0; transform: scale(0.96) translateY(8px); }
+	to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.animate-modal-backdrop {
+	animation: modal-backdrop-in 0.18s ease-out;
+}
+
+.animate-modal-panel {
+	animation: modal-panel-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes chat-card-in {
+	from { opacity: 0; transform: translateY(10px) scale(0.98); }
+	to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-chat-card {
+	animation: chat-card-in 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes contract-dot {
+	0%, 100% { opacity: 0.25; transform: translateY(0); }
+	40% { opacity: 1; transform: translateY(-2px); }
+}
+
+.animate-contract-dot {
+	animation: contract-dot 1.2s ease-in-out infinite;
+}
+
+@keyframes contract-sweep {
+	from { left: -30%; }
+	to { left: 100%; }
+}
+
+.animate-contract-sweep {
+	animation: contract-sweep 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }

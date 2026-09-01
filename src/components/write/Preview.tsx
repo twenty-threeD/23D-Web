@@ -25,17 +25,21 @@ export default function Preview({
     : "가격을 입력하세요";
 
   return (
-    <div className="w-82 h-186 flex flex-col gap-4 border-l border-zinc-300 px-10">
+    <div className="w-82 flex flex-col gap-4 px-10 sticky top-24 self-start">
       <h1 className="text-xl font-bold">미리보기</h1>
 
-      <div className="w-full h-40 rounded-lg overflow-hidden bg-zinc-100">
-        <Image
-          src={imageUrl}
-          alt="미리보기 이미지"
-          width={260}
-          height={160}
-          className="w-full h-full object-cover"
-        />
+      <div className="w-full h-40 rounded-lg overflow-hidden bg-zinc-100 flex items-center justify-center">
+        {imageUrl && imageUrl !== "/path/to/image.jpg" ? (
+          <Image
+            src={imageUrl}
+            alt="미리보기 이미지"
+            width={260}
+            height={160}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <span className="text-sm text-zinc-400">이미지를 업로드해주세요</span>
+        )}
       </div>
 
       <div className="flex flex-col gap-1">

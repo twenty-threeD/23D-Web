@@ -5,6 +5,8 @@ import { InputField } from "@/src/components/InputField";
 
 import { SignUpFormData } from "@/type/authData";
 import { sendVerifyCode, checkVerifyCode } from '@/src/lib/auth'
+import { checkEmail } from '@/src/lib/member'
+import { useToast } from "@/src/hooks/useToast"
 
 interface InputEmailProps {
     formData: SignUpFormData;
@@ -13,29 +15,41 @@ interface InputEmailProps {
 }
 
 const InputEmail = ({ formData, setFormData, onNext }: InputEmailProps) => {
+    const { addToast } = useToast()
     const handleChange = (key: keyof SignUpFormData, value: string) => {
         setFormData((prev) => ({ ...prev, [key]: value }));
     };
 
-    const isAllValid = 
+    const isAllValid =
         formData.email.trim() !== "" &&
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email); 
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
 
     const [showVerification, setShowVerification] = useState(false);
+    const [isWaiting, setIsWaiting] = useState(false);
 
-    // 인증코드 발송
     const handleSendCode = async () => {
-        await sendVerifyCode(formData.email)
-        setShowVerification(true)
+        setIsWaiting(true)
+        try {
+            await checkEmail(formData.email)
+            await sendVerifyCode(formData.email)
+            setShowVerification(true)
+            addToast({ message: "인증번호가 발송되었습니다.", type: "success" })
+        } catch (e) {
+            addToast({ message: e instanceof Error ? e.message : "인증번호 발송에 실패했습니다.", type: "error" })
+        } finally {
+            setIsWaiting(false)
+        }
     }
 
-    // 인증코드 확인
     const handleVerify = async () => {
+        setIsWaiting(true)
         try {
             await checkVerifyCode(formData.email, formData.emailVerification)
             onNext()
-        } catch (e) {
-            alert("인증번호가 일치하지 않습니다.")
+        } catch {
+            addToast({ message: "인증번호가 일치하지 않습니다.", type: "error" })
+        } finally {
+            setIsWaiting(false)
         }
     }
 
@@ -53,21 +67,15 @@ const InputEmail = ({ formData, setFormData, onNext }: InputEmailProps) => {
                 />
             )}
 
-            <button 
-                disabled={!isAllValid}
-                onClick={() => {
-                    if (!showVerification) {
-                        handleSendCode();
-                    } else {
-                        handleVerify();
-                    }
-                }}
-                className={`w-75 h-10 mt-10 rounded-lg text-lg font-bold transition-colors 
-                ${isAllValid
-                    ? 'bg-main text-white hover:bg-main/90' 
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+            <button
+                disabled={!isAllValid || isWaiting}
+                onClick={() => { showVerification ? handleVerify() : handleSendCode() }}
+                className={`w-75 h-10 mt-10 rounded-lg text-lg font-bold transition-colors cursor-pointer
+                ${isAllValid && !isWaiting
+                    ? 'bg-main text-white hover:bg-orange-600'
+                    : 'bg-zinc-300 text-zinc-500 cursor-not-allowed'}`}
             >
-                <span>{showVerification ? "다음" : "인증번호 발송"}</span>
+                {isWaiting ? "처리 중..." : showVerification ? "다음" : "인증번호 발송"}
             </button>
             
             {/* 인증번호 재발송 버튼 */}
@@ -76,7 +84,7 @@ const InputEmail = ({ formData, setFormData, onNext }: InputEmailProps) => {
                     <button
                         onClick={() => { handleSendCode(); alert("인증번호가 재발송되었습니다."); }}
                         className="w-auto h-3 text-xs mt-2.5 font-normal
-                        text-gray-500 hover:text-main transition-colors"
+                        text-zinc-500 underline underline-offset-2 hover:text-main transition-colors"
                     >
                         인증번호 재발송
                     </button>
