@@ -68,7 +68,7 @@ function MainContent() {
       <div className="flex flex-col items-center justify-center px-20 py-8 gap-16">
         {/* 검색 + 카테고리 */}
         <div className="flex items-center justify-center gap-16 w-full">
-          <div className="flex flex-col w-300 gap-4 justify-center">
+          <div className="flex flex-col flex-1 gap-4 justify-center">
             <div className="flex flex-col">
               <h1 className="text-3xl font-semibold">능력자가 필요한 순간,</h1>
               <h1 className="text-3xl font-semibold whitespace-nowrap">좋은 능력자를 바로바로 잇다에서!</h1>
@@ -89,7 +89,7 @@ function MainContent() {
               ))}
             </div>
           </div>
-          <div className="w-full overflow-hidden border border-zinc-300 rounded-lg">
+          <div className="flex-1 overflow-hidden border border-zinc-300 rounded-lg">
             <img src="/banner.png" alt="" className="w-full h-auto" />
           </div>
         </div>

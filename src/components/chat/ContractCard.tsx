@@ -26,6 +26,8 @@ interface ProposeCardProps extends ContractCardBase {
   serviceContent?: string | null
   /** 보낸 쪽(을) 대기 카드에 표시할 전송 시각 */
   sentAt?: string | null
+  /** 이 제안 이후에 체결 완료 메시지가 있으면 true. 대기 표시·서명 버튼을 걷는다 */
+  settled?: boolean
   /** 받은 쪽(갑)만 검토·서명할 수 있다 */
   onReview?: () => void
 }
@@ -163,17 +165,19 @@ export default function ContractCard(props: ContractCardProps) {
 
   return (
     <div className={`${cardClass} border border-zinc-200 shadow-[0_1px_3px_rgba(69,43,36,.08)]`}>
-      {props.isSent ? (
-        // 을(보낸 쪽): 아직 상대 서명 전이라 톤을 낮춘 헤더
+      {props.isSent || props.settled ? (
+        // 을(보낸 쪽), 또는 이미 체결돼서 더 할 일이 없는 카드: 톤을 낮춘 헤더
         <div className="flex items-center gap-2.5 border-b border-[#EADCD6] bg-[#F8F0ED] px-3.5 py-3">
           <div className="flex size-6.5 items-center justify-center rounded-lg border border-[#EADCD6] bg-white">
             <IoDocumentTextOutline className="text-sm text-[#452B24]" />
           </div>
           <div className="flex flex-col gap-px">
             <span className="text-[13px] font-semibold tracking-tight text-[#452B24]">
-              계약서를 보냈어요
+              {props.isSent ? "계약서를 보냈어요" : "계약서가 도착했어요"}
             </span>
-            <span className="text-[10.5px] text-[#9A7A70]">상대방이 서명하면 계약이 체결돼요</span>
+            <span className="text-[10.5px] text-[#9A7A70]">
+              {props.settled ? "이미 체결된 계약이에요" : "상대방이 서명하면 계약이 체결돼요"}
+            </span>
           </div>
         </div>
       ) : (
@@ -216,7 +220,12 @@ export default function ContractCard(props: ContractCardProps) {
           </>
         )}
 
-        {props.onReview ? (
+        {props.settled ? (
+          <div className="flex items-center justify-center gap-1.5 rounded-xl border border-[#EADCD6] bg-[#FAF3F0] px-3 py-2.75">
+            <IoCheckmark className="text-sm text-[#9A7A70]" />
+            <span className="text-xs font-semibold tracking-tight text-[#6E4A40]">체결 완료</span>
+          </div>
+        ) : props.onReview ? (
           <button
             onClick={props.onReview}
             className="flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-main shadow-[0_2px_6px_rgba(254,106,76,.32)] transition-colors hover:bg-orange-600"
