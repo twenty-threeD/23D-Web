@@ -746,7 +746,15 @@ export default function Page() {
               <div className="flex flex-col flex-1 overflow-y-auto px-6 py-6 gap-4">
                 {loadingMessages ? (
                   <p className="text-center text-zinc-400 text-sm">불러오는 중...</p>
-                ) : messages.map((msg, idx) => {
+                ) : (() => {
+                  // 제안 카드는 자기 메시지만 보고 그리므로, 뒤에 체결 완료 메시지가 와도
+                  // 계속 "확인을 기다리는 중"으로 남는다. 마지막 체결 시점을 미리 구해
+                  // 그보다 앞선 제안은 이미 끝난 것으로 표시한다.
+                  const lastCompletedIdx = messages.reduce(
+                    (acc, m, i) => (m.message?.startsWith("[계약서 체결 완료]") ? i : acc),
+                    -1
+                  )
+                  return messages.map((msg, idx) => {
                   const prevMsg = messages[idx - 1]
                   const nextMsg = messages[idx + 1]
                   const showDateDivider = !prevMsg || dateKey(msg.createdAt) !== dateKey(prevMsg.createdAt)
@@ -813,6 +821,7 @@ export default function Page() {
                         endDate={contractMsg.data.endDate}
                         serviceContent={contractMsg.data.serviceContent}
                         sentAt={msg.createdAt}
+                        settled={idx < lastCompletedIdx}
                         onReview={!isSent ? () => setContractModalState({ mode: "review", initial: contractMsg.data }) : undefined}
                       />
                     ) : (
@@ -875,7 +884,8 @@ export default function Page() {
                       )}
                     </div>
                   )
-                })}
+                  })
+                })()}
                 <div ref={messagesEndRef} />
               </div>
               {lightboxSrc && (
