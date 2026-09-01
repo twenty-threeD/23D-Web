@@ -9,6 +9,9 @@ export interface ChatRoom {
   participantImageUrl?: string | null
   lastMessagePreview: string
   lastMessageAt: string
+  // 나가기는 서버에서 소프트 삭제라 roomId 가 유지된다. 이 시각 이전 메시지는
+  // 이 사용자에게 보이면 안 된다 (나간 적이 없으면 null). 로컬 캐시 정리 기준.
+  clearBefore?: string | null
 }
 
 export interface SelectedService {

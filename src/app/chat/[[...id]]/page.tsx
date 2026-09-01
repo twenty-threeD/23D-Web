@@ -10,7 +10,8 @@ import { HiDotsHorizontal } from "react-icons/hi"
 import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment, MdOutlineReceiptLong } from "react-icons/md"
 import { useAuthStore } from "@/src/store/authStore"
 import { useChatRoomsStore, type ChatRoom } from "@/src/store/chatRoomsStore"
-import { getChatRooms, getChatMessages, deleteChatRoom } from "@/src/lib/chat"
+import { getChatRooms, loadChatMessages, deleteChatRoom } from "@/src/lib/chat"
+import { cacheMessages } from "@/src/lib/chatDb"
 import { toRelativeUrl, uploadFile } from "@/src/lib/file"
 import { useHandleError } from "@/src/hooks/useHandleError"
 import { useToast } from "@/src/hooks/useToast"
@@ -145,6 +146,9 @@ export default function Page() {
           try {
             const msg: Message = JSON.parse(frame.body)
             setMessages((prev) => [...prev, msg])
+            // 서버는 3일치만 보관하므로 실시간 수신분도 로컬에 남겨둬야
+            // 나중에 과거 대화로 다시 볼 수 있다.
+            void cacheMessages([msg])
             markRoomRead(selectedId)
           } catch {}
         })
@@ -194,9 +198,12 @@ export default function Page() {
     if (!token || !selectedId) return
     setLoadingMessages(true)
     try {
-      const res = await getChatMessages(token, selectedId as number)
-      const raw = res.data ?? res
-      const list: Message[] = Array.isArray(raw) ? raw : (raw?.content ?? [])
+      // 서버는 최근 3일치만 갖고 있어서, 그보다 오래된 대화는 로컬 캐시에만 남는다.
+      // loadChatMessages 가 서버 응답을 캐시에 합친 뒤 clearBefore 이전 것만 걷어낸다.
+      const roomId = selectedId as number
+      const clearBefore =
+        useChatRoomsStore.getState().rooms.find((r) => r.roomId === roomId)?.clearBefore ?? null
+      const list = (await loadChatMessages(token, roomId, clearBefore)) as unknown as Message[]
       setMessages(list)
     } catch {
       setMessages([])
