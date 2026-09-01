@@ -69,7 +69,9 @@ export default function Page() {
         <BackButton />
       </div>
       <div className="w-200 h-150 rounded-3xl flex items-center mt-18.25 mb-18.25 shadow-lg">
-        <div className="w-100 h-150 bg-linear-to-tr from-rose-500 to-indigo-500 rounded-l-3xl flex items-center justify-center"></div>
+        <div className="w-100 h-150 rounded-l-3xl flex items-center justify-center overflow-hidden">
+          <img src="/login1.png" alt="" />
+        </div>
         <div className="w-100 h-150 bg-white rounded-r-3xl flex flex-col gap-3 items-center justify-center">
           <Link href="/main">
             <Image

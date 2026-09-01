@@ -69,7 +69,7 @@ export default function Home() {
             <div className="flex gap-8">
               <div className="flex flex-col gap-1">
                 <h3 className='text-2xl font-bold'>위변조 불가</h3>
-                <p className='text-zinc-500'>해시 검증 기반</p>
+                <p className='text-zinc-500'>블록체인 기반</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className='text-2xl font-bold'>에스크로</h3>
