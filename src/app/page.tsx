@@ -82,7 +82,7 @@ export default function Home() {
             </div>
           </div>
           <div className="w-1/2 h-full">
-            <img src="/main.png" alt="Main Image" className=" object-cover rounded-lg shadow-lg"/>
+            <img src="/landing1.png" alt="Main Image" className=" object-cover rounded-lg shadow-lg"/>
           </div>
         </div>
       </div>
