@@ -41,10 +41,18 @@ export function getTokenRemainingTime(token: string): number | null {
 const SESSION_COOKIE = 'hasSession'
 const EXPIRED = 'Thu, 01 Jan 1970 00:00:00 GMT'
 
+// Max-Age 를 주지 않으면 브라우저를 닫을 때 사라지는 세션 쿠키가 된다.
+// 그러면 로그인 상태는 localStorage 에 남아 있는데 마커 쿠키만 없어져서,
+// 브라우저를 다시 연 뒤 /chat 으로 바로 들어갈 때 proxy 가 비로그인으로 보고
+// 로그인 화면으로 튕긴다(클라이언트가 쿠키를 다시 심기 전에 서버에서 판정한다).
+// 리프레시 토큰보다 넉넉하게 잡아둔다. 리프레시가 먼저 죽으면
+// ensureAccessToken 이 clear() 로 이 쿠키까지 걷어내므로 남아도 문제되지 않는다.
+const SESSION_COOKIE_MAX_AGE = 60 * 60 * 24 * 30
+
 export function setSessionCookie(active: boolean) {
   if (typeof document === 'undefined') return
   document.cookie = active
-    ? `${SESSION_COOKIE}=1; path=/; SameSite=Lax`
+    ? `${SESSION_COOKIE}=1; path=/; Max-Age=${SESSION_COOKIE_MAX_AGE}; SameSite=Lax`
     : `${SESSION_COOKIE}=; path=/; expires=${EXPIRED}`
   // 예전 버전이 심어둔 accessToken 쿠키를 걷어낸다.
   // 백엔드의 httpOnly 쿠키는 JS로 지울 수 없으므로 여기서 지워지는 건 프론트가 만든 것뿐이다.
