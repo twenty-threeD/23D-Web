@@ -6,8 +6,8 @@ import dynamic from "next/dynamic"
 import Header from "@/src/components/Header"
 import Footer from "@/src/components/Footer"
 import CommunityMenu from "@/src/components/CommunitySideBar"
-import { IoImageOutline } from "react-icons/io5"
-import { getPost, createPost, updatePost } from "@/src/lib/community"
+import { IoImageOutline, IoChevronDown } from "react-icons/io5"
+import { getPost, createPost, updatePost, COMMUNITY_CATEGORIES, isCommunityCategory, type CommunityCategory } from "@/src/lib/community"
 import { uploadFile } from "@/src/lib/file"
 import { useAuthStore } from "@/src/store/authStore"
 import { useHandleError } from "@/src/hooks/useHandleError"
@@ -33,6 +33,7 @@ export default function Page() {
 
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
+  const [category, setCategory] = useState<CommunityCategory | null>(null)
   const [uploading, setUploading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [loading, setLoading] = useState(!!postId)
@@ -49,6 +50,8 @@ export default function Page() {
       }
       setTitle(data.title ?? "")
       setContent(data.content ?? "")
+      const c = typeof data.category === "string" ? data.category : data.category?.name
+      if (isCommunityCategory(c)) setCategory(c)
     } catch (e) {
       handleError(e)
       router.replace("/community")
@@ -87,16 +90,21 @@ export default function Page() {
     e.target.value = ""
   }
 
+  // 본문 마크다운에서 첫 번째 이미지를 대표 이미지(fileUrl)로 사용한다
+  function extractFileUrl(md: string) {
+    return md.match(/!\[[^\]]*\]\(([^)\s]+)/)?.[1] ?? null
+  }
+
   async function handleSubmit() {
     if (!token) { router.push("/login/signin"); return }
-    if (!title.trim() || !content.trim()) return
+    if (!title.trim() || !content.trim() || !category) return
     setSubmitting(true)
     try {
       if (postId) {
-        await updatePost(token, postId, { title, content })
+        await updatePost(token, postId, { title, content, category, fileUrl: extractFileUrl(content) })
         router.push(`/posts/${postId}`)
       } else {
-        const res = await createPost(token, { title, content })
+        const res = await createPost(token, { title, content, category, fileUrl: extractFileUrl(content) })
         const newId = res.data?.postId
         router.push(newId ? `/posts/${newId}` : "/community")
       }
@@ -105,7 +113,7 @@ export default function Page() {
     }
   }
 
-  const isReady = title.trim().length > 0 && content.trim().length > 0
+  const isReady = title.trim().length > 0 && content.trim().length > 0 && !!category
 
   if (loading) {
     return (
@@ -168,6 +176,23 @@ export default function Page() {
                 height={480}
                 preview="edit"
               />
+            </div>
+
+            <div className="flex flex-col gap-1 px-6 py-4 border-t border-zinc-200">
+              <h1 className="text-xl font-bold">카테고리<span className="text-red-500">*</span></h1>
+              <div className="relative">
+                <select
+                  value={category ?? ""}
+                  onChange={(e) => setCategory(isCommunityCategory(e.target.value) ? e.target.value : null)}
+                  className="w-full h-10 border border-zinc-300 rounded-lg pl-3 pr-10 text-sm appearance-none transition-colors focus:outline-none focus:border-main hover:border-zinc-400"
+                >
+                  <option value="">카테고리를 선택해주세요</option>
+                  {COMMUNITY_CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
+                </select>
+                <IoChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 text-lg pointer-events-none" />
+              </div>
             </div>
 
             <div className="flex items-center gap-3 px-6 py-3 border-t border-zinc-200 bg-zinc-50">
