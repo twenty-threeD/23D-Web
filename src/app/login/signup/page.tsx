@@ -53,7 +53,8 @@ export default function Page() {
             addToast(
                 { message: "회원가입에 성공했습니다. 로그인 페이지로 이동합니다.", type: "success" }
             )
-            router.push('/login/signin')
+            // 가입 완료 후 뒤로가기로 가입 폼에 돌아오지 않도록 히스토리를 치환한다
+            router.replace('/login/signin')
         } catch (e) {
             addToast(
                 { message: e instanceof Error ? `회원가입에 실패하였습니다. ${e.message}` : '회원가입에 실패했습니다.', type: "error" },

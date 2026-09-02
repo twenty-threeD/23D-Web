@@ -33,7 +33,8 @@ export default function Page() {
     try {
       const data = await login(formData.email, formData.password);
       setToken(data.accessToken);
-      router.push("/main");
+      // 로그인 후 뒤로가기로 로그인 화면에 돌아오지 않도록 히스토리를 치환한다
+      router.replace("/main");
     } catch (e) {
       addToast(
         { message: e instanceof Error ? e.message : '로그인에 실패했습니다.', type: 'error' }
