@@ -1,13 +1,8 @@
 import { Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { COMMUNITY_CATEGORIES } from '@/src/lib/community'
 
-const CATEGORIES = [
-  { label: '전체', value: 'all' },
-  { label: '이거 궁금해요', value: 'question' },
-  { label: '전문가 추천', value: 'expert' },
-  { label: '견적 궁금해요', value: 'estimate' },
-  { label: '동네 주민', value: 'local' },
-]
+const CATEGORIES = [{ label: '전체', value: 'all' }, ...COMMUNITY_CATEGORIES]
 
 function SidebarInner() {
   const router = useRouter()
@@ -19,8 +14,10 @@ function SidebarInner() {
       {CATEGORIES.map((cat) => (
         <button
           key={cat.value}
-          onClick={() => router.push(`/community?category=${cat.value}`)}
-          className={`px-4 py-2 rounded-lg text-left font-semibold
+          onClick={() =>
+            router.push(cat.value === 'all' ? '/community' : `/community?category=${cat.value}`)
+          }
+          className={`px-4 py-2 rounded-lg text-left font-semibold cursor-pointer
             ${current === cat.value ? 'bg-zinc-100 text-black' : 'text-zinc-500 hover:bg-zinc-100'}
           `}
         >
