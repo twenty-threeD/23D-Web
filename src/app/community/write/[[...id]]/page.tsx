@@ -102,11 +102,12 @@ export default function Page() {
     try {
       if (postId) {
         await updatePost(token, postId, { title, content, category, fileUrl: extractFileUrl(content) })
-        router.push(`/posts/${postId}`)
+        // 작성/수정을 마친 뒤 뒤로가기로 이 화면에 돌아오지 않도록 히스토리를 치환한다
+        router.replace(`/posts/${postId}`)
       } else {
         const res = await createPost(token, { title, content, category, fileUrl: extractFileUrl(content) })
         const newId = res.data?.postId
-        router.push(newId ? `/posts/${newId}` : "/community")
+        router.replace(newId ? `/posts/${newId}` : "/community")
       }
     } catch (e) { handleError(e) } finally {
       setSubmitting(false)
