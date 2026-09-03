@@ -21,6 +21,8 @@ import { useHandleError } from "@/src/hooks/useHandleError";
 import { toRelativeUrl } from "@/src/lib/file"
 import ImageLightbox from "@/src/components/ImageLightbox"
 import { createReview, getReviews, type Review as ReviewData } from "@/src/lib/review"
+import { getEstimates } from "@/src/lib/estimate"
+import { signinPath } from "@/src/lib/navigation"
 
 export default function Page() {
   const params = useParams();
@@ -43,6 +45,16 @@ export default function Page() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewContent, setReviewContent] = useState("");
   const [reviewBusy, setReviewBusy] = useState(false);
+  // 이 서비스를 내가 결제했는지. 후기는 결제한 사람만 남길 수 있다.
+  // 클라이언트 플래그가 아니라 서버의 견적서 상태(PAID)에서 파생시켜 새로고침에도 유지된다.
+  const [hasPaid, setHasPaid] = useState(false);
+
+  useEffect(() => {
+    if (!postId || !token) { setHasPaid(false); return; }
+    getEstimates(token, postId)
+      .then((list) => setHasPaid(list.some((e) => e.status === "PAID")))
+      .catch(() => setHasPaid(false));
+  }, [postId, token]);
 
   useEffect(() => {
     if (!postId) return;
@@ -65,7 +77,6 @@ export default function Page() {
 
   useEffect(() => {
     if (!postId) return;
-    // 추정된 후기 조회 API(/api/review)를 호출합니다. 실제 백엔드 명세 확인이 필요합니다.
     getReviews(postId, token)
       .then(setReviews)
       .catch(() => setReviews([]));
@@ -78,7 +89,7 @@ export default function Page() {
   }, [post]);
 
   async function handleToggleFavorite() {
-    if (!token || !postId) { router.push("/login/signin"); return; }
+    if (!token || !postId) { router.push(signinPath()); return; }
     setFavoriteBusy(true);
     try {
       if (isFavorited) {
@@ -97,7 +108,7 @@ export default function Page() {
 
   async function handleCreateReview() {
     if (!token || !postId) {
-      router.push("/login/signin");
+      router.push(signinPath());
       return;
     }
 
@@ -106,7 +117,6 @@ export default function Page() {
 
     setReviewBusy(true);
     try {
-      // 추정된 후기 등록 API(/api/review)에 게시글 ID, 별점, 내용을 전달합니다.
       const created = await createReview(token, {
         postId,
         rating: reviewRating,
@@ -131,6 +141,9 @@ export default function Page() {
 
   const { description, plans } = post ? parsePostContent(post.content) : { description: "", plans: [] };
   const isOwner = !!(post?.member?.username && myUsername && post.member.username === myUsername);
+  // 같은 사람이 후기를 여러 번 남기지 못하게 막는다
+  const alreadyReviewed = !!myUsername && reviews.some((r) => r.author?.username === myUsername);
+  const canReview = !isOwner && hasPaid && !alreadyReviewed;
   const reviewCount = reviews.length;
   const review = reviewCount > 0
     ? reviews.reduce((total, item) => total + item.rating, 0) / reviewCount
@@ -297,7 +310,19 @@ export default function Page() {
                 </div>
               </div>
 
-              {!isOwner && (
+              {/* 후기는 결제를 마친 구매자만, 한 번만 남길 수 있다.
+                  글쓴이 본인에게는 폼 자체를 보여주지 않는다. */}
+              {!isOwner && !canReview && (
+                <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-5 py-4 text-sm text-zinc-500">
+                  {alreadyReviewed
+                    ? "이미 이 서비스에 후기를 남기셨어요."
+                    : !token
+                      ? "후기는 로그인 후 결제하신 분만 남길 수 있어요."
+                      : "결제를 완료하신 뒤에 후기를 남길 수 있어요."}
+                </p>
+              )}
+
+              {canReview && (
                 <div className="flex flex-col gap-3 p-5 border border-zinc-200 rounded-lg bg-zinc-50">
                   <div className="flex items-center justify-between">
                     <h3 className="font-semibold">후기 남기기</h3>

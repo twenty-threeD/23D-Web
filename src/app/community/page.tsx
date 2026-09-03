@@ -62,11 +62,13 @@ function PostList() {
 
   return (
     <main className="flex flex-col gap-4 w-full">
-      <div className="flex items-center gap-2">
+      {/* items-stretch 로 버튼 높이를 검색창에 맞춘다. 검색창은 header/chat 에서도 쓰여
+          높이를 건드리면 다른 화면이 같이 바뀌므로 버튼 쪽을 맞추는 방향으로 둔다. */}
+      <div className="flex items-stretch gap-2">
         <Search where="post" onSearch={setKeyword} />
         <button
           onClick={() => router.push("/community/write")}
-          className="px-4 py-2 text-center bg-main text-white text-sm font-semibold rounded-xl whitespace-nowrap transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
+          className="px-4 text-center bg-main text-white font-semibold rounded-lg whitespace-nowrap transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
         >
           글작성
         </button>

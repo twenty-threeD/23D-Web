@@ -3,6 +3,7 @@ import { useAuthStore } from "@/src/store/authStore"
 import { useToast } from "./useToast"
 import { ApiError, isPayloadTooLarge } from "@/src/lib/apiError"
 import { ensureAccessToken } from "@/src/lib/session"
+import { signinPath } from "@/src/lib/navigation"
 
 export function useHandleError() {
   const router = useRouter()
@@ -20,7 +21,9 @@ export function useHandleError() {
           return
         }
         clear()
-        router.push("/login/signin")
+        // push 로 쌓으면 뒤로가기 할 때마다 로그인 화면으로 되돌아온다.
+        // 세션이 끊긴 화면은 히스토리에 남길 이유가 없으므로 replace 로 치환한다.
+        router.replace(signinPath())
         return
       }
     }

@@ -11,6 +11,7 @@ import { getPost, createPost, updatePost, COMMUNITY_CATEGORIES, isCommunityCateg
 import { uploadFile } from "@/src/lib/file"
 import { useAuthStore } from "@/src/store/authStore"
 import { useHandleError } from "@/src/hooks/useHandleError"
+import { signinPath } from "@/src/lib/navigation"
 
 const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false })
 
@@ -96,7 +97,7 @@ export default function Page() {
   }
 
   async function handleSubmit() {
-    if (!token) { router.push("/login/signin"); return }
+    if (!token) { router.push(signinPath()); return }
     if (!title.trim() || !content.trim() || !category) return
     setSubmitting(true)
     try {

@@ -7,10 +7,14 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from '@gsap/react';
 import LandingHeader from "@/src/components/LandingHeader";
 import Footer from "@/src/components/Footer";
+import { useRedirectIfAuthed } from "@/src/hooks/useRedirectIfAuthed";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 export default function Home() {
+  // 이미 로그인한 사용자에게는 랜딩 대신 메인을 보여준다
+  useRedirectIfAuthed();
+
   const [isLocation, setIsLocation] = useState(1);
   const container1 = useRef(null);
   const container2 = useRef(null);

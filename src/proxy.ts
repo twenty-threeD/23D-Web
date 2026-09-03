@@ -14,9 +14,11 @@ export function proxy(req: NextRequest) {
   )
 
   if (isProtected && !signedIn) {
-    return NextResponse.redirect(
-      new URL('/login/signin', req.url)
-    )
+    // 쿠키는 클라이언트가 심으므로, 세션이 살아 있는데도 여기서 먼저 걸릴 수 있다.
+    // 원래 가려던 경로를 넘겨서 로그인 화면이 곧바로 되돌려보낼 수 있게 한다.
+    const url = new URL('/login/signin', req.url)
+    url.searchParams.set('redirect', req.nextUrl.pathname + req.nextUrl.search)
+    return NextResponse.redirect(url)
   }
 }
 

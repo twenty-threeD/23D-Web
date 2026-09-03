@@ -48,15 +48,32 @@ const EXPIRED = 'Thu, 01 Jan 1970 00:00:00 GMT'
 // 리프레시 토큰보다 넉넉하게 잡아둔다. 리프레시가 먼저 죽으면
 // ensureAccessToken 이 clear() 로 이 쿠키까지 걷어내므로 남아도 문제되지 않는다.
 const SESSION_COOKIE_MAX_AGE = 60 * 60 * 24 * 30
+const WS_COOKIE_PATH = '/ws-stomp'
 
 export function setSessionCookie(active: boolean) {
   if (typeof document === 'undefined') return
   document.cookie = active
     ? `${SESSION_COOKIE}=1; path=/; Max-Age=${SESSION_COOKIE_MAX_AGE}; SameSite=Lax`
     : `${SESSION_COOKIE}=; path=/; expires=${EXPIRED}`
-  // 예전 버전이 심어둔 accessToken 쿠키를 걷어낸다.
+  // 예전 버전이 path=/ 로 심어둔 accessToken 쿠키를 걷어낸다.
   // 백엔드의 httpOnly 쿠키는 JS로 지울 수 없으므로 여기서 지워지는 건 프론트가 만든 것뿐이다.
   document.cookie = `accessToken=; path=/; expires=${EXPIRED}`
+}
+
+// 채팅 웹소켓(SockJS) 전용 인증 쿠키.
+//
+// 백엔드가 /ws-stomp 의 ?token= 쿼리 인증을 막으면서 헤더 또는 쿠키만 받는데,
+// 브라우저 SockJS 는 핸드셰이크(/ws-stomp/info)에 커스텀 헤더를 실을 수 없다.
+// 남는 수단이 쿠키뿐이라 액세스 토큰을 쿠키로 넘긴다.
+//
+// path 를 /ws-stomp 로 좁히는 게 핵심이다. 이러면 이 쿠키는 웹소켓 요청에만 실려서,
+// /api/* 호출에서 백엔드의 동명 httpOnly 쿠키와 겹치지 않는다.
+// (예전에 path=/ 로 심었다가 동명 쿠키가 2개씩 쌓였던 문제를 피한다.)
+export function setWsAuthCookie(token: string | null) {
+  if (typeof document === 'undefined') return
+  document.cookie = token
+    ? `accessToken=${token}; path=${WS_COOKIE_PATH}; SameSite=Lax`
+    : `accessToken=; path=${WS_COOKIE_PATH}; expires=${EXPIRED}`
 }
 
 interface AuthStore {
@@ -83,6 +100,7 @@ export const useAuthStore = create<AuthStore>()(
       setHydrated: () => set({ hydrated: true }),
       setToken: (token) => {
         setSessionCookie(true)
+        setWsAuthCookie(token)
         set({
           accessToken: token,
           username: decodeJwtUsername(token),
@@ -92,6 +110,7 @@ export const useAuthStore = create<AuthStore>()(
       },
       clear: () => {
         setSessionCookie(false)
+        setWsAuthCookie(null)
         set({ accessToken: null, username: null, role: null, hasSession: false })
       },
     }),
@@ -118,6 +137,8 @@ export const useAuthStore = create<AuthStore>()(
         // 액세스 토큰이 만료됐어도 리프레시 쿠키로 살릴 수 있으므로 세션이 있으면 마커를 유지한다.
         // (예전에는 만료 시 쿠키를 안 심어서, 재발급 가능한 사용자가 하드 로드 때 로그인으로 튕겼다)
         if (state.hasSession) setSessionCookie(true)
+        // 새로고침 직후에도 웹소켓이 붙어야 하므로 저장된 토큰을 쿠키에 되살린다
+        if (state.accessToken) setWsAuthCookie(state.accessToken)
         state.setHydrated()
       },
     }

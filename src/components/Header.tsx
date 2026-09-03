@@ -10,6 +10,7 @@ import { logout } from "@/src/lib/auth";
 import { getMyProfile } from "@/src/lib/profile";
 import { toRelativeUrl } from "@/src/lib/file";
 import { useChatNotifications, type NotificationType } from "@/src/hooks/useChatNotifications";
+import { SIGNIN_PATH } from "@/src/lib/navigation";
 
 const NOTIFICATION_TYPE_STYLE: Record<NotificationType, { label: string; className: string }> = {
   chat: { label: "채팅", className: "text-yellow-700 bg-yellow-100" },
@@ -63,7 +64,8 @@ export default function Header() {
     clear();
     useProfileStore.getState().reset();
     setShowMenu(false);
-    router.push("/login/signin");
+    // 로그아웃 후 뒤로가기로 로그인 전용 화면에 돌아가지 않도록 치환한다
+    router.replace(SIGNIN_PATH);
   }
 
   function handleSearch(keyword: string) {

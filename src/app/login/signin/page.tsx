@@ -9,11 +9,15 @@ import { InputField } from "@/src/components/InputField";
 import BackButton from "@/src/components/BackButton";
 import { login } from "@/src/lib/auth";
 import { useAuthStore } from "@/src/store/authStore";
+import { useRedirectIfAuthed } from "@/src/hooks/useRedirectIfAuthed";
 
 export default function Page() {
   const { addToast } = useToast();
   const router = useRouter();
   const setToken = useAuthStore((s) => s.setToken);
+
+  // 세션이 살아 있으면 로그인 화면을 보여주지 않고 원래 가려던 곳으로 보낸다
+  useRedirectIfAuthed();
 
   // 1. 입력값 상태 관리
   const [formData, setFormData] = useState({

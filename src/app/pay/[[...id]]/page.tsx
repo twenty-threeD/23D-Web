@@ -16,6 +16,7 @@ import { useAuthStore } from "@/src/store/authStore";
 import { parsePostContent } from "@/src/types/priceCard";
 import { getEstimates, type Estimate as EstimateData } from "@/src/lib/estimate";
 import { useHandleError } from "@/src/hooks/useHandleError";
+import { getReviewSummary, type ReviewSummary } from "@/src/lib/review";
 
 const PayContent = () => {
   const params = useParams();
@@ -31,10 +32,21 @@ const PayContent = () => {
   // 조회를 끝낸 게시글 번호. 로딩 여부는 이 값으로 파생시킨다
   // (effect 안에서 동기적으로 setState 하지 않기 위함).
   const [loadedPostId, setLoadedPostId] = useState<number | null>(null);
+  const [reviewSummary, setReviewSummary] = useState<ReviewSummary | null>(null);
+  // 결제를 이미 마친 건인지. 결제 후 이 페이지로 되돌아왔을 때 안내가 달라진다.
+  const [alreadyPaid, setAlreadyPaid] = useState(false);
 
   useEffect(() => {
     if (!postId) return;
     getPost(postId, token).then((res) => setPost(res.data ?? null)).catch(() => {});
+  }, [postId, token]);
+
+  // 평점은 게시글 응답에 없어 요약 API 로 따로 받는다
+  useEffect(() => {
+    if (!postId) return;
+    getReviewSummary(postId, token)
+      .then(setReviewSummary)
+      .catch(() => setReviewSummary(null));
   }, [postId, token]);
 
   // 결제 대상 견적서를 찾는다. 아직 결제되지 않은 것 중 가장 최근 것을 사용한다.
@@ -46,6 +58,7 @@ const PayContent = () => {
           .filter((e) => e.status !== "PAID")
           .sort((a, b) => b.id - a.id)[0];
         setEstimate(target ?? null);
+        setAlreadyPaid(list.some((e) => e.status === "PAID"));
       })
       .catch(handleError)
       .finally(() => setLoadedPostId(postId));
@@ -82,6 +95,9 @@ const PayContent = () => {
             imgPath={imgPath}
             title={post?.title ?? ""}
             expertName={expertName}
+            serviceCategory={post?.category?.fullName ?? undefined}
+            avgRating={reviewSummary?.averageRating}
+            reviewCount={reviewSummary?.reviewCount}
           />
           <div className="pr-25">
             <FinalBill
@@ -91,7 +107,7 @@ const PayContent = () => {
         </div>
 
         <div className="flex items-start gap-10 justify-between">
-          <PriceCard username={postAuthorUsername} plans={plans} postId={postId ?? undefined} />
+          <PriceCard username={postAuthorUsername} plans={plans} postId={postId ?? undefined} showInquiry={false} />
           <div className="pr-25">
             <ApplyPay isAgree={isAgree} setIsAgree={setIsAgree} />
             {hasContractQuery ? (
@@ -117,6 +133,13 @@ const PayContent = () => {
                 contractUrl={contractUrl}
                 estimateId={estimate.id}
               />
+            ) : alreadyPaid ? (
+              // 결제가 끝난 건을 다시 열었을 때 "견적서가 없다"고 안내하면 오해를 부른다
+              <p className="w-87.5 mt-5 py-3 text-center text-sm text-emerald-700">
+                이미 결제가 완료된 건입니다.
+                <br />
+                후기는 서비스 상세페이지에서 남길 수 있어요.
+              </p>
             ) : (
               <p className="w-87.5 mt-5 py-3 text-center text-sm text-zinc-500">
                 견적서가 아직 발행되지 않았습니다.

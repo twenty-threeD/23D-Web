@@ -27,6 +27,7 @@ import {
 import { resetUsername, deleteAccount } from "@/src/lib/member";
 import AccountEditModal from "@/src/components/profile/AccountEditModal";
 import { getFavoritePosts, getMyPosts, deletePost, getPostMainImage, type Post } from "@/src/lib/post";
+import { signinPath } from "@/src/lib/navigation"
 
 const DISTANCE_OPTIONS: { value: "TEN_KM" | "TWENTY_FIVE_KM" | "FIFTY_KM" | "OVER_HUNDRED_KM"; label: string }[] = [
   { value: "TEN_KM", label: "10km 이내" },
@@ -102,7 +103,7 @@ export default function Page() {
   }, [token, myUsername]);
 
   useEffect(() => {
-    if (!token) { router.push("/login/signin"); return; }
+    if (!token) { router.push(signinPath()); return; }
     fetchProfile();
     getJobCategories().then(setJobCategories).catch(() => {});
     getSidoList().then(setSidoList).catch(() => {});
