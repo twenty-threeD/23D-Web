@@ -35,32 +35,40 @@ export const Estimate = ({ imgPath, title, avgRating, reviewCount,
                     {/* 제목과 평점 */}
                     <div className="flex flex-col gap-3">
                         <h1 className="text-2xl font-bold">{title}</h1>
-                        <div className="flex items-center gap-1">
-                            <FaStar className="text-main size-5"/>
-                            <h1 className="text-lg">{avgRating != null ? avgRating.toFixed(1) : "-"}</h1>
-                            {reviewCount != null && (
+                        {reviewCount ? (
+                            <div className="flex items-center gap-1">
+                                <FaStar className="text-main size-5"/>
+                                <h1 className="text-lg">{(avgRating ?? 0).toFixed(1)}</h1>
                                 <p className="text-sm text-zinc-400">({reviewCount.toLocaleString()})</p>
-                            )}
-                        </div>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-zinc-400">아직 등록된 후기가 없어요</p>
+                        )}
                     </div>
                 </div>
 
-                {/* 분류 */}
-                <div className="mt-9">
-                    <div className="flex items-center gap-2 justify-between">
-                        <p className="text-5">서비스</p>
-                        <p className="text-5">{serviceCategory}</p>
-                    </div>
+                {/* 분류. 값이 없는 항목은 라벨만 덩그러니 남지 않게 감춘다 */}
+                <div className="mt-9 flex flex-col gap-1">
+                    {serviceCategory && (
+                        <div className="flex items-center gap-2 justify-between">
+                            <p className="text-5 text-zinc-500">서비스</p>
+                            <p className="text-5">{serviceCategory}</p>
+                        </div>
+                    )}
 
-                    <div className="flex items-center gap-2 justify-between">
-                        <p className="text-5">능력자</p>
-                        <p className="text-5">{expertName}</p>
-                    </div>
+                    {expertName && (
+                        <div className="flex items-center gap-2 justify-between">
+                            <p className="text-5 text-zinc-500">능력자</p>
+                            <p className="text-5">{expertName}</p>
+                        </div>
+                    )}
 
-                    <div className="flex items-center gap-2 justify-between">
-                        <p className="text-5">납기일</p>
-                        <p className="text-5">{deliveryTime}</p>
-                    </div>
+                    {deliveryTime && (
+                        <div className="flex items-center gap-2 justify-between">
+                            <p className="text-5 text-zinc-500">납기일</p>
+                            <p className="text-5">{deliveryTime}</p>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

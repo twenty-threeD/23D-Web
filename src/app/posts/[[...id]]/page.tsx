@@ -23,15 +23,18 @@ import {
   deletePost,
 } from "@/src/lib/community"
 import { useAuthStore } from "@/src/store/authStore"
+import { toRelativeUrl } from "@/src/lib/file"
 import { useLikeStore } from "@/src/store/likeStore"
 import { ApiError } from "@/src/lib/apiError"
 import { useHandleError } from "@/src/hooks/useHandleError"
 import TopButton from "@/src/components/TopButton"
+import { signinPath } from "@/src/lib/navigation"
 
 interface Post {
   id: number
   username: string
-  profileImageUrl?: string
+  // 프로필 미설정 회원은 null 로 온다
+  imageUrl?: string | null
   title: string
   content: string
   fileUrl?: string
@@ -58,6 +61,7 @@ interface CommentData {
   content: string
   updatedAt: string
   edited?: boolean
+  imageUrl?: string | null
 }
 
 export default function Page() {
@@ -75,6 +79,7 @@ export default function Page() {
   })
 
   const handleError = useHandleError()
+  // 커뮤니티 응답에 작성자 이미지가 없어 서비스 게시글에서 모아둔 매핑으로 채운다
   const likeStore = useLikeStore()
   const [post, setPost] = useState<Post | null>(null)
   const [comments, setComments] = useState<CommentData[]>([])
@@ -130,7 +135,7 @@ export default function Page() {
   }, [fetchPost, fetchComments, fetchRelated])
 
   async function handleLike() {
-    if (!token) { router.push("/login/signin"); return }
+    if (!token) { router.push(signinPath()); return }
     try {
       if (isLiked) {
         await removeLike(token, postId)
@@ -180,7 +185,7 @@ export default function Page() {
   }
 
   async function handleCommentSubmit() {
-    if (!token) { router.push("/login/signin"); return }
+    if (!token) { router.push(signinPath()); return }
     if (!commentText.trim()) return
     setSubmitting(true)
     try {
@@ -242,7 +247,7 @@ export default function Page() {
               </div>
               <div className="flex gap-2">
                 <div className="w-12 h-12 bg-zinc-400 rounded-full overflow-hidden border border-zinc-300 shrink-0">
-                  <Image src={post.profileImageUrl ? toRelativeUrl(post.profileImageUrl) : "/profile.png"} alt="프로필사진" className="object-cover" width={48} height={48} />
+                  <Image src={post.imageUrl ? toRelativeUrl(post.imageUrl) : "/profile.png"} alt="프로필사진" className="object-cover" width={48} height={48} />
                 </div>
                 <div className="flex flex-col justify-center w-full">
                   <h3 className="text-sm font-medium">{post.username}</h3>
@@ -319,6 +324,7 @@ export default function Page() {
                 <Comment
                   key={c.id}
                   authorName={c.username}
+                  profileImage={c.imageUrl ? toRelativeUrl(c.imageUrl) : undefined}
                   content={c.content}
                   edited={c.edited}
                   isOwner={myUsername === c.username}

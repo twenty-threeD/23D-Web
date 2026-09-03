@@ -8,7 +8,7 @@ import { IoClose, IoSend, IoAdd } from "react-icons/io5"
 import Search from "@/src/components/Search"
 import { HiDotsHorizontal } from "react-icons/hi"
 import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment, MdOutlineReceiptLong } from "react-icons/md"
-import { useAuthStore } from "@/src/store/authStore"
+import { useAuthStore, setWsAuthCookie } from "@/src/store/authStore"
 import { useChatRoomsStore, type ChatRoom } from "@/src/store/chatRoomsStore"
 import { getChatRooms, loadChatMessages, deleteChatRoom } from "@/src/lib/chat"
 import { cacheMessages } from "@/src/lib/chatDb"
@@ -25,6 +25,7 @@ import { getMyProfile } from "@/src/lib/profile"
 import { getPost, getPostMainImage, type Post } from "@/src/lib/post"
 import ChatStartCard from "@/src/components/chat/ChatStartCard"
 import ContractCard from "@/src/components/chat/ContractCard"
+import PaymentCard, { type ChatPayment } from "@/src/components/chat/PaymentCard"
 import { pdfBlobToFile } from "@/src/lib/contractPdf"
 import ImageLightbox from "@/src/components/ImageLightbox"
 
@@ -60,6 +61,9 @@ interface Message {
   message: string
   createdAt: string
   attachedFileUrls: string[]
+  // 백엔드가 결제 승인 시 PAYMENT 타입 메시지를 직접 만들어 넣어준다
+  type?: "TEXT" | "PAYMENT"
+  payment?: ChatPayment | null
 }
 
 export default function Page() {
@@ -134,7 +138,10 @@ export default function Page() {
 
     markRoomRead(selectedId)
 
-    const sockjsUrl = `${window.location.protocol}//${window.location.host}/ws-stomp?token=${token}`
+    // 인증은 쿠키로 넘어간다(setWsAuthCookie). 백엔드가 ?token= 쿼리 인증을 막았고,
+    // 토큰을 URL 에 실으면 브라우저 히스토리·프록시 로그에 남기 때문에 쿼리는 쓰지 않는다.
+    setWsAuthCookie(token)
+    const sockjsUrl = `${window.location.protocol}//${window.location.host}/ws-stomp`
 
     const client = new Client({
       webSocketFactory: () => new SockJS(sockjsUrl),
@@ -799,11 +806,16 @@ export default function Page() {
                     </div>
                   ) : null
 
+                  // 백엔드가 만들어주는 결제 완료 메시지. 본문 대신 카드로 보여준다.
+                  const paymentCard = msg.type === "PAYMENT" && msg.payment ? (
+                    <PaymentCard payment={msg.payment} isSent={isSent} paidAt={msg.createdAt} />
+                  ) : null
+
                   const contractMsg = parseContractMessage(msg.message)
                   const chatStart = parseChatStart(msg.message)
                   const displayText = msg.message
 
-                  const textBubble = msg.message && !contractMsg ? (
+                  const textBubble = msg.message && !contractMsg && !paymentCard ? (
                     <div className={`rounded-2xl px-4 py-2 max-w-xs ${isSent ? "bg-main rounded-br-none" : "bg-zinc-100 rounded-bl-none"}`}>
                       <p className={`text-sm whitespace-pre-line ${isSent ? "text-white" : ""}`}>{displayText}</p>
                     </div>
@@ -869,6 +881,7 @@ export default function Page() {
                             {attachment}
                             {textBubble}
                             {contractCard}
+                            {paymentCard}
                           </div>
                           {showTime && <span className="text-xs text-zinc-400 shrink-0">{formatTime(msg.createdAt)}</span>}
                         </div>
@@ -879,6 +892,7 @@ export default function Page() {
                             {attachment}
                             {textBubble}
                             {contractCard}
+                            {paymentCard}
                           </div>
                         </div>
                       )}

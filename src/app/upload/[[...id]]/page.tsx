@@ -13,6 +13,7 @@ import { createPost, updatePost, getPost, getPostCategories, type PostCategory }
 import { useHandleError } from "@/src/hooks/useHandleError";
 import { useToast } from "@/src/hooks/useToast";
 import { type PriceCardPlan, DEFAULT_PLAN, parsePostContent, serializePostContent } from "@/src/types/priceCard";
+import { signinPath } from "@/src/lib/navigation"
 
 export default function Page() {
   const router = useRouter();
@@ -74,7 +75,7 @@ export default function Page() {
   }, [postId, token, myUsername]);
 
   async function handleSubmit() {
-    if (!token) { router.push("/login/signin"); return; }
+    if (!token) { router.push(signinPath()); return; }
     if (!title.trim() || !description.trim()) {
       addToast({ message: "제목과 본문을 입력해주세요.", type: "warning" });
       return;

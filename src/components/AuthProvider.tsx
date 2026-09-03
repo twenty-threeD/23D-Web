@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useAuthStore, getTokenRemainingTime, setSessionCookie } from '@/src/store/authStore'
+import { useAuthStore, getTokenRemainingTime, setSessionCookie, setWsAuthCookie } from '@/src/store/authStore'
 import { ensureAccessToken } from '@/src/lib/session'
 
 // 만료 직전에 미리 갱신해 요청 도중 만료되는 것을 막는다
@@ -18,6 +18,8 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     if (!hydrated || !hasSession) return
 
     setSessionCookie(true)
+    // 재발급으로 토큰이 바뀌면 웹소켓 쿠키도 같이 갱신한다
+    if (token) setWsAuthCookie(token)
 
     const remaining = token ? getTokenRemainingTime(token) : null
 

@@ -8,6 +8,7 @@ import { createChatRoom } from "@/src/lib/chat"
 import { useHandleError } from "@/src/hooks/useHandleError"
 import { type PriceCardPlan } from "@/src/types/priceCard"
 import ServicePickerModal from "@/src/components/item/ServicePickerModal"
+import { signinPath } from "@/src/lib/navigation"
 
 const DEFAULT_PLAN: PriceCardPlan = {
   planName: "기본 플랜",
@@ -20,9 +21,11 @@ interface PriceCardProps {
   username?: string
   plans?: PriceCardPlan[]
   postId?: number
+  /** 문의하기 버튼 노출 여부. 결제 페이지처럼 이미 문의를 마친 화면에서는 끈다 */
+  showInquiry?: boolean
 }
 
-export default function PriceCard({ username, plans, postId }: PriceCardProps) {
+export default function PriceCard({ username, plans, postId, showInquiry = true }: PriceCardProps) {
   const router = useRouter()
   const token = useAuthStore((s) => s.accessToken)
   const handleError = useHandleError()
@@ -36,7 +39,7 @@ export default function PriceCard({ username, plans, postId }: PriceCardProps) {
   const plan = safePlans[active]
 
   async function handleSelectService(service: { planName: string; price: string }) {
-    if (!token) { router.push("/login/signin"); return }
+    if (!token) { router.push(signinPath()); return }
     if (!username || !postId) return
     setLoading(true)
     try {
@@ -96,13 +99,15 @@ export default function PriceCard({ username, plans, postId }: PriceCardProps) {
           </div>
         )}
 
-        <button
-          onClick={() => setShowPicker(true)}
-          disabled={loading || !username}
-          className="w-full py-3 text-center bg-main text-white text-sm font-semibold rounded-xl transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
-        >
-          {loading ? "연결 중..." : "문의하기"}
-        </button>
+        {showInquiry && (
+          <button
+            onClick={() => setShowPicker(true)}
+            disabled={loading || !username}
+            className="w-full py-3 text-center bg-main text-white text-sm font-semibold rounded-xl transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
+          >
+            {loading ? "연결 중..." : "문의하기"}
+          </button>
+        )}
       </div>
 
       {showPicker && (

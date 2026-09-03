@@ -4,8 +4,8 @@ import { throwApiError } from './apiError'
  * 후기 API 연결 위치
  *
  * 주의: 아래 API는 백엔드 명세를 확인하지 못한 상태에서 추정해서 연결한 API입니다.
- * - 추정된 조회 API: GET /api/review?postId={게시글ID}&page={페이지}&size={개수}
- * - 추정된 등록 API: POST /api/review
+ * - 조회 API: GET /api/post/review?postId={게시글ID}&page={페이지}&size={개수}
+ * - 등록 API: POST /api/post/review
  * - 추정된 등록 요청 본문: { postId, rating, content }
  *
  * 이 경로는 next.config.ts의 rewrite에 의해 백엔드 API 주소로 전달됩니다.
@@ -92,7 +92,7 @@ function getReviewList(json: ReviewResponse | unknown) {
 export async function getReviews(postId: number, token?: string | null, page = 0, size = 20) {
   // TODO: 추정된 API입니다. 백엔드 후기 조회 엔드포인트 확정 후 경로를 확인하세요.
   const params = new URLSearchParams({ postId: String(postId), page: String(page), size: String(size) })
-  const res = await fetch(`/api/review?${params}`, { headers: authHeaders(token) })
+  const res = await fetch(`/api/post/review?${params}`, { headers: authHeaders(token) })
   if (!res.ok) await throwApiError(res)
   return getReviewList(await res.json())
 }
@@ -102,7 +102,7 @@ export async function createReview(
   data: { postId: number; rating: number; content: string }
 ) {
   // TODO: 추정된 API입니다. 백엔드 후기 등록 엔드포인트와 요청 필드를 확인하세요.
-  const res = await fetch('/api/review', {
+  const res = await fetch('/api/post/review', {
     method: 'POST',
     headers: authHeaders(token),
     body: JSON.stringify(data),
@@ -112,4 +112,20 @@ export async function createReview(
   const json = await res.json()
   const response = asRecord(json)
   return response.data ? normalizeReview(response.data) : null
+}
+
+export interface ReviewSummary {
+  postId: number
+  reviewCount: number
+  averageRating: number
+}
+
+// 게시글 평점 요약 (평균 별점 + 리뷰 수)
+export async function getReviewSummary(postId: number, token?: string | null) {
+  const res = await fetch(`/api/post/review/summary?postId=${postId}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!res.ok) await throwApiError(res)
+  const json = await res.json()
+  return (json.data ?? null) as ReviewSummary | null
 }

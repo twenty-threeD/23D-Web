@@ -11,24 +11,34 @@ export const FinalBill = ({ defaultAmount, additionalAmount, travelCost, pointUs
             <h1 className="text-5">최종 결제 금액</h1>
             <hr className="mt-3 mb-4 text-zinc-300"/>
 
-            <div className="flex items-center gap-2.5 justify-between">
-                <p>기본금액</p>
-                <p>{defaultAmount.toLocaleString()}원</p>
-            </div>
+            <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2.5 justify-between">
+                    <p className="text-zinc-500">기본금액</p>
+                    <p>{defaultAmount.toLocaleString()}원</p>
+                </div>
 
-            <div className="flex items-center gap-2.5 justify-between">
-                <p>추가금액</p>
-                <p>{additionalAmount?.toLocaleString()}원</p>
-            </div>
+                {/* 아래 항목들은 값이 있을 때만 보여준다.
+                    없을 때 "원"/"P"만 남아 빈 줄처럼 보이던 것을 막는다. */}
+                {additionalAmount ? (
+                    <div className="flex items-center gap-2.5 justify-between">
+                        <p className="text-zinc-500">추가금액</p>
+                        <p>{additionalAmount.toLocaleString()}원</p>
+                    </div>
+                ) : null}
 
-            <div className="flex items-center gap-2.5 justify-between">
-                <p>출장비</p>
-                <p>{travelCost?.toLocaleString()}원</p>
-            </div>
+                {travelCost ? (
+                    <div className="flex items-center gap-2.5 justify-between">
+                        <p className="text-zinc-500">출장비</p>
+                        <p>{travelCost.toLocaleString()}원</p>
+                    </div>
+                ) : null}
 
-            <div className="flex items-center gap-2.5 justify-between">
-                <p>포인트</p>
-                <p>{pointUsage?.toLocaleString()}P</p>
+                {pointUsage ? (
+                    <div className="flex items-center gap-2.5 justify-between">
+                        <p className="text-zinc-500">포인트</p>
+                        <p>-{pointUsage.toLocaleString()}P</p>
+                    </div>
+                ) : null}
             </div>
 
             <hr className="my-5 text-zinc-300"/>
@@ -36,7 +46,7 @@ export const FinalBill = ({ defaultAmount, additionalAmount, travelCost, pointUs
             <div className="flex items-baseline justify-between">
                 <p className="text-main font-bold">총 결제 예정 금액</p>
                 <p className="text-2xl text-main  font-bold">
-                    {(defaultAmount + (additionalAmount || 0) + (travelCost || 0)).toLocaleString()}원
+                    {(defaultAmount + (additionalAmount || 0) + (travelCost || 0) - (pointUsage || 0)).toLocaleString()}원
                 </p>
             </div>
 
