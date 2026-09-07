@@ -11,6 +11,8 @@ interface OnClickPayProps {
   orderName?: string;
   orderCustomerName?: string;
   postId?: number;
+  /** 결제 후 돌아갈 채팅방. 결제 완료 메시지를 보낼 대상이다 */
+  roomId?: string | null;
   contractUrl?: string;
   estimateId?: number;
 }
@@ -23,10 +25,11 @@ function createOrderId() {
 }
 
 // 결제 완료 후 돌아올 때 필요한 값들을 쿼리로 넘긴다
-function buildReturnQuery(postId?: number, estimateId?: number) {
+function buildReturnQuery(postId?: number, estimateId?: number, roomId?: string | null) {
   const query = new URLSearchParams();
   if (postId) query.set("postId", String(postId));
   if (estimateId) query.set("estimateId", String(estimateId));
+  if (roomId) query.set("roomId", roomId);
   const value = query.toString();
   return value ? `?${value}` : "";
 }
@@ -36,7 +39,7 @@ function buildOrderName(orderName?: string) {
   return `잇다: ${orderName || "잇다 서비스 결제"}`.slice(0, 100);
 }
 
-export const OnClickPay = ({ isAgree, price, orderName, orderCustomerName, postId, contractUrl, estimateId }: OnClickPayProps) => {
+export const OnClickPay = ({ isAgree, price, orderName, orderCustomerName, postId, roomId, contractUrl, estimateId }: OnClickPayProps) => {
   const token = useAuthStore((s) => s.accessToken);
 
   const handlePayment = async () => {
@@ -88,7 +91,7 @@ export const OnClickPay = ({ isAgree, price, orderName, orderCustomerName, postI
         },
         orderId,
         orderName: fullOrderName,
-        successUrl: `${window.location.origin}/pay/success${buildReturnQuery(postId, estimateId)}`,
+        successUrl: `${window.location.origin}/pay/success${buildReturnQuery(postId, estimateId, roomId)}`,
         failUrl: `${window.location.origin}/pay/fail${buildReturnQuery(postId)}`,
         customerName: orderCustomerName || "익명의 고객",
       });

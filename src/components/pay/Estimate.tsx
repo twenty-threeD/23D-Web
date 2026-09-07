@@ -18,7 +18,7 @@ interface PageProps {
 export const Estimate = ({ imgPath, title, avgRating, reviewCount, 
     serviceCategory, expertName, deliveryTime }: PageProps) => {
     return (
-        <div className="w-210">
+        <div className="w-full">
             <div className="border p-5 gap-5 border-zinc-300 rounded-lg">
                 
                 <div className="flex items-center gap-2.5">

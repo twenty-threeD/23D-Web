@@ -99,6 +99,7 @@ export default function Page() {
   const markRoomRead = useChatRoomsStore((s) => s.markRoomRead)
   const setActiveRoomId = useChatRoomsStore((s) => s.setActiveRoomId)
   const clearPendingGreeting = useChatRoomsStore((s) => s.clearPendingGreeting)
+  const clearPendingPayment = useChatRoomsStore((s) => s.clearPendingPayment)
   // post를 올린 사람이 을(파는 사람), 문의하기를 눌러 들어온 사람이 갑(사는 사람)이다.
   // 계정 role이 아니라 방마다 정해지므로 글 작성자를 조회해서 판단한다.
   // 채팅 시작 카드에도 제목·썸네일이 필요해서 글을 통째로 들고 있는다.
@@ -160,6 +161,22 @@ export default function Page() {
           } catch {}
         })
 
+        // 결제 승인 후 아직 못 보낸 결제 완료 알림이 있으면 여기서 보낸다.
+        // 백엔드가 채팅 메시지를 만들어주지 않아 계약서와 같은 접두사 규약을 쓴다.
+        const paid = useChatRoomsStore.getState().pendingPayment[selectedId]
+        if (paid) {
+          client.publish({
+            destination: "/app/chat.send",
+            headers: { Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              roomId: selectedId,
+              message: `[결제 완료]\n${JSON.stringify(paid)}`,
+              fileUrls: [],
+            }),
+          })
+          clearPendingPayment(selectedId)
+        }
+
         // 문의하기에서 새로 만들어진 방이면 STOMP 연결 직후 인사말을 한 번 보낸다.
         if (useChatRoomsStore.getState().pendingGreeting[selectedId]) {
           const service = useChatRoomsStore.getState().selectedService[selectedId]
@@ -186,7 +203,7 @@ export default function Page() {
       client.deactivate()
       stompClientRef.current = null
     }
-  }, [selectedId, token, myUsername, clearPendingGreeting])
+  }, [selectedId, token, myUsername, clearPendingGreeting, clearPendingPayment])
 
   const fetchRooms = useCallback(async () => {
     if (!token) return
@@ -505,6 +522,12 @@ export default function Page() {
     const qs = new URLSearchParams()
     qs.set("price", String(completed.price))
     qs.set("contractUrl", completed.contractUrl)
+    // 문의를 시작할 때 고른 서비스. 결제 화면에서 그 플랜만 보여주기 위해 넘긴다
+    // (스토어는 새로고침하면 비므로 URL 로 실어 보낸다)
+    const picked = selectedId ? useChatRoomsStore.getState().selectedService[selectedId] : undefined
+    if (picked?.planName) qs.set("plan", picked.planName)
+    // 결제 승인 후 이 방으로 돌아와 결제 완료 메시지를 보내야 한다
+    if (selectedId) qs.set("roomId", String(selectedId))
     router.push(`/pay/${selectedRoom.postId}?${qs.toString()}`)
   }
 
@@ -548,6 +571,18 @@ export default function Page() {
     }
   }
 
+  // 결제 완료 알림. 백엔드가 PAYMENT 타입 메시지를 만들어주지 않아
+  // 계약서와 같은 대괄호 접두사 규약으로 프론트가 보낸다.
+  function parsePaymentMessage(text: string): ChatPayment | null {
+    const PREFIX = "[결제 완료]\n"
+    if (!text.startsWith(PREFIX)) return null
+    try {
+      return JSON.parse(text.slice(PREFIX.length)) as ChatPayment
+    } catch {
+      return null
+    }
+  }
+
   function parseContractMessage(text: string): ContractMessage | null {
     const PROPOSE = "[계약서 제안]\n"
     const COMPLETED = "[계약서 체결 완료]\n"
@@ -577,6 +612,7 @@ export default function Page() {
     if (!text) return ""
     if (text.startsWith("[계약서 제안]")) return "📄 계약서를 보냈습니다."
     if (text.startsWith("[계약서 체결 완료]")) return "✅ 계약이 체결됐습니다."
+    if (text.startsWith("[결제 완료]")) return "💳 결제가 완료됐습니다."
     if (text.startsWith("[견적서 발송]")) return "🧾 견적서를 보냈습니다."
     const start = parseChatStart(text)
     if (start) return start.planName ? `선택한 서비스: ${start.planName}` : "채팅을 시작했어요"
@@ -807,8 +843,11 @@ export default function Page() {
                   ) : null
 
                   // 백엔드가 만들어주는 결제 완료 메시지. 본문 대신 카드로 보여준다.
-                  const paymentCard = msg.type === "PAYMENT" && msg.payment ? (
-                    <PaymentCard payment={msg.payment} isSent={isSent} paidAt={msg.createdAt} />
+                  // 백엔드가 PAYMENT 타입으로 내려주면 그걸 쓰고, 아니면 접두사 메시지를 판다.
+                  const paymentInfo =
+                    (msg.type === "PAYMENT" ? msg.payment : null) ?? parsePaymentMessage(msg.message)
+                  const paymentCard = paymentInfo ? (
+                    <PaymentCard payment={paymentInfo} isSent={isSent} paidAt={msg.createdAt} />
                   ) : null
 
                   const contractMsg = parseContractMessage(msg.message)

@@ -14,6 +14,16 @@ export interface ChatRoom {
   clearBefore?: string | null
 }
 
+// 결제 승인 직후 채팅방에 알릴 내용.
+// 백엔드는 /api/payment/confirm 응답을 클라이언트에 돌려줄 뿐 채팅 메시지를 만들지 않으므로,
+// 계약서와 마찬가지로 프론트가 채팅에 실어 보낸다.
+export interface PaymentNotice {
+  orderId: string
+  orderName: string
+  amount: number
+  txHash?: string | null
+}
+
 export interface SelectedService {
   planName: string
   price: string
@@ -32,12 +42,17 @@ interface ChatRoomsStore {
   // 새로 만들어진 방에서 인사말을 아직 안 보냈으면 true. 채팅 페이지가 STOMP 연결되는 즉시
   // 이 값을 보고 인사말을 보낸 뒤 지운다.
   pendingGreeting: Record<number, boolean>
+  // 결제 승인 후 아직 채팅에 알리지 못한 건. 결제 성공 페이지에서 넣어두면
+  // 채팅 페이지가 STOMP 연결되는 즉시 보내고 지운다 (pendingGreeting 과 같은 방식).
+  pendingPayment: Record<number, PaymentNotice>
   setRooms: (rooms: ChatRoom[]) => void
   markRoomUnread: (roomId: number, message: string) => void
   markRoomRead: (roomId: number) => void
   setActiveRoomId: (roomId: number | null) => void
   setSelectedService: (roomId: number, service: SelectedService, isNewRoom: boolean) => void
   clearPendingGreeting: (roomId: number) => void
+  setPendingPayment: (roomId: number, notice: PaymentNotice) => void
+  clearPendingPayment: (roomId: number) => void
 }
 
 // 채팅 페이지(app/chat/[[...id]]/page.tsx)는 방을 전환할 때마다 리마운트되므로,
@@ -50,12 +65,22 @@ export const useChatRoomsStore = create<ChatRoomsStore>((set, get) => ({
   activeRoomId: null,
   selectedService: {},
   pendingGreeting: {},
+  pendingPayment: {},
   setRooms: (rooms) => set({ rooms, loaded: true }),
   setSelectedService: (roomId, service, isNewRoom) =>
     set((s) => ({
       selectedService: { ...s.selectedService, [roomId]: service },
       pendingGreeting: isNewRoom ? { ...s.pendingGreeting, [roomId]: true } : s.pendingGreeting,
     })),
+  setPendingPayment: (roomId, notice) =>
+    set((s) => ({ pendingPayment: { ...s.pendingPayment, [roomId]: notice } })),
+  clearPendingPayment: (roomId) =>
+    set((s) => {
+      if (!s.pendingPayment[roomId]) return s
+      const next = { ...s.pendingPayment }
+      delete next[roomId]
+      return { pendingPayment: next }
+    }),
   clearPendingGreeting: (roomId) =>
     set((s) => {
       if (!s.pendingGreeting[roomId]) return s
