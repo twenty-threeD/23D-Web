@@ -14,7 +14,9 @@ export default function Footer() {
             <p className="text-sm">최적의 전문가를 이어주는 &apos;잇다&apos;입니다.</p>
           </div>
           <div className="flex gap-2">
-            <FaInstagram className="text-zinc-500 w-10 h-10 border-2 border-zinc-500 rounded-lg p-1" />
+            <a href="https://www.instagram.com/idta.blockchain/" target="_blank" rel="noreferrer">
+              <FaInstagram className="text-zinc-500 w-10 h-10 border-2 border-zinc-500 rounded-lg p-1" />
+            </a>
             <a href="https://github.com/twenty-threeD/23D-Web" target="_blank" rel="noreferrer">
               <FaGithub className="text-zinc-500 w-10 h-10 border-2 border-zinc-500 rounded-lg p-1 hover:text-zinc-700 hover:border-zinc-700 transition-colors" />
             </a>
@@ -29,7 +31,7 @@ export default function Footer() {
               <Link href="/notice?title=프로젝트 소개">프로젝트 소개</Link>
             </li>
             <li className="text-sm">
-              <Link href="/notice?title=문의하기">문의하기</Link>
+              <a href="mailto:itda23d@gmail.com">문의하기</a>
             </li>
             <li className="text-sm">
               <Link href="/community">커뮤니티</Link>

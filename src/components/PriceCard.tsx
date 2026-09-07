@@ -23,9 +23,11 @@ interface PriceCardProps {
   postId?: number
   /** 문의하기 버튼 노출 여부. 결제 페이지처럼 이미 문의를 마친 화면에서는 끈다 */
   showInquiry?: boolean
+  /** 지정하면 탭 없이 이 플랜만 보여준다. 결제 화면처럼 선택이 이미 끝난 경우에 쓴다 */
+  selectedPlanName?: string | null
 }
 
-export default function PriceCard({ username, plans, postId, showInquiry = true }: PriceCardProps) {
+export default function PriceCard({ username, plans, postId, showInquiry = true, selectedPlanName }: PriceCardProps) {
   const router = useRouter()
   const token = useAuthStore((s) => s.accessToken)
   const handleError = useHandleError()
@@ -34,7 +36,13 @@ export default function PriceCard({ username, plans, postId, showInquiry = true 
   const [showPicker, setShowPicker] = useState(false)
   const setSelectedService = useChatRoomsStore((s) => s.setSelectedService)
 
-  const safePlans = plans && plans.length > 0 ? plans : [DEFAULT_PLAN]
+  const allPlans = plans && plans.length > 0 ? plans : [DEFAULT_PLAN]
+  // 선택이 끝난 화면에서는 고른 플랜만 남긴다. 이름이 안 맞으면 전체를 그대로 둔다.
+  const picked = selectedPlanName
+    ? allPlans.filter((p) => p.planName === selectedPlanName)
+    : []
+  const safePlans = picked.length > 0 ? picked : allPlans
+  const showTabs = safePlans.length > 1
   const active = Math.min(activeIndex, safePlans.length - 1)
   const plan = safePlans[active]
 
@@ -64,6 +72,7 @@ export default function PriceCard({ username, plans, postId, showInquiry = true 
   return (
     <div className="grow flex flex-col gap-2 border border-zinc-300 rounded-lg sticky top-24 self-start">
       {/* Header */}
+      {showTabs && (
       <div className="flex border-b border-zinc-300 h-12 font-medium">
         {safePlans.map((p, i) => (
           <button
@@ -77,6 +86,7 @@ export default function PriceCard({ username, plans, postId, showInquiry = true 
           </button>
         ))}
       </div>
+      )}
 
       {/* Content */}
       <div className="flex flex-col gap-6 py-4 px-4">

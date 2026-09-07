@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/src/hooks/useToast";
 import { confirmPayment } from "@/src/lib/payment";
 import { useAuthStore } from "@/src/store/authStore";
+import { useChatRoomsStore } from "@/src/store/chatRoomsStore";
 
 function SuccessContent() {
   const router = useRouter();
@@ -18,7 +19,10 @@ function SuccessContent() {
     const orderId = searchParams.get("orderId");
     const amount = searchParams.get("amount");
     const estimateId = searchParams.get("estimateId");
-    const destination = postId ? `/item/${postId}` : "/main";
+    const roomId = searchParams.get("roomId");
+    // 채팅에서 넘어온 결제는 그 방으로 돌려보낸다. 결제 완료 메시지를 보내야 하고,
+    // 사용자도 대화 맥락에서 결과를 확인하는 게 자연스럽다.
+    const destination = roomId ? `/chat/${roomId}` : postId ? `/item/${postId}` : "/main";
 
     async function run() {
       if (!token || !paymentKey || !orderId || !amount) {
@@ -27,7 +31,7 @@ function SuccessContent() {
         return;
       }
       try {
-        await confirmPayment(token, {
+        const res = await confirmPayment(token, {
           paymentKey,
           orderId,
           amount: Number(amount),
@@ -35,6 +39,19 @@ function SuccessContent() {
           ...(estimateId ? { estimateId: Number(estimateId) } : {}),
         });
         addToast({ message: "결제가 완료되었습니다.", type: "success" });
+
+        // 백엔드는 승인 결과를 응답으로만 주고 채팅 메시지를 만들지 않는다.
+        // 계약서와 같은 방식으로 프론트가 채팅에 알린다 —
+        // 여기서는 STOMP 연결이 없으므로 대기열에 넣어두고, 채팅 페이지가 연결되면 보낸다.
+        if (roomId) {
+          const paid = res?.data?.payment;
+          useChatRoomsStore.getState().setPendingPayment(Number(roomId), {
+            orderId: paid?.orderId ?? orderId,
+            orderName: paid?.orderName ?? "",
+            amount: Number(paid?.totalAmount ?? amount),
+            txHash: res?.data?.blockchainTxHash ?? null,
+          });
+        }
       } catch (e) {
         addToast({ message: e instanceof Error ? e.message : "결제 승인에 실패했습니다.", type: "error" });
       } finally {

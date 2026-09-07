@@ -72,6 +72,10 @@ const PayContent = () => {
   // 없으면 기존처럼 견적서 하나를 근거로 삼는다 (게시글 플랜 가격은 결제에 절대 쓰지 않는다).
   const queryPrice = searchParams.get("price");
   const queryContractUrl = searchParams.get("contractUrl");
+  // 문의 시작 때 고른 플랜. 결제 화면에서는 선택이 끝났으므로 이 플랜만 보여준다.
+  const selectedPlanName = searchParams.get("plan");
+  // 결제 승인 후 이 방으로 돌아가 결제 완료 메시지를 보낸다
+  const roomId = searchParams.get("roomId");
   const hasContractQuery = queryPrice !== null && queryContractUrl !== null;
 
   const price = hasContractQuery ? Number(queryPrice) : (estimate?.totalPay ?? 0);
@@ -91,6 +95,7 @@ const PayContent = () => {
         </div>
 
         <div className="flex items-start gap-10 justify-between">
+          <div className="flex-1 min-w-0">
           <Estimate
             imgPath={imgPath}
             title={post?.title ?? ""}
@@ -99,6 +104,7 @@ const PayContent = () => {
             avgRating={reviewSummary?.averageRating}
             reviewCount={reviewSummary?.reviewCount}
           />
+          </div>
           <div className="pr-25">
             <FinalBill
               defaultAmount={price}
@@ -107,7 +113,15 @@ const PayContent = () => {
         </div>
 
         <div className="flex items-start gap-10 justify-between">
-          <PriceCard username={postAuthorUsername} plans={plans} postId={postId ?? undefined} showInquiry={false} />
+          <div className="flex-1 min-w-0">
+            <PriceCard
+              username={postAuthorUsername}
+              plans={plans}
+              postId={postId ?? undefined}
+              showInquiry={false}
+              selectedPlanName={selectedPlanName}
+            />
+          </div>
           <div className="pr-25">
             <ApplyPay isAgree={isAgree} setIsAgree={setIsAgree} />
             {hasContractQuery ? (
@@ -117,6 +131,7 @@ const PayContent = () => {
                 orderName={post?.title ?? "잇다 서비스"}
                 orderCustomerName={username ?? ""}
                 postId={postId ?? undefined}
+                roomId={roomId}
                 contractUrl={contractUrl}
               />
             ) : estimateLoading ? (
@@ -130,6 +145,7 @@ const PayContent = () => {
                 orderName={post?.title ?? "잇다 서비스"}
                 orderCustomerName={username ?? ""}
                 postId={postId ?? undefined}
+                roomId={roomId}
                 contractUrl={contractUrl}
                 estimateId={estimate.id}
               />
