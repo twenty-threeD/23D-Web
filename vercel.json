@@ -1,0 +1,21 @@
+{
+  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"release\" ]; then exit 1; else exit 0; fi",
+  "rewrites": [
+    {
+      "source": "/ws-stomp/:path*",
+      "destination": "https://api.idta.store/ws-stomp/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://api.idta.store/api/:path*"
+    },
+    {
+      "source": "/phone/:path*",
+      "destination": "https://api.idta.store/phone/:path*"
+    },
+    {
+      "source": "/files/:path*",
+      "destination": "https://api.idta.store/files/:path*"
+    }
+  ]
+}

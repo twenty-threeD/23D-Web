@@ -1,30 +1,67 @@
 "use client"
 
-import { useState, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useRef, useEffect, useCallback } from "react"
+import { useRouter, useParams } from "next/navigation"
 import dynamic from "next/dynamic"
 import Header from "@/src/components/Header"
 import Footer from "@/src/components/Footer"
 import CommunityMenu from "@/src/components/CommunitySideBar"
-import { IoImageOutline } from "react-icons/io5"
-import { createPost } from "@/src/lib/community"
+import { IoImageOutline, IoChevronDown } from "react-icons/io5"
+import { getPost, createPost, updatePost, COMMUNITY_CATEGORIES, isCommunityCategory, type CommunityCategory } from "@/src/lib/community"
 import { uploadFile } from "@/src/lib/file"
 import { useAuthStore } from "@/src/store/authStore"
 import { useHandleError } from "@/src/hooks/useHandleError"
+import { signinPath } from "@/src/lib/navigation"
 
 const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false })
 
 export default function Page() {
   const router = useRouter()
+  const params = useParams()
+  const postId = params.id ? Number(Array.isArray(params.id) ? params.id[0] : params.id) : null
   const token = useAuthStore((s) => s.accessToken)
+  const myUsername = useAuthStore((s) => {
+    if (s.username) return s.username
+    if (!s.accessToken) return null
+    try {
+      const p = JSON.parse(atob(s.accessToken.split('.')[1]))
+      return p.username ?? p.sub ?? null
+    } catch { return null }
+  })
   const handleError = useHandleError()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cursorPosRef = useRef<number>(0)
 
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
+  const [category, setCategory] = useState<CommunityCategory | null>(null)
   const [uploading, setUploading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [loading, setLoading] = useState(!!postId)
+
+  const fetchPost = useCallback(async () => {
+    if (!postId) return
+    setLoading(true)
+    try {
+      const res = await getPost(postId, token)
+      const data = res.data ?? res
+      if (data.username && myUsername && data.username !== myUsername) {
+        router.replace(`/posts/${postId}`)
+        return
+      }
+      setTitle(data.title ?? "")
+      setContent(data.content ?? "")
+      const c = typeof data.category === "string" ? data.category : data.category?.name
+      if (isCommunityCategory(c)) setCategory(c)
+    } catch (e) {
+      handleError(e)
+      router.replace("/community")
+    } finally {
+      setLoading(false)
+    }
+  }, [postId, token, myUsername])
+
+  useEffect(() => { fetchPost() }, [fetchPost])
 
   function handleUploadClick() {
     const ta = document.querySelector(".w-md-editor-text-input") as HTMLTextAreaElement | null
@@ -54,20 +91,41 @@ export default function Page() {
     e.target.value = ""
   }
 
+  // 본문 마크다운에서 첫 번째 이미지를 대표 이미지(fileUrl)로 사용한다
+  function extractFileUrl(md: string) {
+    return md.match(/!\[[^\]]*\]\(([^)\s]+)/)?.[1] ?? null
+  }
+
   async function handleSubmit() {
-    if (!token) { router.push("/login/signin"); return }
-    if (!title.trim() || !content.trim()) return
+    if (!token) { router.push(signinPath()); return }
+    if (!title.trim() || !content.trim() || !category) return
     setSubmitting(true)
     try {
-      const res = await createPost(token, { title, content })
-      const postId = res.data?.postId
-      router.push(postId ? `/posts/${postId}` : "/community")
+      if (postId) {
+        await updatePost(token, postId, { title, content, category, fileUrl: extractFileUrl(content) })
+        // 작성/수정을 마친 뒤 뒤로가기로 이 화면에 돌아오지 않도록 히스토리를 치환한다
+        router.replace(`/posts/${postId}`)
+      } else {
+        const res = await createPost(token, { title, content, category, fileUrl: extractFileUrl(content) })
+        const newId = res.data?.postId
+        router.replace(newId ? `/posts/${newId}` : "/community")
+      }
     } catch (e) { handleError(e) } finally {
       setSubmitting(false)
     }
   }
 
-  const isReady = title.trim().length > 0 && content.trim().length > 0
+  const isReady = title.trim().length > 0 && content.trim().length > 0 && !!category
+
+  if (loading) {
+    return (
+      <div>
+        <Header />
+        <p className="text-center py-20 text-zinc-400">불러오는 중...</p>
+        <Footer />
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -77,7 +135,7 @@ export default function Page() {
 
         <main className="flex flex-col gap-4 w-full">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-zinc-800">글쓰기</h1>
+            <h1 className="text-xl font-bold text-zinc-800">{postId ? "글 수정" : "글쓰기"}</h1>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => router.back()}
@@ -88,9 +146,9 @@ export default function Page() {
               <button
                 onClick={handleSubmit}
                 disabled={!isReady || submitting}
-                className="px-5 py-2 rounded-lg bg-main text-white text-sm font-semibold hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-5 py-2 rounded-xl bg-main text-white text-sm font-semibold transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
               >
-                {submitting ? "등록 중..." : "등록"}
+                {submitting ? (postId ? "수정 중..." : "등록 중...") : (postId ? "수정" : "등록")}
               </button>
             </div>
           </div>
@@ -120,6 +178,23 @@ export default function Page() {
                 height={480}
                 preview="edit"
               />
+            </div>
+
+            <div className="flex flex-col gap-1 px-6 py-4 border-t border-zinc-200">
+              <h1 className="text-xl font-bold">카테고리<span className="text-red-500">*</span></h1>
+              <div className="relative">
+                <select
+                  value={category ?? ""}
+                  onChange={(e) => setCategory(isCommunityCategory(e.target.value) ? e.target.value : null)}
+                  className="w-full h-10 border border-zinc-300 rounded-lg pl-3 pr-10 text-sm appearance-none transition-colors focus:outline-none focus:border-main hover:border-zinc-400"
+                >
+                  <option value="">카테고리를 선택해주세요</option>
+                  {COMMUNITY_CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
+                </select>
+                <IoChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 text-lg pointer-events-none" />
+              </div>
             </div>
 
             <div className="flex items-center gap-3 px-6 py-3 border-t border-zinc-200 bg-zinc-50">

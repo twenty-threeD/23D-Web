@@ -1,4 +1,6 @@
 import WriteInputField from "@/src/components/write/WriteInputField"
+import { type PostCategory } from "@/src/lib/post"
+import { IoChevronDown } from "react-icons/io5"
 
 interface WriteSectionProps {
   title: string
@@ -7,8 +9,9 @@ interface WriteSectionProps {
   onDescriptionChange: (value: string) => void
   price: string
   onPriceChange: (value: string) => void
-  onSubmit?: () => void
-  isWaiting?: boolean
+  categoryId: number | ""
+  onCategoryChange: (value: number | "") => void
+  categories: PostCategory[]
 }
 
 export default function WriteSection({
@@ -18,11 +21,28 @@ export default function WriteSection({
   onDescriptionChange,
   price,
   onPriceChange,
-  onSubmit,
-  isWaiting,
+  categoryId,
+  onCategoryChange,
+  categories,
 }: WriteSectionProps) {
   return (
-    <div className="w-124 h-186 flex flex-col gap-7">
+    <div className="w-full flex flex-col gap-7">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-xl font-bold">카테고리<span className="text-red-500">*</span></h1>
+        <div className="relative">
+          <select
+            value={categoryId}
+            onChange={(e) => onCategoryChange(e.target.value ? Number(e.target.value) : "")}
+            className="w-full h-10 border border-zinc-300 rounded-lg pl-3 pr-10 text-sm appearance-none transition-colors focus:outline-none focus:border-main hover:border-zinc-400"
+          >
+            <option value="">카테고리를 선택해주세요</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>{c.fullName}</option>
+            ))}
+          </select>
+          <IoChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 text-lg pointer-events-none" />
+        </div>
+      </div>
       <WriteInputField
         name="제목"
         isEssential={true}
@@ -43,14 +63,6 @@ export default function WriteSection({
         value={price}
         onChange={onPriceChange}
       />
-
-      <button
-        onClick={onSubmit}
-        disabled={isWaiting}
-        className="w-32 h-10 bg-main text-white rounded-lg font-bold self-end disabled:opacity-50 cursor-pointer"
-      >
-        {isWaiting ? "등록 중..." : "등록하기"}
-      </button>
     </div>
   )
 }

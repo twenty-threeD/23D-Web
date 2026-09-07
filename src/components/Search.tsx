@@ -6,11 +6,12 @@ import { IoIosSearch } from "react-icons/io";
 interface SearchProps {
   isTop?: boolean;
   where?: "header" | "post" | "chat";
+  initialValue?: string;
   onSearch?: (keyword: string) => void;
 }
 
-export default function Search({ isTop, where, onSearch }: SearchProps) {
-  const [value, setValue] = useState("");
+export default function Search({ isTop, where, initialValue = "", onSearch }: SearchProps) {
+  const [value, setValue] = useState(initialValue);
   const isHeader = where === "header";
   const isChat = where === "chat";
 
@@ -35,7 +36,7 @@ export default function Search({ isTop, where, onSearch }: SearchProps) {
   return (
     <div className={styleClass}>
       <IoIosSearch
-        className="text-zinc-500 text-2xl cursor-pointer"
+        className="text-zinc-500 hover:text-main text-2xl transition-colors cursor-pointer"
         onClick={() => onSearch?.(value)}
       />
       <input

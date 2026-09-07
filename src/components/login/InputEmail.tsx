@@ -5,6 +5,8 @@ import { InputField } from "@/src/components/InputField";
 
 import { SignUpFormData } from "@/type/authData";
 import { sendVerifyCode, checkVerifyCode } from '@/src/lib/auth'
+import { checkEmail } from '@/src/lib/member'
+import { useToast } from "@/src/hooks/useToast"
 
 interface InputEmailProps {
     formData: SignUpFormData;
@@ -13,13 +15,14 @@ interface InputEmailProps {
 }
 
 const InputEmail = ({ formData, setFormData, onNext }: InputEmailProps) => {
+    const { addToast } = useToast()
     const handleChange = (key: keyof SignUpFormData, value: string) => {
         setFormData((prev) => ({ ...prev, [key]: value }));
     };
 
-    const isAllValid = 
+    const isAllValid =
         formData.email.trim() !== "" &&
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email); 
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
 
     const [showVerification, setShowVerification] = useState(false);
     const [isWaiting, setIsWaiting] = useState(false);
@@ -27,8 +30,12 @@ const InputEmail = ({ formData, setFormData, onNext }: InputEmailProps) => {
     const handleSendCode = async () => {
         setIsWaiting(true)
         try {
+            await checkEmail(formData.email)
             await sendVerifyCode(formData.email)
             setShowVerification(true)
+            addToast({ message: "인증번호가 발송되었습니다.", type: "success" })
+        } catch (e) {
+            addToast({ message: e instanceof Error ? e.message : "인증번호 발송에 실패했습니다.", type: "error" })
         } finally {
             setIsWaiting(false)
         }
@@ -40,7 +47,7 @@ const InputEmail = ({ formData, setFormData, onNext }: InputEmailProps) => {
             await checkVerifyCode(formData.email, formData.emailVerification)
             onNext()
         } catch {
-            alert("인증번호가 일치하지 않습니다.")
+            addToast({ message: "인증번호가 일치하지 않습니다.", type: "error" })
         } finally {
             setIsWaiting(false)
         }
@@ -65,7 +72,7 @@ const InputEmail = ({ formData, setFormData, onNext }: InputEmailProps) => {
                 onClick={() => { showVerification ? handleVerify() : handleSendCode() }}
                 className={`w-75 h-10 mt-10 rounded-lg text-lg font-bold transition-colors cursor-pointer
                 ${isAllValid && !isWaiting
-                    ? 'bg-main text-white hover:bg-main/90'
+                    ? 'bg-main text-white hover:bg-orange-600'
                     : 'bg-zinc-300 text-zinc-500 cursor-not-allowed'}`}
             >
                 {isWaiting ? "처리 중..." : showVerification ? "다음" : "인증번호 발송"}

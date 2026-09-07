@@ -1,36 +1,139 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 23D-Web
 
-## Getting Started
+> **사람과 사람을 잇다.**
+> 커리어를 투명하게 증명하고, 신뢰할 수 있는 파트너를 만나는 서비스 **잇다(ITDA)**의 Web Client입니다.
 
-First, run the development server:
+## 🔗 About ITDA
+
+**잇다**는 사용자의 커리어와 활동을 기반으로 신뢰할 수 있는 파트너를 연결하는 매칭 플랫폼입니다.
+
+블록체인을 활용한 신뢰성 있는 커리어 검증을 기반으로
+사용자들이 보다 안전하게 서로를 찾고 소통할 수 있는 환경을 목표로 합니다.
+
+## ✨ Features
+
+- 👤 회원가입 및 로그인
+- 🪪 사용자 프로필 / 커리어 관리
+- 🔍 파트너 및 사용자 탐색
+- 💬 실시간 채팅
+- 📝 게시글 및 커뮤니티
+- 📁 파일 업로드
+- 💳 Toss Payments 결제
+- 🔐 인증 기반 API 통신
+
+## 🛠 Tech Stack
+
+### Frontend
+
+![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
+
+### Libraries
+
+- **Zustand** — Global State Management
+- **Toss Payments SDK** — Payment
+- **React Icons** — Icons
+- **React Markdown Editor** — Markdown Editor
+- **Sonner** — Toast Notification
+
+## 📁 Project Structure
+
+```text
+23D-Web/
+├── public/
+├── src/
+│   ├── app/             # Next.js App Router
+│   │   ├── api/
+│   │   ├── chat/
+│   │   ├── community/
+│   │   ├── detail/
+│   │   ├── item/
+│   │   ├── login/
+│   │   ├── main/
+│   │   ├── pay/
+│   │   ├── posts/
+│   │   ├── profile/
+│   │   └── upload/
+│   │
+│   ├── components/      # Reusable UI Components
+│   ├── hooks/           # Custom React Hooks
+│   ├── lib/             # API / Utility Functions
+│   ├── store/           # Zustand Stores
+│   ├── types/           # TypeScript Types
+│   └── middleware.ts
+│
+├── package.json
+├── next.config.ts
+├── tailwind.config.ts
+└── tsconfig.json
+```
+
+## 🚀 Getting Started
+
+### 1. Clone
+
+```bash
+git clone https://github.com/twenty-threeD/23D-Web.git
+cd 23D-Web
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Environment Variables
+
+프로젝트 루트에 `.env.local` 파일을 생성합니다.
+
+```env
+NEXT_PUBLIC_API_URL=YOUR_API_URL
+NEXT_PUBLIC_TOSS_CLIENT_KEY=YOUR_TOSS_CLIENT_KEY
+```
+
+> 실제 API 주소와 Toss Payments Client Key를 입력해주세요.
+
+### 4. Run Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+브라우저에서 다음 주소로 접속합니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```text
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📦 Build
 
-## Learn More
+Production Build:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Production Server:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run start
+```
 
-## Deploy on Vercel
+## 🧹 Lint
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run lint
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 👥 Team
+
+**23D**
+
+Repository maintained by **twenty-threeD**.
+
+## 📄 Repository
+
+https://github.com/twenty-threeD/23D-Web

@@ -1,8 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { getPosts, searchPosts } from "@/src/lib/community";
+import { Suspense, useState, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  getPosts,
+  getPostsByCategory,
+  searchPosts,
+  isCommunityCategory,
+  categoryLabel,
+} from "@/src/lib/community";
 import { useAuthStore } from "@/src/store/authStore";
 import Header from "@/src/components/Header";
 import Footer from "@/src/components/Footer";
@@ -21,67 +27,92 @@ interface Post {
   updatedAt: string
 }
 
-export default function Page() {
+function PostList() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams.get("category");
+  const category = isCommunityCategory(categoryParam) ? categoryParam : null;
   const token = useAuthStore((s) => s.accessToken);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState("");
+
+  // 카테고리를 바꾸면 검색어는 초기화
+  useEffect(() => { setKeyword(""); }, [category]);
 
   const fetchPosts = useCallback(async () => {
     setLoading(true);
     try {
       const res = keyword
         ? await searchPosts(keyword, token)
-        : await getPosts(token);
+        : category
+          ? await getPostsByCategory(category, token)
+          : await getPosts(token);
       setPosts(res.data ?? []);
     } catch {
       setPosts([]);
     } finally {
       setLoading(false);
     }
-  }, [keyword, token]);
+  }, [keyword, category, token]);
 
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
 
   return (
+    <main className="flex flex-col gap-4 w-full">
+      {/* items-stretch 로 버튼 높이를 검색창에 맞춘다. 검색창은 header/chat 에서도 쓰여
+          높이를 건드리면 다른 화면이 같이 바뀌므로 버튼 쪽을 맞추는 방향으로 둔다. */}
+      <div className="flex items-stretch gap-2">
+        <Search where="post" onSearch={setKeyword} />
+        <button
+          onClick={() => router.push("/community/write")}
+          className="px-4 text-center bg-main text-white font-semibold rounded-lg whitespace-nowrap transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
+        >
+          글작성
+        </button>
+      </div>
+
+      <div className="flex flex-col divide-y divide-zinc-300">
+        {loading ? (
+          Array.from({ length: 5 }).map((_, i) => <PostItemSkeleton key={i} />)
+        ) : posts.length === 0 ? (
+          <p className="py-8 text-center text-zinc-400">
+            {category ? `'${categoryLabel(category)}' 게시글이 없습니다.` : "게시글이 없습니다."}
+          </p>
+        ) : (
+          posts.map((post) => (
+            <PostItem
+              key={post.id}
+              id={post.id}
+              title={post.title}
+              content={post.content}
+              imageUrl={post.fileUrl}
+              createdAt={new Date(post.updatedAt).toLocaleDateString("ko-KR")}
+            />
+          ))
+        )}
+      </div>
+    </main>
+  );
+}
+
+export default function Page() {
+  return (
     <div>
       <Header />
       <div className="flex items-start justify-between px-20 py-8 gap-8">
         <CommunityMenu />
-
-        <main className="flex flex-col gap-4 w-full">
-          <div className="flex items-center gap-2">
-            <Search where="post" onSearch={setKeyword} />
-            <button
-              onClick={() => router.push("/community/write")}
-              className="text-lg px-4 py-2 border text-center bg-main border-zinc-300 text-white font-semibold rounded-md whitespace-nowrap cursor-pointer hover:bg-orange-600"
-            >
-              글작성
-            </button>
-          </div>
-
-          <div className="flex flex-col divide-y divide-zinc-300">
-            {loading ? (
-              Array.from({ length: 5 }).map((_, i) => <PostItemSkeleton key={i} />)
-            ) : posts.length === 0 ? (
-              <p className="py-8 text-center text-zinc-400">게시글이 없습니다.</p>
-            ) : (
-              posts.map((post) => (
-                <PostItem
-                  key={post.id}
-                  id={post.id}
-                  title={post.title}
-                  content={post.content}
-                  imageUrl={post.fileUrl}
-                  createdAt={new Date(post.updatedAt).toLocaleDateString("ko-KR")}
-                />
-              ))
-            )}
-          </div>
-        </main>
+        <Suspense
+          fallback={
+            <main className="flex flex-col divide-y divide-zinc-300 w-full">
+              {Array.from({ length: 5 }).map((_, i) => <PostItemSkeleton key={i} />)}
+            </main>
+          }
+        >
+          <PostList />
+        </Suspense>
       </div>
       <TopButton />
       <Footer />

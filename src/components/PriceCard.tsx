@@ -2,11 +2,13 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { useAuthStore } from "@/src/store/authStore"
+import { useChatRoomsStore } from "@/src/store/chatRoomsStore"
 import { createChatRoom } from "@/src/lib/chat"
 import { useHandleError } from "@/src/hooks/useHandleError"
 import { type PriceCardPlan } from "@/src/types/priceCard"
+import ServicePickerModal from "@/src/components/item/ServicePickerModal"
+import { signinPath } from "@/src/lib/navigation"
 
 const DEFAULT_PLAN: PriceCardPlan = {
   planName: "기본 플랜",
@@ -17,42 +19,74 @@ const DEFAULT_PLAN: PriceCardPlan = {
 
 interface PriceCardProps {
   username?: string
-  plan?: PriceCardPlan
+  plans?: PriceCardPlan[]
+  postId?: number
+  /** 문의하기 버튼 노출 여부. 결제 페이지처럼 이미 문의를 마친 화면에서는 끈다 */
+  showInquiry?: boolean
+  /** 지정하면 탭 없이 이 플랜만 보여준다. 결제 화면처럼 선택이 이미 끝난 경우에 쓴다 */
+  selectedPlanName?: string | null
 }
 
-export default function PriceCard({ username, plan = DEFAULT_PLAN }: PriceCardProps) {
+export default function PriceCard({ username, plans, postId, showInquiry = true, selectedPlanName }: PriceCardProps) {
   const router = useRouter()
   const token = useAuthStore((s) => s.accessToken)
   const handleError = useHandleError()
   const [loading, setLoading] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [showPicker, setShowPicker] = useState(false)
+  const setSelectedService = useChatRoomsStore((s) => s.setSelectedService)
 
-  async function handleChat() {
-    if (!token) { router.push("/login/signin"); return }
-    if (!username) return
+  const allPlans = plans && plans.length > 0 ? plans : [DEFAULT_PLAN]
+  // 선택이 끝난 화면에서는 고른 플랜만 남긴다. 이름이 안 맞으면 전체를 그대로 둔다.
+  const picked = selectedPlanName
+    ? allPlans.filter((p) => p.planName === selectedPlanName)
+    : []
+  const safePlans = picked.length > 0 ? picked : allPlans
+  const showTabs = safePlans.length > 1
+  const active = Math.min(activeIndex, safePlans.length - 1)
+  const plan = safePlans[active]
+
+  async function handleSelectService(service: { planName: string; price: string }) {
+    if (!token) { router.push(signinPath()); return }
+    if (!username || !postId) return
     setLoading(true)
     try {
-      const res = await createChatRoom(token, username)
+      const res = await createChatRoom(token, username, postId)
       const roomId = res.data?.roomId
-      if (roomId) router.push(`/chat/${roomId}`)
+      if (roomId) {
+        setSelectedService(roomId, service, !res.data?.existingRoom)
+        router.push(`/chat/${roomId}`)
+      }
     } catch (e) {
       handleError(e)
     } finally {
       setLoading(false)
+      setShowPicker(false)
     }
   }
 
   const displayPrice = plan.price
-    ? `${Number(plan.price).toLocaleString()}원`
+    ? `${Number(plan.price.replace(/,/g, '')).toLocaleString()}원`
     : "가격 미정"
 
   return (
     <div className="grow flex flex-col gap-2 border border-zinc-300 rounded-lg sticky top-24 self-start">
       {/* Header */}
+      {showTabs && (
       <div className="flex border-b border-zinc-300 h-12 font-medium">
-        <div className="flex items-center justify-center w-full py-2 border-b-2 font-semibold text-sm px-4 truncate">
-          {plan.planName || "서비스 플랜"}
-        </div>
+        {safePlans.map((p, i) => (
+          <button
+            key={i}
+            onClick={() => setActiveIndex(i)}
+            className={`flex items-center justify-center flex-1 py-2 border-b-2 font-semibold text-sm px-4 truncate cursor-pointer ${
+              i === active ? "border-main text-main" : "border-transparent text-zinc-400 hover:text-zinc-600"
+            }`}
+          >
+            {p.planName || `플랜 ${i + 1}`}
+          </button>
+        ))}
       </div>
+      )}
 
       {/* Content */}
       <div className="flex flex-col gap-6 py-4 px-4">
@@ -65,32 +99,35 @@ export default function PriceCard({ username, plan = DEFAULT_PLAN }: PriceCardPr
         </div>
 
         {plan.items.length > 0 && (
-          <div className="flex flex-col items-center gap-1">
+          <div className="flex flex-col gap-1.5">
             {plan.items.map((item, i) => (
-              <div key={i} className="flex justify-between w-full">
+              <div key={i} className="flex items-center gap-2 w-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 shrink-0" />
                 <span className="text-sm text-zinc-400">{item.name}</span>
-                <span className="text-sm text-zinc-400">{item.included ? "O" : "X"}</span>
               </div>
             ))}
           </div>
         )}
 
-        <div className="flex flex-col gap-2">
-          <Link
-            href="/pay"
-            className="w-full py-2 border text-center border-zinc-300 font-semibold rounded-md"
-          >
-            견적서 요청
-          </Link>
+        {showInquiry && (
           <button
-            onClick={handleChat}
+            onClick={() => setShowPicker(true)}
             disabled={loading || !username}
-            className="w-full py-2 border text-center bg-main border-zinc-300 text-white font-semibold rounded-md disabled:opacity-50 cursor-pointer"
+            className="w-full py-3 text-center bg-main text-white text-sm font-semibold rounded-xl transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
           >
             {loading ? "연결 중..." : "문의하기"}
           </button>
-        </div>
+        )}
       </div>
+
+      {showPicker && (
+        <ServicePickerModal
+          plans={safePlans}
+          busy={loading}
+          onClose={() => setShowPicker(false)}
+          onSelect={handleSelectService}
+        />
+      )}
     </div>
   )
 }

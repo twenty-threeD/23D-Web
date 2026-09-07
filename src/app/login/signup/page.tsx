@@ -53,7 +53,8 @@ export default function Page() {
             addToast(
                 { message: "회원가입에 성공했습니다. 로그인 페이지로 이동합니다.", type: "success" }
             )
-            router.push('/login/signin')
+            // 가입 완료 후 뒤로가기로 가입 폼에 돌아오지 않도록 히스토리를 치환한다
+            router.replace('/login/signin')
         } catch (e) {
             addToast(
                 { message: e instanceof Error ? `회원가입에 실패하였습니다. ${e.message}` : '회원가입에 실패했습니다.', type: "error" },
@@ -77,7 +78,7 @@ export default function Page() {
                 `}
             >
                 <Link href="/main">
-                    <Image src="/icon.png" alt="Logo" width={80} height={40} className="mb-5" />
+                    <Image src="/logo.svg" alt="Logo" width={80} height={40} className="mb-5 bg-black" />
                 </Link>
                 <div className="w-full flex flex-col gap-3 items-center transition-opacity duration-300">
                     {step === 1 && (
@@ -107,14 +108,14 @@ export default function Page() {
                     )}
                     {step === 5 && (
                         <>
-                            <h1 className="font-bold text-lg">{formData.name}님, 이제 
+                            <h1 className="font-bold text-lg">{formData.name || formData.username}님, 이제
                                 <span className="text-[#FF884D]"> 사람과 사람을 이으러 </span> 
                                 가볼까요?</h1>
                             <button
                                 disabled={isWaiting}
                                 onClick={handleSignup}
                                 className={`w-75 h-10 mt-12.5 rounded-lg text-lg font-bold transition-colors
-                                ${isWaiting ? 'bg-zinc-300 text-zinc-500 cursor-not-allowed' : 'bg-main text-white hover:bg-main/90'}`}
+                                ${isWaiting ? 'bg-zinc-300 text-zinc-500 cursor-not-allowed' : 'bg-main text-white hover:bg-orange-600'}`}
                             >
                                 {isWaiting ? "처리 중..." : "시작하기"}
                             </button>

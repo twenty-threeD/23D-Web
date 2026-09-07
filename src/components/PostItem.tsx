@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { toRelativeUrl } from "@/src/lib/file"
 
 function extractFirstImage(text: string): string | undefined {
   const match = text.match(/!\[.*?\]\((.*?)\)/)
@@ -27,7 +28,7 @@ interface PostItemProps {
 }
 
 export default function PostItem({ id, title, content = "", imageUrl, createdAt }: PostItemProps) {
-  const thumbnail = imageUrl || extractFirstImage(content)
+  const thumbnail = toRelativeUrl(imageUrl) || extractFirstImage(content)
 
   return (
     <Link href={`/posts/${id}`} className="flex flex-col gap-2 justify-between items-center shrink-0 py-4">

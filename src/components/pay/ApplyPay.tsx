@@ -12,7 +12,7 @@ export const ApplyPay = ({ isAgree, setIsAgree }: ApplyPayProps) => {
                     id="terms"
                     checked={isAgree} // 현재 상태 연결
                     onChange={(e) => setIsAgree(e.target.checked)} // 클릭 시 상태 변경
-                    className="font-semibold accent-[#FE6A4C] w-7 h-7 cursor-pointer" 
+                    className="font-semibold accent-main w-7 h-7 cursor-pointer" 
                 />
                 <label htmlFor="terms" className="text-xl text-zinc-600 cursor-pointer">
                     구매조건 및 결제진행 동의

@@ -16,18 +16,25 @@ import {
   getPosts,
   getComments,
   createComment,
+  updateComment,
+  deleteComment,
   addLike,
   removeLike,
+  deletePost,
 } from "@/src/lib/community"
 import { useAuthStore } from "@/src/store/authStore"
+import { toRelativeUrl } from "@/src/lib/file"
 import { useLikeStore } from "@/src/store/likeStore"
 import { ApiError } from "@/src/lib/apiError"
 import { useHandleError } from "@/src/hooks/useHandleError"
 import TopButton from "@/src/components/TopButton"
+import { signinPath } from "@/src/lib/navigation"
 
 interface Post {
   id: number
   username: string
+  // 프로필 미설정 회원은 null 로 온다
+  imageUrl?: string | null
   title: string
   content: string
   fileUrl?: string
@@ -53,6 +60,8 @@ interface CommentData {
   username: string
   content: string
   updatedAt: string
+  edited?: boolean
+  imageUrl?: string | null
 }
 
 export default function Page() {
@@ -60,8 +69,17 @@ export default function Page() {
   const router = useRouter()
   const postId = Number(Array.isArray(params.id) ? params.id[0] : params.id)
   const token = useAuthStore((s) => s.accessToken)
+  const myUsername = useAuthStore((s) => {
+    if (s.username) return s.username
+    if (!s.accessToken) return null
+    try {
+      const p = JSON.parse(atob(s.accessToken.split('.')[1]))
+      return p.username ?? p.sub ?? null
+    } catch { return null }
+  })
 
   const handleError = useHandleError()
+  // 커뮤니티 응답에 작성자 이미지가 없어 서비스 게시글에서 모아둔 매핑으로 채운다
   const likeStore = useLikeStore()
   const [post, setPost] = useState<Post | null>(null)
   const [comments, setComments] = useState<CommentData[]>([])
@@ -117,7 +135,7 @@ export default function Page() {
   }, [fetchPost, fetchComments, fetchRelated])
 
   async function handleLike() {
-    if (!token) { router.push("/login/signin"); return }
+    if (!token) { router.push(signinPath()); return }
     try {
       if (isLiked) {
         await removeLike(token, postId)
@@ -134,8 +152,40 @@ export default function Page() {
     } catch (e) { handleError(e) }
   }
 
+  async function handleDelete() {
+    if (!token) return
+    if (!confirm("게시글을 삭제하시겠습니까?")) return
+    try {
+      await deletePost(token, postId)
+      router.push("/community")
+    } catch (e) {
+      handleError(e)
+    }
+  }
+
+  async function handleCommentEdit(commentId: number, content: string) {
+    if (!token) return
+    try {
+      await updateComment(token, commentId, content)
+      await fetchComments()
+    } catch (e) {
+      handleError(e)
+    }
+  }
+
+  async function handleCommentDelete(commentId: number) {
+    if (!token) return
+    if (!confirm("댓글을 삭제하시겠습니까?")) return
+    try {
+      await deleteComment(token, commentId)
+      await fetchComments()
+    } catch (e) {
+      handleError(e)
+    }
+  }
+
   async function handleCommentSubmit() {
-    if (!token) { router.push("/login/signin"); return }
+    if (!token) { router.push(signinPath()); return }
     if (!commentText.trim()) return
     setSubmitting(true)
     try {
@@ -176,12 +226,28 @@ export default function Page() {
           <div className="flex flex-col gap-4 w-full border-zinc-200 border rounded-lg p-8">
             {/* 헤더 */}
             <header className="flex flex-col gap-3">
-              <div className="flex flex-col gap-1">
+              <div className="flex justify-between items-start gap-4">
                 <h1 className="text-2xl font-medium">{post.title}</h1>
+                {myUsername === post.username && (
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={() => router.push(`/community/write/${postId}`)}
+                      className="px-3 py-1 text-sm text-zinc-600 border border-zinc-300 rounded-lg hover:bg-zinc-50 cursor-pointer"
+                    >
+                      수정
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="px-3 py-1 text-sm text-red-500 border border-red-300 rounded-lg hover:bg-red-50 cursor-pointer"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="flex gap-2">
                 <div className="w-12 h-12 bg-zinc-400 rounded-full overflow-hidden border border-zinc-300 shrink-0">
-                  <Image src="/profile.png" alt="프로필사진" className="object-cover" width={48} height={48} />
+                  <Image src={post.imageUrl ? toRelativeUrl(post.imageUrl) : "/profile.png"} alt="프로필사진" className="object-cover" width={48} height={48} />
                 </div>
                 <div className="flex flex-col justify-center w-full">
                   <h3 className="text-sm font-medium">{post.username}</h3>
@@ -202,11 +268,6 @@ export default function Page() {
             </header>
 
             <hr className="text-zinc-300" />
-
-            {/* 첨부 이미지 */}
-            {post.fileUrl && (
-              <img src={post.fileUrl} alt="첨부 이미지" className="max-w-full rounded-lg" />
-            )}
 
             {/* 게시물 내용 */}
             <style>{`
@@ -263,7 +324,12 @@ export default function Page() {
                 <Comment
                   key={c.id}
                   authorName={c.username}
+                  profileImage={c.imageUrl ? toRelativeUrl(c.imageUrl) : undefined}
                   content={c.content}
+                  edited={c.edited}
+                  isOwner={myUsername === c.username}
+                  onEdit={(content) => handleCommentEdit(c.id, content)}
+                  onDelete={() => handleCommentDelete(c.id)}
                   createdAt={new Date(c.updatedAt).toLocaleString("ko-KR", {
                     year: "numeric", month: "2-digit", day: "2-digit",
                     hour: "2-digit", minute: "2-digit",
@@ -286,7 +352,7 @@ export default function Page() {
                   <button
                     onClick={handleCommentSubmit}
                     disabled={submitting || !token}
-                    className="self-end px-4 py-2 bg-main text-white font-semibold rounded-lg hover:bg-orange-600 disabled:opacity-50"
+                    className="self-end px-4 py-2 bg-main text-white text-sm font-semibold rounded-xl transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
                   >
                     {submitting ? "등록 중..." : "등록"}
                   </button>

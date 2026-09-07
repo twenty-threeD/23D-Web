@@ -1,4 +1,4 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL
+import { throwApiError } from './apiError'
 
 function authHeaders(token: string) {
   return {
@@ -9,8 +9,7 @@ function authHeaders(token: string) {
 
 // 결제 조회 (paymentKey)
 export async function getPayment(token: string, paymentKey: string) {
-  const res = await fetch(`${BASE}/api/payment/${paymentKey}`, {
-    credentials: 'include',
+  const res = await fetch(`/api/payment/${paymentKey}`, {
     headers: authHeaders(token),
   })
   if (!res.ok) throw new Error('결제 조회 실패')
@@ -19,26 +18,39 @@ export async function getPayment(token: string, paymentKey: string) {
 
 // 결제 조회 (orderId)
 export async function getPaymentByOrder(token: string, orderId: string) {
-  const res = await fetch(`${BASE}/api/payment/orders/${orderId}`, {
-    credentials: 'include',
+  const res = await fetch(`/api/payment/orders/${orderId}`, {
     headers: authHeaders(token),
   })
   if (!res.ok) throw new Error('주문 조회 실패')
   return res.json()
 }
 
-// 결제 승인 (토스페이먼츠 콜백 후 서버 최종 승인)
-export async function confirmPayment(
+// 결제 사전 등록 (결제창을 띄우기 전에 반드시 호출해야 한다)
+// 여기서 등록한 orderId, amount 를 결제창과 승인 요청에 그대로 사용해야 한다.
+export async function preparePayment(
   token: string,
-  data: { paymentKey: string; orderId: string; amount: number }
+  data: { orderId: string; amount: number; contractUrl: string; orderName?: string }
 ) {
-  const res = await fetch(`${BASE}/api/payment/confirm`, {
+  const res = await fetch(`/api/payment/prepare`, {
     method: 'POST',
-    credentials: 'include',
     headers: authHeaders(token),
     body: JSON.stringify(data),
   })
-  if (!res.ok) throw new Error('결제 승인 실패')
+  if (!res.ok) await throwApiError(res)
+  return res.json()
+}
+
+// 결제 승인 (토스페이먼츠 콜백 후 서버 최종 승인)
+export async function confirmPayment(
+  token: string,
+  data: { paymentKey: string; orderId: string; amount: number; estimateId?: number }
+) {
+  const res = await fetch(`/api/payment/confirm`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) await throwApiError(res)
   return res.json()
 }
 
@@ -54,9 +66,8 @@ export async function createVirtualAccount(
     dueDate?: string
   }
 ) {
-  const res = await fetch(`${BASE}/api/payment/virtual-accounts`, {
+  const res = await fetch(`/api/payment/virtual-accounts`, {
     method: 'POST',
-    credentials: 'include',
     headers: authHeaders(token),
     body: JSON.stringify(data),
   })
@@ -70,9 +81,8 @@ export async function cancelPayment(
   paymentKey: string,
   data: { cancelReason: string; cancelAmount?: number }
 ) {
-  const res = await fetch(`${BASE}/api/payment/${paymentKey}/cancel`, {
+  const res = await fetch(`/api/payment/${paymentKey}/cancel`, {
     method: 'POST',
-    credentials: 'include',
     headers: authHeaders(token),
     body: JSON.stringify(data),
   })

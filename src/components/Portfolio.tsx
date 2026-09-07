@@ -1,13 +1,7 @@
 export default function Portfolio() {
   return (
     <div className="flex flex-1 flex-col gap-1 justify-center items-start min-w-0">
-      <div className="w-full aspect-square rounded-lg bg-zinc-300 overflow-hidden">
-          <img
-            src="https://picsum.photos/seed/1/400/400"
-            alt="포트폴리오 이미지"
-            className="w-full h-full object-cover"
-          />
-        </div>
+      <div className="w-full aspect-square rounded-lg bg-zinc-300 overflow-hidden" />
         <h3 className="text-lg font-semibold">
           만촌동 에어컨 설치
         </h3>
