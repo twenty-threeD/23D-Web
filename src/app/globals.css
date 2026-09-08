@@ -71,3 +71,23 @@ body {
 .animate-contract-sweep {
 	animation: contract-sweep 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
+
+@keyframes block-height-rise {
+	from {
+		opacity: 0;
+		transform: translateY(100%);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+.block-height-rise {
+	animation: block-height-rise 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.block-height-rise {
+		animation: none;
+	}
+}

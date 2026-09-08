@@ -4,7 +4,8 @@ import Footer from "@/src/components/Footer";
 import SearchInput from "@/src/components/blockchain/SearchInput";
 import {useEffect, useState} from "react";
 import type {ReactNode} from "react";
-import {getLatestBlockHeight} from "@/src/lib/BlockHeight";
+import {subscribeBlockHeight} from "@/src/lib/BlockHeight";
+import BlockHeightCounter from "@/src/components/blockchain/BlockHeightCounter";
 
 function CardTitle({
     icon,
@@ -57,35 +58,19 @@ export default function Page() {
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        let isMounted = true
+        const unsubscribe = subscribeBlockHeight({
+            onHeight: (height) => {
+                setBlockHeight(height)
+                setError(null)
+                setIsLoading(false)
+            },
+            onError: (message) => {
+                setError(message)
+                setIsLoading(false)
+            },
+        })
 
-        const fetchBlockHeight = async () => {
-            try {
-                const result = await getLatestBlockHeight()
-
-                if (isMounted) {
-                    setBlockHeight(result.blockHeight)
-                    setError(null)
-                }
-            } catch {
-                if (isMounted) {
-                    setError("-")
-                }
-            } finally {
-                if (isMounted) {
-                    setIsLoading(false)
-                }
-            }
-        }
-
-        fetchBlockHeight()
-
-        const intervalId = window.setInterval(fetchBlockHeight, 5000)
-
-        return () => {
-            isMounted = false
-            window.clearInterval(intervalId)
-        }
+        return unsubscribe
     }, [])
 
     const handleSearch = (search: string) => {}
@@ -109,13 +94,9 @@ export default function Page() {
                     <div className="min-h-[188px] rounded-xl bg-[#fbfbfb] p-7">
                         <div className="flex flex-col gap-9">
                             <CardTitle icon="/icons/blockchain/blocks.svg">블록 높이</CardTitle>
-                            <p className="text-4xl font-medium text-main">
-                                {display(
-                                    blockHeight !== null && !error && !isLoading
-                                        ? blockHeight.toLocaleString()
-                                        : null
-                                )}
-                            </p>
+                            <BlockHeightCounter
+                                value={blockHeight !== null && !error && !isLoading ? blockHeight : null}
+                            />
                         </div>
                     </div>
 
