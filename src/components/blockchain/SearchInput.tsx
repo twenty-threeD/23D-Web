@@ -1,7 +1,6 @@
 "use client"
 
 import {FormEvent, useState} from "react";
-import {FiSearch} from "react-icons/fi";
 
 interface SearchInputProps {
     onSearch: (input: string) => void
@@ -20,21 +19,21 @@ export default function SearchInput({ onSearch }: SearchInputProps) {
     }
 
     return (
-        <form onSubmit={handleSubmit} className="flex h-14 w-full items-center rounded-2xl border-2 border-main bg-white px-5">
+        <form onSubmit={handleSubmit} className="flex h-13 w-full items-center rounded-xl border-2 border-main bg-white pl-[22px] pr-[26px]">
             <input
                 type="text"
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 placeholder="해시를 입력해주세요."
                 aria-label="해시를 입력해주세요."
-                className="min-w-0 flex-1 bg-transparent text-base text-black outline-none placeholder:text-gray-300"
+                className="min-w-0 flex-1 bg-transparent text-base font-medium text-black outline-none placeholder:text-[#aaa]"
             />
             <button
                 type="submit"
                 aria-label="검색"
-                className="ml-4 flex h-8 w-8 shrink-0 items-center justify-center text-gray-400 transition-colors hover:text-main"
+                className="ml-4 flex size-6 shrink-0 items-center justify-center"
             >
-                <FiSearch size={28} strokeWidth={1.8} />
+                <img src="/icons/blockchain/search.svg" alt="" className="size-6" />
             </button>
         </form>
     )
