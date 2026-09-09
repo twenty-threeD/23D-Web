@@ -1,6 +1,7 @@
 "use client"
 
 import {FormEvent, useState} from "react";
+import {LuSearch} from "react-icons/lu";
 
 interface SearchInputProps {
     onSearch: (input: string) => void
@@ -33,7 +34,7 @@ export default function SearchInput({ onSearch }: SearchInputProps) {
                 aria-label="검색"
                 className="ml-4 flex size-6 shrink-0 items-center justify-center"
             >
-                <img src="/icons/blockchain/search.svg" alt="" className="size-6" />
+                <LuSearch className="size-6 text-[#aaa]" />
             </button>
         </form>
     )

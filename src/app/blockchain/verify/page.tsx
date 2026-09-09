@@ -15,24 +15,32 @@ import {
 } from "@/src/lib/RecentActivity";
 import {formatAbsoluteTime, formatRelativeTime, useNow} from "@/src/lib/RelativeTime";
 import BlockHeightCounter from "@/src/components/blockchain/BlockHeightCounter";
+import {LuBlocks, LuNetwork} from "react-icons/lu";
+import {TbCashBanknotePlus} from "react-icons/tb";
 
 function CardTitle({
     icon,
     children,
     link,
 }: {
-    icon: string
+    icon: ReactNode
     children: ReactNode
     link?: string
 }) {
     return (
         <div className="flex h-6 items-center gap-3">
-            <img src={icon} alt="" className="size-6 shrink-0"/>
+            {icon}
             <p className="text-xl font-medium text-black">{children}</p>
             {link && <span className="text-xs font-medium text-[#aaa] underline">{link}</span>}
         </div>
     )
 }
+
+/**
+ * 카드 제목 아이콘은 시안과 같은 24px, 같은 색으로 맞춘다.
+ * react-icons는 stroke가 currentColor라 색은 클래스로 준다.
+ */
+const CARD_ICON = {className: "size-6 shrink-0 text-main"}
 
 const EMPTY = "-"
 
@@ -151,7 +159,7 @@ export default function Page() {
                 <div className="mt-12 grid grid-cols-1 gap-x-8 gap-y-4 lg:grid-cols-2">
                     <div className="min-h-[188px] rounded-xl bg-[#fbfbfb] p-7">
                         <div className="flex flex-col gap-9">
-                            <CardTitle icon="/icons/blockchain/blocks.svg">블록 높이</CardTitle>
+                            <CardTitle icon={<LuBlocks {...CARD_ICON}/>}>블록 높이</CardTitle>
                             <BlockHeightCounter
                                 value={blockHeight !== null && !error && !isLoading ? blockHeight : null}
                             />
@@ -160,7 +168,7 @@ export default function Page() {
 
                     <div className="min-h-[188px] rounded-xl bg-[#fbfbfb] p-7">
                         <div className="flex flex-col gap-[34px]">
-                            <CardTitle icon="/icons/blockchain/network.svg">네트워크 정보</CardTitle>
+                            <CardTitle icon={<LuNetwork {...CARD_ICON}/>}>네트워크 정보</CardTitle>
                             <div className="flex items-start gap-9">
                                 <Stat label="운용 노드" value={networkInfo?.nodes ?? null}/>
                                 <Stat label="트랜잭션 검증자" value={networkInfo?.validators ?? null}/>
@@ -173,7 +181,7 @@ export default function Page() {
                     </div>
 
                     <div className="rounded-xl bg-[#fbfbfb] p-7 font-medium">
-                        <CardTitle icon="/icons/blockchain/blocks.svg" link="자세히보기">최근 블록</CardTitle>
+                        <CardTitle icon={<LuBlocks {...CARD_ICON}/>} link="자세히보기">최근 블록</CardTitle>
                         <div className="mt-7 flex flex-col gap-4">
                             <TableRow header cells={["블록높이", "시간", "TX 수"]}/>
                             {padRows(blocks.map((block): Cells => [
@@ -187,7 +195,7 @@ export default function Page() {
                     </div>
 
                     <div className="rounded-xl bg-[#fbfbfb] p-7 font-medium">
-                        <CardTitle icon="/icons/blockchain/banknote-arrow-up.svg" link="자세히보기">최근 트랜잭션</CardTitle>
+                        <CardTitle icon={<TbCashBanknotePlus {...CARD_ICON}/>} link="자세히보기">최근 트랜잭션</CardTitle>
                         <div className="mt-7 flex flex-col gap-4">
                             <TableRow header cells={["트랜잭션 해시", "서명자", "결제 ID"]}/>
                             {padRows(transactions.map((transaction): Cells => [
