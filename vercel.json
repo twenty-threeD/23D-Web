@@ -6,8 +6,8 @@
       "destination": "https://api.idta.store/ws-stomp/:path*"
     },
     {
-      "source": "/api/:path*",
-      "destination": "https://api.idta.store/api/:path*"
+      "source": "/api/:path((?!blockchain(?:/|$)).*)",
+      "destination": "https://api.idta.store/api/:path"
     },
     {
       "source": "/phone/:path*",
