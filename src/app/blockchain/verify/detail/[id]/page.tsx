@@ -97,7 +97,7 @@ export default function Page() {
                     <button
                         type="button"
                         onClick={() => router.push(VERIFY_PATH)}
-                        className="flex w-fit items-center gap-1 pl-[10px] text-base font-medium text-[#aaa]"
+                        className="flex w-fit cursor-pointer items-center gap-1 pl-[10px] text-base font-medium text-[#aaa] hover:text-main"
                     >
                         <LuChevronLeft className="size-4"/>
                         뒤로가기
