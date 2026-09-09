@@ -5,6 +5,7 @@ import SearchInput from "@/src/components/blockchain/SearchInput";
 import {useEffect, useState} from "react";
 import type {ReactNode} from "react";
 import {subscribeBlockHeight} from "@/src/lib/BlockHeight";
+import {formatBlockTime, subscribeNetworkInfo, type NetworkInfo} from "@/src/lib/NetworkInfo";
 import BlockHeightCounter from "@/src/components/blockchain/BlockHeightCounter";
 
 function CardTitle({
@@ -56,6 +57,7 @@ export default function Page() {
     const [blockHeight, setBlockHeight] = useState<number | null>(null)
     const [isLoading, setIsLoading] = useState<boolean>(true)
     const [error, setError] = useState<string | null>(null)
+    const [networkInfo, setNetworkInfo] = useState<NetworkInfo | null>(null)
 
     useEffect(() => {
         const unsubscribe = subscribeBlockHeight({
@@ -68,6 +70,15 @@ export default function Page() {
                 setError(message)
                 setIsLoading(false)
             },
+        })
+
+        return unsubscribe
+    }, [])
+
+    useEffect(() => {
+        const unsubscribe = subscribeNetworkInfo({
+            onInfo: setNetworkInfo,
+            onError: () => setNetworkInfo(null),
         })
 
         return unsubscribe
@@ -104,9 +115,12 @@ export default function Page() {
                         <div className="flex flex-col gap-[34px]">
                             <CardTitle icon="/icons/blockchain/network.svg">네트워크 정보</CardTitle>
                             <div className="flex items-start gap-9">
-                                <Stat label="운용 노드" value={null}/>
-                                <Stat label="트랜잭션 검증자" value={null}/>
-                                <Stat label="평균 블록 생성 시간" value={null}/>
+                                <Stat label="운용 노드" value={networkInfo?.nodes ?? null}/>
+                                <Stat label="트랜잭션 검증자" value={networkInfo?.validators ?? null}/>
+                                <Stat
+                                    label="평균 블록 생성 시간"
+                                    value={formatBlockTime(networkInfo?.avgBlockTimeSec ?? null)}
+                                />
                             </div>
                         </div>
                     </div>
