@@ -4,6 +4,7 @@ import Footer from "@/src/components/Footer";
 import SearchInput from "@/src/components/blockchain/SearchInput";
 import {useEffect, useState} from "react";
 import type {ReactNode} from "react";
+import {useRouter} from "next/navigation";
 import {subscribeBlockHeight} from "@/src/lib/BlockHeight";
 import {formatBlockTime, subscribeNetworkInfo, type NetworkInfo} from "@/src/lib/NetworkInfo";
 import {
@@ -14,6 +15,7 @@ import {
     type RecentActivity,
 } from "@/src/lib/RecentActivity";
 import {formatAbsoluteTime, formatRelativeTime, useNow} from "@/src/lib/RelativeTime";
+import {display, EMPTY} from "@/src/lib/display";
 import BlockHeightCounter from "@/src/components/blockchain/BlockHeightCounter";
 import {LuBlocks, LuNetwork} from "react-icons/lu";
 import {TbCashBanknotePlus} from "react-icons/tb";
@@ -41,12 +43,6 @@ function CardTitle({
  * react-icons는 stroke가 currentColor라 색은 클래스로 준다.
  */
 const CARD_ICON = {className: "size-6 shrink-0 text-main"}
-
-const EMPTY = "-"
-
-function display(value: string | number | null | undefined) {
-    return value === null || value === undefined || value === "" ? EMPTY : String(value)
-}
 
 function Stat({label, value}: {label: string; value: string | number | null}) {
     return (
@@ -93,6 +89,7 @@ function RelativeTime({iso, now}: {iso: string; now: number | null}) {
 }
 
 export default function Page() {
+    const router = useRouter()
     const [blockHeight, setBlockHeight] = useState<number | null>(null)
     const [isLoading, setIsLoading] = useState<boolean>(true)
     const [error, setError] = useState<string | null>(null)
@@ -139,7 +136,10 @@ export default function Page() {
     // 두 카드가 같은 시각을 공유해 타이머 하나로 모든 행이 함께 갱신된다
     const now = useNow(blocks.map((block) => block.time))
 
-    const handleSearch = (search: string) => {}
+    /** 검색한 해시는 상세 경로로 넘겨 그 화면이 검증 결과를 조회한다. */
+    const handleSearch = (input: string) => {
+        router.push(`/blockchain/verify/detail/${encodeURIComponent(input)}`)
+    }
 
     return (
         <div className="bg-white">
