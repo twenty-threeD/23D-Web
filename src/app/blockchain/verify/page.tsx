@@ -6,6 +6,14 @@ import {useEffect, useState} from "react";
 import type {ReactNode} from "react";
 import {subscribeBlockHeight} from "@/src/lib/BlockHeight";
 import {formatBlockTime, subscribeNetworkInfo, type NetworkInfo} from "@/src/lib/NetworkInfo";
+import {
+    subscribeRecentActivity,
+    truncateAddress,
+    truncateHash,
+    truncatePaymentId,
+    type RecentActivity,
+} from "@/src/lib/RecentActivity";
+import {formatAbsoluteTime, formatRelativeTime, useNow} from "@/src/lib/RelativeTime";
 import BlockHeightCounter from "@/src/components/blockchain/BlockHeightCounter";
 
 function CardTitle({
@@ -41,15 +49,38 @@ function Stat({label, value}: {label: string; value: string | number | null}) {
     )
 }
 
-type Cells = [string | null, string | null, string | null]
+type Cells = [ReactNode, ReactNode, ReactNode]
 
 function TableRow({cells, header = false}: {cells: Cells; header?: boolean}) {
     return (
         <div className={`grid grid-cols-3 gap-[22px] ${header ? "text-sm text-[#aaa]" : "text-black"}`}>
-            <span className={header ? "" : "text-base"}>{display(cells[0])}</span>
-            <span className={`text-right ${header ? "" : "text-sm"}`}>{display(cells[1])}</span>
-            <span className={`text-right ${header ? "" : "text-sm"}`}>{display(cells[2])}</span>
+            <span className={header ? "" : "text-base"}>{cells[0]}</span>
+            <span className={`text-right ${header ? "" : "text-sm"}`}>{cells[1]}</span>
+            <span className={`text-right ${header ? "" : "text-sm"}`}>{cells[2]}</span>
         </div>
+    )
+}
+
+/** 카드마다 보여줄 행 수. 데이터가 모자라면 '-' 행으로 채워 카드 높이를 고정한다. */
+const ROW_LIMIT = 5
+
+/**
+ * 조회 전이거나 결과가 모자랄 때 남는 자리를 빈 행으로 채운다.
+ * 폴링 결과가 도착할 때마다 카드 높이가 튀는 것을 막는다.
+ */
+function padRows(rows: Cells[]): Cells[] {
+    const empty: Cells = [EMPTY, EMPTY, EMPTY]
+    return [...rows, ...Array<Cells>(Math.max(0, ROW_LIMIT - rows.length)).fill(empty)]
+}
+
+/** 기록된 시각을 "1일 전"으로 보여주고, 마우스를 올리면 정확한 시각을 보여준다. */
+function RelativeTime({iso, now}: {iso: string; now: number | null}) {
+    if (now === null) { return <>{EMPTY}</> }
+
+    return (
+        <time dateTime={iso} title={formatAbsoluteTime(iso)}>
+            {display(formatRelativeTime(iso, now))}
+        </time>
     )
 }
 
@@ -58,6 +89,7 @@ export default function Page() {
     const [isLoading, setIsLoading] = useState<boolean>(true)
     const [error, setError] = useState<string | null>(null)
     const [networkInfo, setNetworkInfo] = useState<NetworkInfo | null>(null)
+    const [activity, setActivity] = useState<RecentActivity | null>(null)
 
     useEffect(() => {
         const unsubscribe = subscribeBlockHeight({
@@ -83,6 +115,21 @@ export default function Page() {
 
         return unsubscribe
     }, [])
+
+    useEffect(() => {
+        const unsubscribe = subscribeRecentActivity({
+            onActivity: setActivity,
+            onError: () => setActivity(null),
+        })
+
+        return unsubscribe
+    }, [])
+
+    const blocks = (activity?.blocks ?? []).slice(0, ROW_LIMIT)
+    const transactions = (activity?.transactions ?? []).slice(0, ROW_LIMIT)
+
+    // 두 카드가 같은 시각을 공유해 타이머 하나로 모든 행이 함께 갱신된다
+    const now = useNow(blocks.map((block) => block.time))
 
     const handleSearch = (search: string) => {}
 
@@ -129,6 +176,13 @@ export default function Page() {
                         <CardTitle icon="/icons/blockchain/blocks.svg" link="자세히보기">최근 블록</CardTitle>
                         <div className="mt-7 flex flex-col gap-4">
                             <TableRow header cells={["블록높이", "시간", "TX 수"]}/>
+                            {padRows(blocks.map((block): Cells => [
+                                String(block.height),
+                                <RelativeTime key={block.height} iso={block.time} now={now}/>,
+                                `${block.txCount} tx`,
+                            ])).map((cells, index) => (
+                                <TableRow key={blocks[index]?.height ?? `empty-${index}`} cells={cells}/>
+                            ))}
                         </div>
                     </div>
 
@@ -136,6 +190,13 @@ export default function Page() {
                         <CardTitle icon="/icons/blockchain/banknote-arrow-up.svg" link="자세히보기">최근 트랜잭션</CardTitle>
                         <div className="mt-7 flex flex-col gap-4">
                             <TableRow header cells={["트랜잭션 해시", "서명자", "결제 ID"]}/>
+                            {padRows(transactions.map((transaction): Cells => [
+                                display(truncateHash(transaction.hash)),
+                                display(truncateAddress(transaction.signer)),
+                                display(truncatePaymentId(transaction.paymentId)),
+                            ])).map((cells, index) => (
+                                <TableRow key={transactions[index]?.hash ?? `empty-${index}`} cells={cells}/>
+                            ))}
                         </div>
                     </div>
                 </div>
