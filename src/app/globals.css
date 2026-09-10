@@ -86,3 +86,14 @@ body { margin: 0; }
 		animation: none;
 	}
 }
+
+/* 가로 중앙 정렬은 Tailwind v4의 translate 속성이 맡으므로 transform 은 세로만 건드린다.
+   여기서 translateX(-50%) 를 또 주면 두 값이 더해져 열리는 순간 위치가 튄다. */
+@keyframes help-tooltip-in {
+	from { opacity: 0; transform: translateY(-4px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-help-tooltip {
+	animation: help-tooltip-in 0.16s ease-out;
+}
