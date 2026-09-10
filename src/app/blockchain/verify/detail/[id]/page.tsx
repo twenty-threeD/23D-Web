@@ -1,6 +1,4 @@
 "use client"
-import Header from "@/src/components/Header";
-import Footer from "@/src/components/Footer";
 import SearchInput from "@/src/components/blockchain/SearchInput";
 import {useEffect, useState} from "react";
 import {useParams, useRouter} from "next/navigation";
@@ -110,7 +108,6 @@ export default function Page() {
 
     return (
         <div className="bg-white">
-            <Header/>
             {/* 시안대로 헤더에서 64px 아래에 검색창을 둔다. */}
             <main className="mx-auto flex w-full max-w-[1312px] flex-col gap-12 px-6 pb-28 pt-16">
                 <div className="mx-auto w-full max-w-[1000px]">
@@ -189,7 +186,6 @@ export default function Page() {
                     </div>
                 </div>
             </main>
-            <Footer/>
         </div>
     )
 }

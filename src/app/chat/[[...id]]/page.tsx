@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
-import Header from "@/src/components/Header"
 import Image from "next/image"
 import { IoClose, IoSend, IoAdd } from "react-icons/io5"
 import Search from "@/src/components/Search"
@@ -28,6 +27,7 @@ import ContractCard from "@/src/components/chat/ContractCard"
 import PaymentCard, { type ChatPayment } from "@/src/components/chat/PaymentCard"
 import { pdfBlobToFile } from "@/src/lib/contractPdf"
 import ImageLightbox from "@/src/components/ImageLightbox"
+import { parseChatStart, previewOf } from "@/src/lib/chatPreview"
 
 function isImageUrl(url: string) {
   return /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(url)
@@ -541,36 +541,6 @@ export default function Page() {
     | { kind: "propose"; data: ContractData }
     | { kind: "completed"; data: CompletedContract }
 
-  interface ChatStartInfo {
-    starter: string
-    planName: string
-    price: string
-  }
-
-  // 문의하기로 방이 열릴 때 자동 발송되는 안내 메시지.
-  // 예전에는 평문이었고 지금은 JSON이라 둘 다 읽을 수 있어야 한다.
-  function parseChatStart(text: string): ChatStartInfo | null {
-    const PREFIX = "[채팅 시작]\n"
-    if (!text.startsWith(PREFIX)) return null
-    const body = text.slice(PREFIX.length)
-
-    try {
-      const parsed = JSON.parse(body)
-      return {
-        starter: parsed.starter ?? "",
-        planName: parsed.planName ?? "",
-        price: parsed.price ?? "",
-      }
-    } catch {
-      const lines = body.split("\n")
-      return {
-        starter: lines[0]?.replace(/님이 채팅을 시작했어요$/, "") ?? "",
-        planName: lines.find((l) => l.startsWith("선택한 서비스:"))?.replace("선택한 서비스:", "").trim() ?? "",
-        price: "",
-      }
-    }
-  }
-
   // 결제 완료 알림. 백엔드가 PAYMENT 타입 메시지를 만들어주지 않아
   // 계약서와 같은 대괄호 접두사 규약으로 프론트가 보낸다.
   function parsePaymentMessage(text: string): ChatPayment | null {
@@ -605,6 +575,7 @@ export default function Page() {
 
     return null
   }
+
 
   // 채팅 목록 미리보기. 대괄호 접두사로 주고받는 특수 메시지는 원문 대신 짧은 문구로 보여준다
   // (JSON 본문이 그대로 노출되거나 줄바꿈이 이어붙어 길어지는 걸 막는다).
@@ -650,8 +621,7 @@ export default function Page() {
   }, [])
 
   return (
-    <div className="flex flex-col h-screen">
-      <Header />
+    <div className="flex flex-col h-[calc(100vh-4rem)]">
       {showEstimate && selectedRoom && token && (
         <EstimateModal
           token={token}

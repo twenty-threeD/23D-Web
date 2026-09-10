@@ -3,8 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Header from "@/src/components/Header";
-import Footer from "@/src/components/Footer";
 import NormalCard from "@/src/components/NormalCard";
 import { CiCamera } from "react-icons/ci";
 import { useAuthStore } from "@/src/store/authStore";
@@ -206,16 +204,13 @@ export default function Page() {
   if (loading || !profile) {
     return (
       <div>
-        <Header />
         <p className="text-center py-20 text-zinc-400">불러오는 중...</p>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div>
-      <Header />
       <main className="flex flex-col gap-10 px-20 py-10 mx-auto">
         <h1 className="text-2xl font-bold">프로필</h1>
 
@@ -487,7 +482,6 @@ export default function Page() {
           onDone={() => { setEditingField(null); fetchProfile(); }}
         />
       )}
-      <Footer />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "@/src/components/AuthProvider";
 import BlockMobile from "@/src/components/BlockMobile";
+import SiteChrome from "@/src/components/SiteChrome";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,7 +32,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <SiteChrome>{children}</SiteChrome>
+        </AuthProvider>
         <BlockMobile />
         <Toast />
       </body>

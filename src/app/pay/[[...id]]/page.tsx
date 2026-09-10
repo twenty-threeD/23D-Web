@@ -2,8 +2,6 @@
 import { useState, useEffect, Suspense } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 
-import Header from "@/src/components/Header";
-import Footer from "@/src/components/Footer";
 
 import { Estimate } from "@/src/components/pay/Estimate";
 import { FinalBill } from "@/src/components/pay/FinalBill";
@@ -88,7 +86,6 @@ const PayContent = () => {
 
   return (
     <div>
-      <Header />
       <main className="flex flex-col gap-4 justify-center py-8 px-20">
         <div className="w-full">
           <h1 className="text-[24px] font-bold">견적서 확인</h1>
@@ -166,7 +163,6 @@ const PayContent = () => {
           </div>
         </div>
       </main>
-      <Footer />
     </div>
   );
 };

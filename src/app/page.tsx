@@ -6,7 +6,6 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from '@gsap/react';
 import LandingHeader from "@/src/components/LandingHeader";
-import Footer from "@/src/components/Footer";
 import { useRedirectIfAuthed } from "@/src/hooks/useRedirectIfAuthed";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
@@ -154,8 +153,6 @@ export default function Home() {
           <img src="/main.png" alt="Image" className="w-full h-full object-cover rounded-lg shadow-lg"/>
         </div>
       </div>
-
-      <Footer/>
     </div>
   );
 }

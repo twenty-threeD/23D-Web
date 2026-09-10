@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import Header from "@/src/components/Header";
 import BackButton from "@/src/components/BackButton";
 import UploadFile from "@/src/components/write/UploadPicture";
 import WriteSection from "@/src/components/write/WriteSection";
@@ -127,7 +126,6 @@ export default function Page() {
   if (loading) {
     return (
       <div>
-        <Header />
         <p className="text-center py-20 text-zinc-400">불러오는 중...</p>
       </div>
     );
@@ -135,7 +133,6 @@ export default function Page() {
 
   return (
     <div>
-      <Header />
       <div className="px-20 py-4">
         <BackButton />
       </div>

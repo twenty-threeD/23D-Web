@@ -2,8 +2,6 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Header from "@/src/components/Header";
-import Footer from "@/src/components/Footer";
 import Search from "@/src/components/Search";
 import NormalCard from "@/src/components/NormalCard";
 import NormalCardSkeleton from "@/src/components/NormalCardSkeleton";
@@ -100,7 +98,6 @@ function SearchContent() {
 
   return (
     <div>
-      <Header />
       <main className="flex flex-col items-center justify-center px-20 py-8 gap-8">
         <div className="w-full max-w-3xl">
           <Search
@@ -193,7 +190,6 @@ function SearchContent() {
         )}
       </main>
       <TopButton />
-      <Footer />
     </div>
   );
 }

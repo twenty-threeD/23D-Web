@@ -3,8 +3,6 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import Header from "@/src/components/Header";
-import Footer from "@/src/components/Footer";
 import PremiumCard from "@/src/components/PremiumCard";
 import PremiumCardSkeleton from "@/src/components/PremiumCardSkeleton";
 import NormalCard from "@/src/components/NormalCard";
@@ -64,7 +62,6 @@ function MainContent() {
 
   return (
     <div>
-      <Header />
       <div className="flex flex-col items-center justify-center px-20 py-8 gap-16">
         {/* 검색 + 카테고리 */}
         <div className="flex items-center justify-center gap-16 w-full">
@@ -158,7 +155,6 @@ function MainContent() {
           </div>
         </div>
       </div>
-      <Footer />
     </div>
   );
 }
