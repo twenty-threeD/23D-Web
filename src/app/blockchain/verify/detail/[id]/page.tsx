@@ -174,8 +174,8 @@ export default function Page() {
                                     )
                                     : (
                                         <>
-                                            <LuBadgeX className="size-5 shrink-0 text-[#aaa]"/>
-                                            <p className="text-xl font-medium text-[#aaa]">
+                                            <LuBadgeX className="size-5 shrink-0 text-[#FB1C1C]"/>
+                                            <p className="text-xl font-medium text-[#FB1C1C]">
                                                 {display(verification.reasonMessage ?? "검증되지 않음")}
                                             </p>
                                         </>
