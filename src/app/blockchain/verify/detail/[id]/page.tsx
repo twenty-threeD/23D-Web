@@ -112,12 +112,12 @@ export default function Page() {
         <div className="bg-white">
             <Header/>
             {/* 시안대로 헤더에서 64px 아래에 검색창을 둔다. */}
-            <main className="mx-auto flex w-full max-w-[1312px] flex-col px-6 pb-28 pt-16">
+            <main className="mx-auto flex w-full max-w-[1312px] flex-col gap-12 px-6 pb-28 pt-16">
                 <div className="mx-auto w-full max-w-[1000px]">
                     <SearchInput onSearch={handleSearch}/>
                 </div>
 
-                <div className="mt-12 flex flex-col gap-4">
+                <div className="flex flex-col gap-4">
                     <button
                         type="button"
                         onClick={() => router.push(VERIFY_PATH)}
@@ -127,16 +127,16 @@ export default function Page() {
                         뒤로가기
                     </button>
 
-                    <div className="rounded-xl bg-[#fbfbfb] p-12">
+                    <div className="flex flex-col gap-12 rounded-xl bg-[#fbfbfb] p-12">
                         <div className="flex items-center gap-2">
                             <p className="text-2xl font-medium text-black">트랜잭션 정보</p>
                             {verification && <LedgerBadge matched={verification.ledgerMatched}/>}
                         </div>
 
                         {error
-                            ? <p className="mt-12 text-base font-medium text-[#aaa]">{error}</p>
+                            ? <p className="text-base font-medium text-[#aaa]">{error}</p>
                             : (
-                                <div className="mt-12 flex flex-col gap-4">
+                                <div className="flex flex-col gap-4">
                                     <Field label="해시(hash)" value={verification?.txHash ?? txHash} copyable/>
                                     <Field
                                         label="높이(height)"
@@ -160,9 +160,9 @@ export default function Page() {
                             )}
                     </div>
 
-                    <div className="rounded-xl bg-[#fbfbfb] p-12">
+                    <div className="flex flex-col gap-[30px] rounded-xl bg-[#fbfbfb] p-12">
                         <p className="text-2xl font-medium text-black">트랜잭션 검증여부</p>
-                        <div className="mt-[30px] flex items-start gap-2">
+                        <div className="flex items-start gap-2">
                             {verification === null
                                 ? <p className="text-xl font-medium text-[#aaa]">{error ?? "조회 중"}</p>
                                 : verification.verified
