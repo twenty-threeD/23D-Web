@@ -38,7 +38,7 @@ export default function Footer() {
           <h3 className="text-black text-xl font-bold">빠른 링크</h3>
           <ul className="flex flex-col gap-1">
             <li className="text-sm">
-              <Link href="/notice?title=프로젝트 소개">프로젝트 소개</Link>
+              <Link href="/about">프로젝트 소개</Link>
             </li>
             <li className="text-sm">
               <a href="mailto:itda23d@gmail.com">문의하기</a>
@@ -47,7 +47,7 @@ export default function Footer() {
               <Link href="/community">커뮤니티</Link>
             </li>
             <li className="text-sm">
-              <Link href="/notice?title=팀원 소개">팀원 소개</Link>
+              <Link href="/team">팀원 소개</Link>
             </li>
           </ul>
         </div>
