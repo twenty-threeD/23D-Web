@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Header from "@/src/components/Header";
-import Footer from "@/src/components/Footer";
 import Banner from "@/src/components/Banner";
 import Portfolio from "@/src/components/Portfolio";
 import PriceCard from "@/src/components/PriceCard";
@@ -156,16 +154,13 @@ export default function Page() {
   if (loading) {
     return (
       <div>
-        <Header />
         <p className="text-center py-20 text-zinc-400">불러오는 중...</p>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div>
-      <Header />
       <Banner imageUrl={headerImage ? toRelativeUrl(headerImage) : undefined} />
       <div className="flex flex-col px-20 py-8 gap-16">
         <div className="flex gap-16 justify-between items-start">
@@ -396,7 +391,6 @@ export default function Page() {
         </div>
       </div>
       <TopButton />
-      <Footer />
     </div>
   );
 }

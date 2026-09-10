@@ -10,8 +10,6 @@ import {
   categoryLabel,
 } from "@/src/lib/community";
 import { useAuthStore } from "@/src/store/authStore";
-import Header from "@/src/components/Header";
-import Footer from "@/src/components/Footer";
 import CommunityMenu from "@/src/components/CommunitySideBar";
 import PostItem from "@/src/components/PostItem";
 import Search from "@/src/components/Search";
@@ -101,7 +99,6 @@ function PostList() {
 export default function Page() {
   return (
     <div>
-      <Header />
       <div className="flex items-start justify-between px-20 py-8 gap-8">
         <CommunityMenu />
         <Suspense
@@ -115,7 +112,6 @@ export default function Page() {
         </Suspense>
       </div>
       <TopButton />
-      <Footer />
     </div>
   );
 }

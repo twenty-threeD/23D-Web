@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useCallback, isValidElement, Children } from "react"
 import { useParams, useRouter } from "next/navigation"
-import Header from "@/src/components/Header"
-import Footer from "@/src/components/Footer"
 import CommunityMenu from "@/src/components/CommunitySideBar"
 import Comment from "@/src/components/Comment"
 import PostItem from "@/src/components/PostItem"
@@ -202,9 +200,7 @@ export default function Page() {
   if (loading || !post) {
     return (
       <div>
-        <Header />
         <p className="text-center py-20 text-zinc-400">불러오는 중...</p>
-        <Footer />
       </div>
     )
   }
@@ -218,7 +214,6 @@ export default function Page() {
 
   return (
     <div>
-      <Header />
       <div className="flex items-start justify-between px-20 py-8 gap-8">
         <CommunityMenu />
 
@@ -383,7 +378,6 @@ export default function Page() {
       </div>
 
       <TopButton />
-      <Footer />
     </div>
   )
 }

@@ -3,8 +3,6 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import { useRouter, useParams } from "next/navigation"
 import dynamic from "next/dynamic"
-import Header from "@/src/components/Header"
-import Footer from "@/src/components/Footer"
 import CommunityMenu from "@/src/components/CommunitySideBar"
 import { IoImageOutline, IoChevronDown } from "react-icons/io5"
 import { getPost, createPost, updatePost, COMMUNITY_CATEGORIES, isCommunityCategory, type CommunityCategory } from "@/src/lib/community"
@@ -120,16 +118,13 @@ export default function Page() {
   if (loading) {
     return (
       <div>
-        <Header />
         <p className="text-center py-20 text-zinc-400">불러오는 중...</p>
-        <Footer />
       </div>
     )
   }
 
   return (
     <div>
-      <Header />
       <div className="flex items-start justify-between px-20 py-8 gap-8">
         <CommunityMenu />
 
@@ -220,7 +215,6 @@ export default function Page() {
           </div>
         </main>
       </div>
-      <Footer />
     </div>
   )
 }

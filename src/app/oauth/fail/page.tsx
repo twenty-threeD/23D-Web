@@ -1,8 +1,6 @@
 "use client";
 
 import { Suspense } from 'react';
-import Header from '@/src/components/Header';
-import Footer from '@/src/components/Footer';
 
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -34,11 +32,9 @@ function OAuthFailContent() {
 export default function page () {
   return (
     <div>
-      <Header />
       <Suspense fallback={null}>
         <OAuthFailContent />
       </Suspense>
-      <Footer />
     </div>
   );
 }
