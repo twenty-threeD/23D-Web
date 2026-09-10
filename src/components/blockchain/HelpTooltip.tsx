@@ -53,7 +53,7 @@ export default function HelpTooltip({title, children}: {title: string; children:
                 className={`flex size-[18px] cursor-help items-center justify-center rounded-full border text-[11px] font-semibold leading-none transition-colors ${
                     open
                         ? "border-main bg-main text-white"
-                        : "border-[#d5d5d5] bg-white text-[#aaa]"
+                        : "border-[#aaa] bg-white text-[#aaa]"
                 }`}
             >
                 ?
@@ -63,15 +63,15 @@ export default function HelpTooltip({title, children}: {title: string; children:
                 <span
                     role="tooltip"
                     id={id}
-                    className="animate-help-tooltip absolute left-1/2 top-[calc(100%+10px)] z-20 flex w-[260px] -translate-x-1/2 flex-col gap-1.5 rounded-xl border border-[#eee] bg-white p-4 text-left shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
+                    className="animate-help-tooltip absolute left-1/2 top-[calc(100%+10px)] z-20 flex w-[260px] -translate-x-1/2 flex-col gap-1.5 rounded-xl border border-[#aaa]/30 bg-white p-4 text-left shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
                 >
-                    {/* 말풍선 꼬리: 카드 보더와 같은 색이 보이도록 위·왼쪽 변만 남긴다 */}
+                    {/* 말풍선 꼬리: 말풍선 보더와 같은 색이 보이도록 위·왼쪽 변만 남긴다 */}
                     <span
                         aria-hidden
-                        className="absolute -top-[5px] left-1/2 size-[9px] -translate-x-1/2 rotate-45 border-l border-t border-[#eee] bg-white"
+                        className="absolute -top-[5px] left-1/2 size-[9px] -translate-x-1/2 rotate-45 border-l border-t border-[#aaa]/30 bg-white"
                     />
                     <span className="text-sm font-semibold text-black">{title}</span>
-                    <span className="text-xs font-normal leading-[1.6] text-[#888]">{children}</span>
+                    <span className="text-xs font-normal leading-[1.6] text-[#aaa]">{children}</span>
                 </span>
             )}
         </span>
