@@ -610,10 +610,10 @@ export default function Page() {
   // (JSON 본문이 그대로 노출되거나 줄바꿈이 이어붙어 길어지는 걸 막는다).
   function previewOf(text: string) {
     if (!text) return ""
-    if (text.startsWith("[계약서 제안]")) return "📄 계약서를 보냈습니다."
-    if (text.startsWith("[계약서 체결 완료]")) return "✅ 계약이 체결됐습니다."
-    if (text.startsWith("[결제 완료]")) return "💳 결제가 완료됐습니다."
-    if (text.startsWith("[견적서 발송]")) return "🧾 견적서를 보냈습니다."
+    if (text.startsWith("[계약서 제안]")) return "계약서를 보냈습니다."
+    if (text.startsWith("[계약서 체결 완료]")) return "계약이 체결됐습니다."
+    if (text.startsWith("[결제 완료]")) return "결제가 완료됐습니다."
+    if (text.startsWith("[견적서 발송]")) return "견적서를 보냈습니다."
     const start = parseChatStart(text)
     if (start) return start.planName ? `선택한 서비스: ${start.planName}` : "채팅을 시작했어요"
     return text.replace(/\n+/g, " ")
