@@ -1,35 +1,25 @@
-"use client"
-
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { getPostCategories, type PostCategory } from '@/src/lib/post'
+import { JOB_POST_TYPES } from '@/src/types/jobPost'
+
+const TYPES = [{ label: '전체', value: 'all' }, ...JOB_POST_TYPES]
 
 function SidebarInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const current = searchParams.get('category') ?? 'all'
-  const [categories, setCategories] = useState<PostCategory[]>([])
-
-  useEffect(() => {
-    getPostCategories().then(setCategories).catch(() => {})
-  }, [])
-
-  const items = [
-    { label: '전체', value: 'all' },
-    ...categories.map((c) => ({ label: c.name, value: String(c.id) })),
-  ]
+  const current = searchParams.get('type') ?? 'all'
 
   return (
     <div className="flex flex-col h-full">
-      {items.map((cat) => (
+      {TYPES.map((t) => (
         <button
-          key={cat.value}
-          onClick={() => router.push(`/jobs?category=${cat.value}`)}
-          className={`px-4 py-2 rounded-lg text-left font-semibold
-            ${current === cat.value ? 'bg-zinc-100 text-black' : 'text-zinc-500 hover:bg-zinc-100'}
+          key={t.value}
+          onClick={() => router.push(t.value === 'all' ? '/jobs' : `/jobs?type=${t.value}`)}
+          className={`px-4 py-2 rounded-lg text-left font-semibold cursor-pointer
+            ${current === t.value ? 'bg-zinc-100 text-black' : 'text-zinc-500 hover:bg-zinc-100'}
           `}
         >
-          {cat.label}
+          {t.label}
         </button>
       ))}
     </div>

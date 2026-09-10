@@ -2,6 +2,24 @@
 // 반드시 들어가야 한다. priceCard와 마찬가지로 content에 JSON으로 직렬화해
 // 저장하고, 예전(혹은 일반) 글은 description만 있는 것으로 하위 호환한다.
 
+/** 구인(의뢰를 올림) / 구직(일을 찾음). 서버 컬럼이라 content JSON 에는 넣지 않는다. */
+export type JobPostType = "HIRING" | "SEEKING"
+
+export const JOB_POST_TYPES = [
+  { label: "구인", value: "HIRING" },
+  { label: "구직", value: "SEEKING" },
+] as const
+
+export const DEFAULT_JOB_POST_TYPE: JobPostType = "HIRING"
+
+export function isJobPostType(v: string | null | undefined): v is JobPostType {
+  return v === "HIRING" || v === "SEEKING"
+}
+
+export function jobTypeLabel(v: string | null | undefined) {
+  return JOB_POST_TYPES.find((t) => t.value === v)?.label ?? ""
+}
+
 export interface JobPostContent {
   /** 카테고리 (직군 카테고리와 동일) */
   categoryId: number | null

@@ -25,7 +25,7 @@ interface JobPostItemProps {
   id: number
   title: string
   content: string
-  imageUrl?: string
+  imageUrl?: string | null
   createdAt: string
 }
 

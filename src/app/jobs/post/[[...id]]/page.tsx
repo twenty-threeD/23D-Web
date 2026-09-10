@@ -13,7 +13,7 @@ import MDEditor from "@uiw/react-md-editor"
 import Image from "next/image"
 import {
   getJobPost,
-  getJobPosts,
+  searchJobPosts,
   getJobComments,
   createJobComment,
   updateJobComment,
@@ -21,6 +21,9 @@ import {
   addJobLike,
   removeJobLike,
   deleteJobPost,
+  type JobPost,
+  type JobPostListItem,
+  type JobComment,
 } from "@/src/lib/jobs"
 import { parseJobContent, formatBudget, formatDesiredDate } from "@/src/types/jobPost"
 import { useAuthStore } from "@/src/store/authStore"
@@ -29,37 +32,9 @@ import { toRelativeUrl } from "@/src/lib/file"
 import { ApiError } from "@/src/lib/apiError"
 import { useHandleError } from "@/src/hooks/useHandleError"
 import TopButton from "@/src/components/TopButton"
+import { signinPath } from "@/src/lib/navigation"
 
-interface Post {
-  id: number
-  username: string
-  title: string
-  content: string
-  fileUrl?: string
-  viewCount: number
-  likeCount: number
-  commentCount: number
-  updatedAt: string
-  edited: boolean
-  isLiked?: boolean
-}
-
-interface PostListItem {
-  id: number
-  username: string
-  title: string
-  content: string
-  fileUrl?: string
-  updatedAt: string
-}
-
-interface CommentData {
-  id: number
-  username: string
-  content: string
-  updatedAt: string
-  edited?: boolean
-}
+const COMMENT_PAGE_SIZE = 20
 
 export default function Page() {
   const params = useParams()
@@ -77,9 +52,12 @@ export default function Page() {
 
   const handleError = useHandleError()
   const likeStore = useLikeStore()
-  const [post, setPost] = useState<Post | null>(null)
-  const [comments, setComments] = useState<CommentData[]>([])
-  const [relatedPosts, setRelatedPosts] = useState<PostListItem[]>([])
+  const [post, setPost] = useState<JobPost | null>(null)
+  const [comments, setComments] = useState<JobComment[]>([])
+  const [commentTotal, setCommentTotal] = useState(0)
+  const [commentLast, setCommentLast] = useState(true)
+  const [commentPage, setCommentPage] = useState(0)
+  const [relatedPosts, setRelatedPosts] = useState<JobPostListItem[]>([])
   const [commentText, setCommentText] = useState("")
   const [isLiked, setIsLiked] = useState<boolean>(false)
   const [likeCount, setLikeCount] = useState(0)
@@ -90,10 +68,7 @@ export default function Page() {
     if (!postId) return
     setLoading(true)
     try {
-      const res = await getJobPost(postId, token)
-      const data = Array.isArray(res.data)
-        ? (res.data.find((p: Post) => p.id === postId) ?? res.data[0])
-        : res.data
+      const data = await getJobPost(postId, token)
       setPost(data)
       setLikeCount(data?.likeCount ?? 0)
       setIsLiked(data?.isLiked ?? likeStore.isLiked(postId))
@@ -104,25 +79,44 @@ export default function Page() {
     }
   }, [postId, token, router])
 
+  // 댓글은 첫 페이지만 받고, 나머지는 '댓글 더 보기'로 이어 붙인다.
   const fetchComments = useCallback(async () => {
     if (!postId) return
     try {
-      const res = await getJobComments(postId, token)
-      setComments(res.data ?? [])
+      const res = await getJobComments(postId, token, 0, COMMENT_PAGE_SIZE)
+      setComments(res.content)
+      setCommentTotal(res.totalElements)
+      setCommentPage(res.page)
+      setCommentLast(res.last)
     } catch {
       setComments([])
+      setCommentTotal(0)
+      setCommentLast(true)
     }
   }, [postId, token])
 
   const fetchRelated = useCallback(async () => {
     try {
-      const res = await getJobPosts(token)
-      const list: PostListItem[] = res.data ?? []
-      setRelatedPosts(list.filter((p) => p.id !== postId).slice(0, 4))
+      const res = await searchJobPosts({ size: 5 }, token)
+      setRelatedPosts(res.content.filter((p) => p.id !== postId).slice(0, 4))
     } catch {
       setRelatedPosts([])
     }
   }, [postId, token])
+
+  async function loadMoreComments() {
+    if (commentLast) return
+    try {
+      const next = commentPage + 1
+      const res = await getJobComments(postId, token, next, COMMENT_PAGE_SIZE)
+      setComments((prev) => [...prev, ...res.content])
+      setCommentTotal(res.totalElements)
+      setCommentPage(res.page)
+      setCommentLast(res.last)
+    } catch (e) {
+      handleError(e)
+    }
+  }
 
   useEffect(() => {
     fetchPost()
@@ -131,18 +125,19 @@ export default function Page() {
   }, [fetchPost, fetchComments, fetchRelated])
 
   async function handleLike() {
-    if (!token) { router.push("/login/signin"); return }
+    if (!token) { router.push(signinPath()); return }
     try {
+      // 서버가 likeCount 를 돌려주면 그 값을 쓰고, 없을 때만 낙관적으로 증감한다.
       if (isLiked) {
-        await removeJobLike(token, postId)
+        const res = await removeJobLike(token, postId)
         setIsLiked(false)
-        setLikeCount((c) => c - 1)
+        setLikeCount((c) => res.likeCount ?? c - 1)
         likeStore.unlike(postId)
       } else {
         const res = await addJobLike(token, postId)
-        if (res?.alreadyLiked) { setIsLiked(true); likeStore.like(postId); return }
+        if (res.alreadyLiked) { setIsLiked(true); likeStore.like(postId); return }
         setIsLiked(true)
-        setLikeCount((c) => c + 1)
+        setLikeCount((c) => res.likeCount ?? c + 1)
         likeStore.like(postId)
       }
     } catch (e) { handleError(e) }
@@ -181,7 +176,7 @@ export default function Page() {
   }
 
   async function handleCommentSubmit() {
-    if (!token) { router.push("/login/signin"); return }
+    if (!token) { router.push(signinPath()); return }
     if (!commentText.trim()) return
     setSubmitting(true)
     try {
@@ -258,7 +253,7 @@ export default function Page() {
                     <div className="flex items-center gap-1">
                       <IoChatboxOutline className="text-xl" />
                       <span className="text-zinc-500 text-sm font-semibold">댓글</span>
-                      <p className="text-sm font-semibold">{post.commentCount ?? 0}</p>
+                      <p className="text-sm font-semibold">{commentTotal}</p>
                     </div>
                   </div>
                 </div>
@@ -344,7 +339,7 @@ export default function Page() {
                 <div className="flex items-center gap-1">
                   <IoChatboxOutline className="text-xl" />
                   <span className="text-zinc-500 text-sm font-semibold">댓글</span>
-                  <p className="text-sm font-semibold">{comments.length}</p>
+                  <p className="text-sm font-semibold">{commentTotal}</p>
                 </div>
               </div>
             </div>
@@ -368,6 +363,14 @@ export default function Page() {
                   })}
                 />
               ))}
+              {!commentLast && (
+                <button
+                  onClick={loadMoreComments}
+                  className="self-center py-3 text-sm font-semibold text-zinc-500 hover:text-zinc-700 cursor-pointer"
+                >
+                  댓글 더 보기
+                </button>
+              )}
               {/* 댓글 달기 */}
               <div className="flex items-start gap-4 pt-4">
                 <div className="flex flex-col gap-2 w-full p-6 border border-zinc-300 rounded-lg">
