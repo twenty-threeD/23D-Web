@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
-import Header from "@/src/components/Header"
 import Image from "next/image"
 import { IoClose, IoSend, IoAdd } from "react-icons/io5"
 import Search from "@/src/components/Search"
@@ -623,8 +622,7 @@ export default function Page() {
   }, [])
 
   return (
-    <div className="flex flex-col h-screen">
-      <Header />
+    <div className="flex flex-col h-[calc(100vh-4rem)]">  
       {showEstimate && selectedRoom && token && (
         <EstimateModal
           token={token}
