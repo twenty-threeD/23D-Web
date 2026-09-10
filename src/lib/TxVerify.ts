@@ -1,3 +1,12 @@
+/** 결제 당사자에게만 내려오는 계약 상세. */
+export interface TxDetail {
+    contractUrl: string
+    /** 체인에 기록된 계약서 주소와 같은지. 서버가 판단하지 못하면 null. */
+    contractUrlMatched: boolean | null
+    sellerName: string | null
+    buyerName: string | null
+}
+
 /** 검증 결과가 거절된 이유. 서버가 문자열로 내려주므로 그대로 보관한다. */
 export interface TxVerification {
     txHash: string
@@ -16,8 +25,8 @@ export interface TxVerification {
     signatureValid: boolean
     /** 로그인한 회원이 이 결제의 당사자인지. 당사자여야 detail 이 내려온다. */
     party: boolean
-    /** 당사자에게만 주는 상세 정보. 아직 화면에 쓰지 않는다. */
-    detail: unknown
+    /** 당사자에게만 주는 상세 정보. 당사자가 아니면 null. */
+    detail: TxDetail | null
 }
 
 /**
@@ -28,8 +37,15 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://api.idta.store"
 
 const ERROR_MESSAGE = "트랜잭션을 조회할 수 없습니다."
 
-export async function getTxVerification(txHash: string): Promise<TxVerification> {
-    const response = await fetch(`${API_URL}/api/blockchain/verify/${txHash}`, {cache: "no-store"})
+/**
+ * 로그인 상태로 조회해야 서버가 당사자인지 판단해 detail 을 내려준다.
+ * 비회원도 조회할 수 있으므로 토큰은 있을 때만 붙인다.
+ */
+export async function getTxVerification(txHash: string, token?: string | null): Promise<TxVerification> {
+    const response = await fetch(`${API_URL}/api/blockchain/verify/${txHash}`, {
+        cache: "no-store",
+        headers: token ? {Authorization: `Bearer ${token}`} : undefined,
+    })
 
     if (!response.ok) { throw new Error(ERROR_MESSAGE) }
 

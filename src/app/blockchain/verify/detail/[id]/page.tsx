@@ -6,6 +6,8 @@ import {useEffect, useState} from "react";
 import {useParams, useRouter} from "next/navigation";
 import {display} from "@/src/lib/display";
 import {formatAmount, getTxVerification, type TxVerification} from "@/src/lib/TxVerify";
+import {toRelativeUrl} from "@/src/lib/file";
+import {useAuthStore} from "@/src/store/authStore";
 import {LuBadgeCheck, LuBadgeX, LuChevronLeft, LuCopy} from "react-icons/lu";
 
 /** 개요 화면 경로. 뒤로가기와 검색이 모두 이 경로를 기준으로 움직인다. */
@@ -42,6 +44,24 @@ function Field({label, value, copyable = false}: {label: string; value: string |
     )
 }
 
+/** 계약서 주소는 값 그대로 보여주되 눌러서 열 수 있게 한다. */
+function LinkField({label, url}: {label: string; url: string}) {
+    return (
+        <div className="flex flex-col gap-1">
+            <p className="text-xs font-medium text-[#aaa]">{label}</p>
+            <a
+                href={toRelativeUrl(url)}
+                target="_blank"
+                rel="noreferrer"
+                title={url}
+                className="truncate text-base font-medium text-black hover:text-main"
+            >
+                {url}
+            </a>
+        </div>
+    )
+}
+
 /** 체인에 기록이 남아 있는지 보여주는 배지. */
 function LedgerBadge({matched}: {matched: boolean}) {
     const color = matched ? "text-main border-main" : "text-[#aaa] border-[#aaa]"
@@ -58,6 +78,8 @@ function LedgerBadge({matched}: {matched: boolean}) {
 export default function Page() {
     const params = useParams<{id: string}>()
     const router = useRouter()
+    // 토큰을 함께 보내야 서버가 당사자로 보고 계약 상세를 내려준다
+    const token = useAuthStore((state) => state.accessToken)
     const txHash = decodeURIComponent(params.id)
 
     const [verification, setVerification] = useState<TxVerification | null>(null)
@@ -69,7 +91,7 @@ export default function Page() {
         setVerification(null)
         setError(null)
 
-        getTxVerification(txHash)
+        getTxVerification(txHash, token)
             .then((result) => {
                 if (!cancelled) { setVerification(result) }
             })
@@ -78,7 +100,9 @@ export default function Page() {
             })
 
         return () => { cancelled = true }
-    }, [txHash])
+    }, [txHash, token])
+
+    const detail = verification?.detail ?? null
 
     const handleSearch = (input: string) => {
         router.push(`${VERIFY_PATH}/detail/${encodeURIComponent(input)}`)
@@ -124,6 +148,14 @@ export default function Page() {
                                     <Field label="주문번호(orderId)" value={verification?.orderId ?? null} copyable/>
                                     <Field label="결제액" value={formatAmount(verification?.amount ?? null)}/>
                                     <Field label="결제 일시" value={verification?.paidAt ?? null}/>
+                                    {/* 결제 당사자에게만 계약 상세가 내려온다 */}
+                                    {detail && (
+                                        <>
+                                            <Field label="판매자 성명" value={detail.sellerName}/>
+                                            <Field label="구매자 성명" value={detail.buyerName}/>
+                                            <LinkField label="계약서 주소" url={detail.contractUrl}/>
+                                        </>
+                                    )}
                                 </div>
                             )}
                     </div>
