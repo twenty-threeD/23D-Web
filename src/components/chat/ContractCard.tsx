@@ -39,6 +39,8 @@ interface CompletedCardProps extends ContractCardBase {
   signedAt?: string | null
   /** 결제는 계약을 등록한 갑이 한다 */
   onPay?: () => void
+  /** 이 체결 이후에 결제 완료 메시지가 있으면 true. 결제 버튼을 걷어 중복 결제 진입을 막는다 */
+  paid?: boolean
 }
 
 type ContractCardProps = ProposeCardProps | CompletedCardProps
@@ -115,7 +117,25 @@ export default function ContractCard(props: ContractCardProps) {
             </span>
           </div>
 
-          {props.onPay ? (
+          {props.paid ? (
+            // 결제까지 끝난 계약: 결제 페이지로 다시 들어가지 않도록 버튼 대신 완료 표시만 둔다
+            <div className="flex gap-2">
+              {props.contractUrl && (
+                <a
+                  href={toRelativeUrl(props.contractUrl)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex h-11 basis-2/5 items-center justify-center rounded-xl border border-zinc-300 text-[13px] font-semibold text-zinc-700 transition-colors hover:border-zinc-400 hover:bg-zinc-50"
+                >
+                  계약서 보기
+                </a>
+              )}
+              <div className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50">
+                <IoCheckmark className="text-[15px] text-emerald-700" />
+                <span className="text-[13.5px] font-semibold text-emerald-800">결제 완료</span>
+              </div>
+            </div>
+          ) : props.onPay ? (
             // 갑: 계약서 확인 + 결제
             <div className="flex gap-2">
               {props.contractUrl && (
