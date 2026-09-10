@@ -8,8 +8,6 @@ import {
   IoSearchOutline,
   IoShieldCheckmarkOutline,
 } from "react-icons/io5";
-import Header from "@/src/components/Header";
-import Footer from "@/src/components/Footer";
 
 const steps = [
   {
@@ -65,7 +63,6 @@ const features = [
 export default function Page() {
   return (
     <div className="flex min-h-full flex-col bg-white">
-      <Header />
       <main className="flex-1 px-5 py-10 lg:px-20 lg:py-16">
         <div className="mx-auto w-full max-w-6xl">
           <section
@@ -261,7 +258,6 @@ export default function Page() {
           </section>
         </div>
       </main>
-      <Footer />
     </div>
   );
 }
