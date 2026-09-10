@@ -7,6 +7,7 @@ import { buildContractPdf } from "@/src/lib/contractPdf"
 import Modal from "@/src/components/ui/Modal"
 import Button from "@/src/components/ui/Button"
 import { inputClass, inputShellClass } from "@/src/components/ui/Field"
+import { useToast } from "@/src/hooks/useToast"
 
 export interface ContractData {
   clientName: string
@@ -58,6 +59,7 @@ function josa(word: string, withBatchim: string, withoutBatchim: string): string
 }
 
 export default function ContractWizardModal({ myRole, mode, initial, busy, phoneVerified, onClose, onSubmit }: ContractWizardModalProps) {
+  const { addToast } = useToast()
   const [step, setStep] = useState<1 | 2>(1)
   const [clientName, setClientName] = useState(initial.clientName ?? "")
   const [professionalName, setProfessionalName] = useState(initial.professionalName ?? "")
@@ -75,6 +77,7 @@ export default function ContractWizardModal({ myRole, mode, initial, busy, phone
   const canEditProfessionalName = myRole === "professional"
   const isReview = mode === "review"
   const verified = phoneVerified !== false
+  const maxPrice = 1_000_000_000
 
   const step1Valid =
     clientName.trim() !== "" &&
@@ -83,8 +86,36 @@ export default function ContractWizardModal({ myRole, mode, initial, busy, phone
       (startDate !== "" &&
         endDate !== "" &&
         inspectionDays.trim() !== "" &&
-        serviceContent.trim() !== "" &&
-        Number(price.replace(/[^0-9]/g, "")) > 0))
+        serviceContent.trim() !== ""))
+
+  function showMinimumPriceToast() {
+    addToast({ message: "최소 금액은 100원이에요.", type: "error" })
+  }
+
+  function showMaximumPriceToast() {
+    addToast({ message: "최대 결제금액은 10억원이에요.", type: "error" })
+  }
+
+  function showDateToast() {
+    addToast({ message: "계약 시작일은 종료일보다 앞서야 해요.", type: "error" })
+  }
+
+  function goToSignature() {
+    const numericPrice = Number(price.replace(/[^0-9]/g, ""))
+    if (numericPrice < 100) {
+      showMinimumPriceToast()
+      return
+    }
+    if (numericPrice > maxPrice) {
+      showMaximumPriceToast()
+      return
+    }
+    if (startDate >= endDate) {
+      showDateToast()
+      return
+    }
+    setStep(2)
+  }
 
   const mySig = myRole === "client" ? clientSig : professionalSig
   // review는 갑이 마지막으로 서명하는 단계라, 제출하려면 양쪽 서명이 다 있어야 한다(=바로 서버에 등록되므로).
@@ -251,6 +282,10 @@ export default function ContractWizardModal({ myRole, mode, initial, busy, phone
                       min={0}
                       value={inspectionDays}
                       onChange={(e) => setInspectionDays(e.target.value)}
+                      onWheel={(e) => {
+                        e.preventDefault()
+                        e.currentTarget.blur()
+                      }}
                       disabled={!termsEditable}
                       placeholder="검수 일수"
                       className="flex-1 text-sm focus:outline-none disabled:bg-transparent disabled:text-zinc-500"
@@ -263,9 +298,14 @@ export default function ContractWizardModal({ myRole, mode, initial, busy, phone
                   <div className={inputShellClass}>
                     <input
                       type="number"
-                      min={0}
+                      min={100}
+                      max={maxPrice}
                       value={price}
                       onChange={(e) => setPrice(e.target.value)}
+                      onWheel={(e) => {
+                        e.preventDefault()
+                        e.currentTarget.blur()
+                      }}
                       disabled={!termsEditable}
                       placeholder="계약 금액"
                       className="flex-1 text-sm focus:outline-none disabled:bg-transparent disabled:text-zinc-500"
@@ -285,7 +325,7 @@ export default function ContractWizardModal({ myRole, mode, initial, busy, phone
                   />
                 </label>
 
-                <Button size="lg" disabled={!step1Valid} onClick={() => setStep(2)}>
+                <Button size="lg" disabled={!step1Valid} onClick={goToSignature}>
                   다음
                 </Button>
               </div>
@@ -304,16 +344,22 @@ export default function ContractWizardModal({ myRole, mode, initial, busy, phone
                   <SignaturePad label="을" onSave={setProfessionalSig} savedUrl={professionalSig} />
                 )}
 
-                <button
-                  onClick={() => setStep(1)}
-                  className="text-xs text-zinc-400 hover:text-zinc-600 underline cursor-pointer text-left transition-colors"
-                >
-                  이전으로
-                </button>
-
-                <Button size="lg" disabled={!canSubmit || busy || generatingPdf} onClick={handleSubmit}>
-                  {generatingPdf ? "PDF 생성 중..." : busy ? (isReview ? "등록 중..." : "전송 중...") : mode === "propose" ? "제안하기" : "서명하고 계약서 등록"}
-                </Button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setStep(1)}
+                    className="w-full rounded-lg px-4 py-3 text-sm border border-zinc-300 font-semibold transition-colors hover:border-main hover:text-main"
+                  >
+                    이전으로
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!canSubmit || busy || generatingPdf}
+                    onClick={handleSubmit}
+                    className="w-full rounded-lg bg-main px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-main/90 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {generatingPdf ? "PDF 생성 중..." : busy ? (isReview ? "등록 중..." : "전송 중...") : mode === "propose" ? "제안하기" : "서명하고 계약서 등록"}
+                  </button>
+                </div>
               </div>
             )}
           </div>
