@@ -125,7 +125,7 @@ export default function Header() {
           <li><Link href="/chat" className="text-zinc-500 text-sm font-semibold">채팅</Link></li>
           <li><Link href="/community" className="text-zinc-500 text-sm font-semibold">커뮤니티</Link></li>
           <li><Link href="/upload" className="text-zinc-500 text-sm font-semibold">서비스 등록</Link></li>
-          <li><Link href="/blockchain/verify" className="text-zinc-500 text-sm font-semibold">결제기록</Link></li>
+          <li><Link href="/blockchain/verify" className="text-zinc-500 text-sm font-semibold">블록체인 검증</Link></li>
         </ul>
       </div>
 
