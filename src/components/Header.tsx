@@ -1,4 +1,5 @@
 "use client";
+
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
@@ -9,10 +10,7 @@ import { useProfileStore } from "@/src/store/profileStore";
 import { logout } from "@/src/lib/auth";
 import { getMyProfile } from "@/src/lib/profile";
 import { toRelativeUrl } from "@/src/lib/file";
-import {
-  useChatNotifications,
-  type NotificationType,
-} from "@/src/hooks/useChatNotifications";
+import { useChatNotifications, type NotificationType } from "@/src/hooks/useChatNotifications";
 import { SIGNIN_PATH } from "@/src/lib/navigation";
 
 const NOTIFICATION_TYPE_STYLE: Record<
@@ -34,8 +32,7 @@ export default function Header() {
   const token = useAuthStore((s) => s.accessToken);
   const clear = useAuthStore((s) => s.clear);
   const isPostPage = pathname === "/community";
-  const { notifications, unreadCount, markAsRead, clearAll } =
-    useChatNotifications();
+  const { notifications, unreadCount, markAsRead, clearAll } = useChatNotifications();
   const [ringing, setRinging] = useState(false);
   const profileImageUrl = useProfileStore((s) => s.imageUrl);
   const profileLoaded = useProfileStore((s) => s.loaded);
@@ -44,6 +41,7 @@ export default function Header() {
   useEffect(() => {
     if (!token) return;
     if (profileLoaded) return;
+
     getMyProfile(token)
       .then((res) => setProfileImageUrl(res.data.imageUrl ?? null))
       .catch(() => {});
@@ -52,9 +50,13 @@ export default function Header() {
   useEffect(() => {
     const [latest] = notifications;
     if (!latest) return;
+
     setRinging(true);
+
     const timer = setTimeout(() => setRinging(false), 600);
+
     return () => clearTimeout(timer);
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notifications.length]);
 
@@ -71,9 +73,11 @@ export default function Header() {
     try {
       await logout(token);
     } catch {}
+
     clear();
     useProfileStore.getState().reset();
     setShowMenu(false);
+
     // 로그아웃 후 뒤로가기로 로그인 전용 화면에 돌아가지 않도록 치환한다
     router.replace(SIGNIN_PATH);
   }
@@ -88,139 +92,88 @@ export default function Header() {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setShowMenu(false);
       }
+
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
         setShowNotifications(false);
       }
     }
+
     document.addEventListener("mousedown", handleClickOutside);
+
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
+
     window.addEventListener("scroll", handleScroll);
+
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const isTop = scrollY === 0;
 
   return (
-    <div
-      className={`sticky top-0 z-10 shrink-0 bg-white flex items-center justify-between h-16 px-20 ${!isTop ? "border-b border-zinc-300" : ""}`}
-    >
+    <div className={`sticky top-0 z-10 shrink-0 bg-white flex items-center justify-between h-16 px-20 ${!isTop ? "border-b border-zinc-300" : ""}`}>
+
       {/* 로고 / 리스트 */}
       <div className="flex gap-8 items-center">
-        <Link href="/main">
-          <img
-            src="/logo.svg"
-            alt="Logo"
-            className="h-7 bg-black hover:bg-main transition-colors "
-          />
-        </Link>
+        <Link href="/main"><img src="/logo.svg" alt="Logo" className="h-7 bg-black hover:bg-main transition-colors " /></Link>
+
         <ul className="flex gap-4">
-          <li>
-            <Link
-              href="/search"
-              className="text-zinc-500 text-sm font-semibold "
-            >
-              능력자 찾기
-            </Link>
-          </li>
-          <li>
-            <Link href="/chat" className="text-zinc-500 text-sm font-semibold">
-              채팅
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/community"
-              className="text-zinc-500 text-sm font-semibold"
-            >
-              커뮤니티
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/upload"
-              className="text-zinc-500 text-sm font-semibold"
-            >
-              서비스 등록
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/blockchain/verify"
-              className="text-zinc-500 text-sm font-semibold"
-            >
-              결제기록
-            </Link>
-          </li>
+          <li><Link href="/search" className="text-zinc-500 text-sm font-semibold ">능력자 찾기</Link></li>
+          <li><Link href="/chat" className="text-zinc-500 text-sm font-semibold">채팅</Link></li>
+          <li><Link href="/community" className="text-zinc-500 text-sm font-semibold">커뮤니티</Link></li>
+          <li><Link href="/upload" className="text-zinc-500 text-sm font-semibold">서비스 등록</Link></li>
+          <li><Link href="/blockchain/verify" className="text-zinc-500 text-sm font-semibold">결제기록</Link></li>
         </ul>
       </div>
 
       {/* 로그인 / 프로필 */}
       {token ? (
         <div className="flex items-center gap-3 shrink-0">
+
           <div ref={notifRef} className="relative">
-            <button
-              onClick={() => setShowNotifications((v) => !v)}
-              className="relative w-9 h-9 rounded-full flex items-center justify-center hover:bg-zinc-100 cursor-pointer"
-              aria-label="알림"
-            >
-              <IoNotificationsOutline
-                className={`text-xl text-zinc-600 ${ringing ? "animate-bell-ring" : ""}`}
-              />
-              {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-main" />
-              )}
+            <button onClick={() => setShowNotifications((v) => !v)} className="relative w-9 h-9 rounded-full flex items-center justify-center hover:bg-zinc-100 cursor-pointer" aria-label="알림">
+              <IoNotificationsOutline className={`text-xl text-zinc-600 ${ringing ? "animate-bell-ring" : ""}`} />
+              {unreadCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-main" />}
             </button>
+
             {showNotifications && (
               <div className="absolute right-0 top-11 w-80 bg-white border border-zinc-200 rounded-lg shadow-lg overflow-hidden z-50">
+
                 <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100">
                   <span className="text-sm font-bold">알림</span>
-                  {notifications.length > 0 && (
-                    <button
-                      onClick={clearAll}
-                      className="text-xs text-zinc-400 hover:text-zinc-600 cursor-pointer"
-                    >
-                      모두 지우기
-                    </button>
-                  )}
+                  {notifications.length > 0 && <button onClick={clearAll} className="text-xs text-zinc-400 hover:text-zinc-600 cursor-pointer">모두 지우기</button>}
                 </div>
+
                 <div className="max-h-80 overflow-y-auto">
                   {notifications.length === 0 ? (
-                    <p className="px-4 py-6 text-center text-sm text-zinc-400">
-                      새 알림이 없습니다.
-                    </p>
+                    <p className="px-4 py-6 text-center text-sm text-zinc-400">새 알림이 없습니다.</p>
                   ) : (
                     notifications.map((n) => (
                       <div
                         key={n.id}
                         onClick={() => {
                           setShowNotifications(false);
-                          if (n.type === "chat" && n.roomId !== null)
+
+                          if (n.type === "chat" && n.roomId !== null) {
                             router.push(`/chat/${n.roomId}`);
+                          }
                         }}
                         className="w-full flex items-start gap-3 px-4 py-3 text-left border-b border-zinc-100 last:border-b-0 hover:bg-zinc-50 cursor-pointer"
                       >
-                        <span
-                          className={`shrink-0 mt-0.5 px-2 py-0.5 text-[11px] font-semibold rounded-full ${NOTIFICATION_TYPE_STYLE[n.type].className}`}
-                        >
-                          {NOTIFICATION_TYPE_STYLE[n.type].label}
-                        </span>
+                        <span className={`shrink-0 mt-0.5 px-2 py-0.5 text-[11px] font-semibold rounded-full ${NOTIFICATION_TYPE_STYLE[n.type].className}`}>{NOTIFICATION_TYPE_STYLE[n.type].label}</span>
+
                         <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-sm font-semibold truncate">
-                              {n.senderName}
-                            </span>
-                            <span className="text-[11px] text-zinc-400 shrink-0">
-                              {formatNotificationTime(n.createdAt)}
-                            </span>
+                            <span className="text-sm font-semibold truncate">{n.senderName}</span>
+                            <span className="text-[11px] text-zinc-400 shrink-0">{formatNotificationTime(n.createdAt)}</span>
                           </div>
-                          <span className="text-xs text-zinc-500 truncate w-full">
-                            {n.message}
-                          </span>
+
+                          <span className="text-xs text-zinc-500 truncate w-full">{n.message}</span>
                         </div>
+
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -235,53 +188,29 @@ export default function Header() {
                     ))
                   )}
                 </div>
+
               </div>
             )}
           </div>
+
           <div ref={menuRef} className="relative">
-            <button
-              onClick={() => setShowMenu((v) => !v)}
-              className="w-9 h-9 rounded-full overflow-hidden border border-zinc-300 transition-colors hover:border-main cursor-pointer"
-            >
-              <Image
-                src={
-                  profileImageUrl
-                    ? toRelativeUrl(profileImageUrl)
-                    : "/profile.png"
-                }
-                alt="프로필"
-                width={36}
-                height={36}
-                className="w-full h-full object-cover"
-              />
+            <button onClick={() => setShowMenu((v) => !v)} className="w-9 h-9 rounded-full overflow-hidden border border-zinc-300 transition-colors hover:border-main cursor-pointer">
+              <Image src={profileImageUrl ? toRelativeUrl(profileImageUrl) : "/profile.png"} alt="프로필" width={36} height={36} className="w-full h-full object-cover" />
             </button>
+
             {showMenu && (
               <div className="absolute right-0 top-11 w-36 bg-white border border-zinc-200 rounded-lg shadow-lg overflow-hidden z-50">
-                <Link
-                  href="/profile"
-                  onClick={() => setShowMenu(false)}
-                  className="flex items-center px-4 py-3 text-sm text-zinc-700 hover:bg-zinc-50"
-                >
-                  프로필
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center px-4 py-3 text-sm text-red-500 hover:bg-zinc-50 cursor-pointer"
-                >
-                  로그아웃
-                </button>
+                <Link href="/profile" onClick={() => setShowMenu(false)} className="flex items-center px-4 py-3 text-sm text-zinc-700 hover:bg-zinc-50">프로필</Link>
+                <button onClick={handleLogout} className="w-full flex items-center px-4 py-3 text-sm text-red-500 hover:bg-zinc-50 cursor-pointer">로그아웃</button>
               </div>
             )}
           </div>
+
         </div>
       ) : (
-        <Link
-          href="/login/signin"
-          className="text-zinc-500 text-sm font-semibold"
-        >
-          로그인 / 회원가입
-        </Link>
+        <Link href="/login/signin" className="text-zinc-500 text-sm font-semibold">로그인 / 회원가입</Link>
       )}
+
     </div>
   );
 }
