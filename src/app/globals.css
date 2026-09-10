@@ -1,18 +1,13 @@
 @import "tailwindcss";
 
 @theme {
-	--color-main: #FE6A4C;
-	--color-contract: #1A2747;
+  --color-main: #fe6a4c;
+  --color-contract: #1a2747;
 }
 
 html,
-body {
-	height: 100%;
-}
-
-body {
-	margin: 0;
-}
+body { height: 100%; }
+body { margin: 0; }
 
 @keyframes bell-ring {
 	0%, 100% { transform: rotate(0deg); }
@@ -60,7 +55,7 @@ body {
 }
 
 .animate-contract-dot {
-	animation: contract-dot 1.2s ease-in-out infinite;
+  	animation: contract-dot 1.2s ease-in-out infinite;
 }
 
 @keyframes contract-sweep {
@@ -69,7 +64,7 @@ body {
 }
 
 .animate-contract-sweep {
-	animation: contract-sweep 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  	animation: contract-sweep 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 @keyframes block-height-rise {
@@ -83,7 +78,7 @@ body {
 	}
 }
 .block-height-rise {
-	animation: block-height-rise 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  	animation: block-height-rise 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
