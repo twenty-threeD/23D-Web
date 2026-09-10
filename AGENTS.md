@@ -1,5 +1,69 @@
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
+@AGENTS.md
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
+# 잇다(ITDA) 프로젝트 규칙
+
+## 반드시 지킬 것
+
+### 1. 마진 사용 금지
+`m-`, `mt-`, `mb-`, `ml-`, `mr-`, `mx-`, `my-` 를 쓰지 않는다.
+간격은 **부모의 `flex`/`grid` + `gap`** 으로 만든다. 필요하면 `padding` 을 쓴다.
+
+```tsx
+// ✗
+<div><h2 className="mb-4">제목</h2><p>내용</p></div>
+
+// ✓
+<div className="flex flex-col gap-4"><h2>제목</h2><p>내용</p></div>
+```
+
+마진은 인접 요소끼리 상쇄되거나 겹쳐서 간격이 조용히 달라진다.
+`gap` 은 부모 한 곳에서 간격을 관리하므로 그런 일이 없다.
+
+### 2. 기존 디자인 스타일을 따를 것
+새 색·모양을 임의로 만들지 말고, 이미 쓰는 것을 먼저 찾는다.
+
+- 색은 `src/app/globals.css` 의 `@theme` 에 정의된 토큰을 쓴다
+  (`--color-main` = `#FE6A4C` 브랜드 오렌지, `--color-contract` = 계약서 본문색)
+- 비슷한 화면이 이미 있으면 그 컴포넌트의 라운드·보더·타이포를 그대로 따른다
+- 임의값(`bg-[#...]`)은 시안에 있는 색을 옮길 때만 쓰고, 반복되면 토큰으로 올린다
+
+**Tailwind v4** 를 쓴다. 설정은 `globals.css` 의 `@theme` 이다.
+루트의 `tailwind.config.ts` 는 v3 잔재로 **적용되지 않는다** — 거기에 색을 추가해도 반영 안 된다.
+
+### 3. 페이지 export 형식
+`src/app/**/page.tsx` 의 기본 export 는 항상 이 형식이다.
+
+```tsx
+export default function Page() { ... }
+```
+
+`Home()`, `page()` 처럼 다른 이름·소문자를 쓰지 않는다.
+
+## 알아둘 것
+
+### 갑 / 을
+계정 속성이 아니라 **채팅방마다 정해지는 관계**다. `authStore.role` 로 판단하면 안 된다.
+
+- **을** = post(서비스)를 올린 사람. 용역을 제공하고 **대금을 받는** 쪽
+- **갑** = 그 post에 문의를 건 사람. **대금을 지급하는** 쪽
+
+즉 `post.member` 는 항상 을이다. 판단 기준은 `post.member.username === myUsername` 하나뿐이다.
+
+### 백엔드 파일 URL
+서버가 주는 파일·이미지 URL은 **반드시 `toRelativeUrl()`(`src/lib/file.ts`)을 거쳐** 쓴다.
+절대 URL을 그대로 쓰면 Next rewrites 프록시를 타지 않아 이미지가 깨진다.
+
+### API 스펙은 라이브를 확인
+스펙이 자주 바뀐다. 기억이나 기존 코드에 의존하지 말고 작업 전에 확인한다.
+
+```
+curl https://api.idta.store/v3/api-docs
+```
+
+### 채팅 특수 메시지
+백엔드에 구조화된 시스템 메시지 타입이 없어, **대괄호 접두사 + JSON** 규약을 쓴다.
+`[채팅 시작]`, `[계약서 제안]`, `[계약서 체결 완료]`, `[결제 완료]` — 본문 대신 카드로 렌더한다.
+
+### 주석
+한글로 쓰고, **무엇을 하는지가 아니라 왜 그렇게 했는지**를 남긴다.
+특히 우회·예외 처리는 배경을 적어야 나중에 걷어낼 수 있다.
