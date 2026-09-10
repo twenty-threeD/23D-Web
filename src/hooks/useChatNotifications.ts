@@ -10,6 +10,7 @@ import {
   readAllNotifications,
   type NotificationResponse,
 } from "@/src/lib/notifications"
+import { previewOf } from "@/src/lib/chatPreview"
 
 export type NotificationType = "chat" | "notice"
 
@@ -27,7 +28,8 @@ function toNotification(n: NotificationResponse): Notification {
     id: n.notificationId ?? -Date.now(),
     type: n.type === "NOTICE" ? "notice" : "chat",
     senderName: n.senderName ?? "공지",
-    message: n.message,
+    // 카드형 메시지는 "[접두사]\nJSON" 원문이라 채팅 목록과 같은 요약 문구로 바꿔 보여준다.
+    message: n.type === "NOTICE" ? n.message : previewOf(n.message),
     createdAt: n.sentAt,
     roomId: n.roomId,
   }
