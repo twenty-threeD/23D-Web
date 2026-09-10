@@ -1,6 +1,4 @@
 "use client"
-import Header from "@/src/components/Header";
-import Footer from "@/src/components/Footer";
 import SearchInput from "@/src/components/blockchain/SearchInput";
 import {useEffect, useState} from "react";
 import type {ReactNode} from "react";
@@ -143,7 +141,6 @@ export default function Page() {
 
     return (
         <div className="bg-white">
-            <Header/>
             <main className="mx-auto flex w-full max-w-[1312px] flex-col px-6 pb-28 pt-24 lg:pt-40">
                 <h1 className="text-center text-4xl leading-normal text-black">
                     <span className="font-bold text-main">블록체인</span>
@@ -209,7 +206,6 @@ export default function Page() {
                     </div>
                 </div>
             </main>
-            <Footer/>
         </div>
     )
 }

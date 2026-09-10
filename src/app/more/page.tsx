@@ -4,8 +4,6 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { FiArrowLeft, FiArrowUpRight, FiTrendingUp } from "react-icons/fi";
-import Header from "@/src/components/Header";
-import Footer from "@/src/components/Footer";
 import NormalCard from "@/src/components/NormalCard";
 import NormalCardSkeleton from "@/src/components/NormalCardSkeleton";
 import TopButton from "@/src/components/TopButton";
@@ -97,7 +95,6 @@ function MoreContent() {
 
   return (
     <div>
-      <Header />
       <main className="flex flex-col items-center px-5 lg:px-20 py-10 lg:py-14 gap-8 lg:gap-10">
         <div className="w-full flex flex-col gap-8">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 border-b border-zinc-200 pb-8">
@@ -190,7 +187,6 @@ function MoreContent() {
         )}
       </main>
       <TopButton />
-      <Footer />
     </div>
   );
 }
