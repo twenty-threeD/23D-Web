@@ -115,6 +115,8 @@ export default function Page() {
   const [pendingPreviews, setPendingPreviews] = useState<string[]>([])
   const [pendingDocUrl, setPendingDocUrl] = useState<string | null>(null)
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
+  // 방금 복사한 트랜잭션 해시. 해시 줄에 잠깐 "복사됨"을 띄우는 데만 쓴다
+  const [copiedHash, setCopiedHash] = useState<string | null>(null)
   const [pendingDocName, setPendingDocName] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const stompClientRef = useRef<Client | null>(null)
@@ -576,7 +578,6 @@ export default function Page() {
     return null
   }
 
-
   // 채팅 목록 미리보기. 대괄호 접두사로 주고받는 특수 메시지는 원문 대신 짧은 문구로 보여준다
   // (JSON 본문이 그대로 노출되거나 줄바꿈이 이어붙어 길어지는 걸 막는다).
   function previewOf(text: string) {
@@ -621,7 +622,7 @@ export default function Page() {
   }, [])
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
+    <div className="flex flex-col h-[calc(100vh-4rem)]">  
       {showEstimate && selectedRoom && token && (
         <EstimateModal
           token={token}
@@ -767,6 +768,13 @@ export default function Page() {
                     (acc, m, i) => (m.message?.startsWith("[계약서 체결 완료]") ? i : acc),
                     -1
                   )
+                  // 같은 이유로 체결 카드도 결제 완료 메시지를 모른다. 결제 후에도 결제하기 버튼이
+                  // 남아 결제 페이지로 다시 들어가지므로, 마지막 결제보다 앞선 체결은 결제된 것으로 본다.
+                  const lastPaymentIdx = messages.reduce(
+                    (acc, m, i) =>
+                      (m.type === "PAYMENT" && m.payment) || m.message?.startsWith("[결제 완료]") ? i : acc,
+                    -1
+                  )
                   return messages.map((msg, idx) => {
                   const prevMsg = messages[idx - 1]
                   const nextMsg = messages[idx + 1]
@@ -819,6 +827,8 @@ export default function Page() {
                   const paymentCard = paymentInfo ? (
                     <PaymentCard payment={paymentInfo} isSent={isSent} paidAt={msg.createdAt} />
                   ) : null
+                  // 블록체인 트랜잭션 해시를 보여준다. 백엔드가 blockchainTxHash → txHash 로 이름을 옮기는 중이라 둘 다 본다
+                  const txHash = paymentInfo ? paymentInfo.txHash ?? paymentInfo.blockchainTxHash : null
 
                   const contractMsg = parseContractMessage(msg.message)
                   const chatStart = parseChatStart(msg.message)
@@ -852,6 +862,7 @@ export default function Page() {
                         price={contractMsg.data.price}
                         contractUrl={contractMsg.data.contractUrl}
                         signedAt={msg.createdAt}
+                        paid={idx < lastPaymentIdx}
                         onPay={isSent && selectedRoom.postId ? () => handlePayNavigate(contractMsg.data) : undefined}
                       />
                     )
@@ -903,6 +914,28 @@ export default function Page() {
                             {contractCard}
                             {paymentCard}
                           </div>
+                        </div>
+                      )}
+                      {/* 결제 해시는 카드 안에 넣기엔 길어서, 카톡 시스템 안내처럼 대화 흐름 가운데에 한 줄로 남긴다.
+                          누가 보냈는지와 무관한 기록이라 좌우 정렬 없이 가운데에 둔다 */}
+                      {txHash && (
+                        <div className="flex justify-center py-2">
+                          {/* 해시 전체는 폭을 넘어 줄이 깨지므로 앞뒤만 보여주고, 원문은 클릭 복사로 가져가게 한다 */}
+                          <button
+                            type="button"
+                            title={txHash}
+                            onClick={() => {
+                              navigator.clipboard.writeText(txHash).then(() => {
+                                setCopiedHash(txHash)
+                                setTimeout(() => setCopiedHash((h) => (h === txHash ? null : h)), 1500)
+                              }).catch(() => {})
+                            }}
+                            className="cursor-pointer whitespace-nowrap rounded-full bg-zinc-100 px-3 py-1 text-xs text-zinc-400 transition-colors hover:bg-zinc-200 hover:text-zinc-500"
+                          >
+                            {copiedHash === txHash
+                              ? "해시가 복사됐어요"
+                              : `트랜잭션 해시 ${txHash.length > 20 ? `${txHash.slice(0, 10)}…${txHash.slice(-8)}` : txHash}`}
+                          </button>
                         </div>
                       )}
                     </div>
