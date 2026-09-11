@@ -159,7 +159,7 @@ export default function Page() {
 
                     <div className="flex flex-col gap-[30px] rounded-xl bg-[#fbfbfb] p-12">
                         <p className="text-2xl font-medium text-black">트랜잭션 검증여부</p>
-                        <div className="flex items-start gap-2">
+                        <div className="flex items-center gap-2">
                             {verification === null
                                 ? <p className="text-xl font-medium text-[#aaa]">{error ?? "조회 중"}</p>
                                 : verification.verified
