@@ -6,7 +6,8 @@ import Image from "next/image"
 import { IoClose, IoSend, IoAdd } from "react-icons/io5"
 import Search from "@/src/components/Search"
 import { HiDotsHorizontal } from "react-icons/hi"
-import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment, MdOutlineReceiptLong } from "react-icons/md"
+import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment, MdOutlineReceiptLong, MdCall, MdVideocam } from "react-icons/md"
+import { useCallStore } from "@/src/store/callStore"
 import { useAuthStore, setWsAuthCookie } from "@/src/store/authStore"
 import { useChatRoomsStore, type ChatRoom } from "@/src/store/chatRoomsStore"
 import { getChatRooms, loadChatMessages, deleteChatRoom } from "@/src/lib/chat"
@@ -25,6 +26,9 @@ import { getPost, getPostMainImage, type Post } from "@/src/lib/post"
 import ChatStartCard from "@/src/components/chat/ChatStartCard"
 import ContractCard from "@/src/components/chat/ContractCard"
 import PaymentCard, { type ChatPayment } from "@/src/components/chat/PaymentCard"
+import CallLogCard from "@/src/components/chat/CallLogCard"
+import CallSessionBubble from "@/src/components/chat/CallSessionBubble"
+import { parseCallLog, previewCallLog } from "@/src/lib/callLog"
 import { pdfBlobToFile } from "@/src/lib/contractPdf"
 import ImageLightbox from "@/src/components/ImageLightbox"
 import { parseChatStart, previewOf } from "@/src/lib/chatPreview"
@@ -92,6 +96,10 @@ export default function Page() {
   const [showEstimate, setShowEstimate] = useState(false)
   const [estimateBusy, setEstimateBusy] = useState(false)
   const [estimates, setEstimates] = useState<EstimateData[]>([])
+  // 통화 UI 자체는 전역(CallProvider)이 그린다. 여기서는 거는 것만 맡는다.
+  const startCall = useCallStore((s) => s.start)
+  const callPhase = useCallStore((s) => s.phase)
+  const activeCall = useCallStore((s) => s.call)
   const rooms = useChatRoomsStore((s) => s.rooms)
   const setRoomsInStore = useChatRoomsStore((s) => s.setRooms)
   const unreadRoomIds = useChatRoomsStore((s) => s.unreadRoomIds)
@@ -130,6 +138,12 @@ export default function Page() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
+
+  // 통화 카드는 메시지 목록 맨 끝에 붙는데, 전화가 왔다고 messages 가 바뀌지는 않는다.
+  // 그래서 대화가 길면 카드가 스크롤 밖에 남아 전화가 온 줄도 모르고 받지도 못했다.
+  useEffect(() => {
+    if (callPhase !== "idle") messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [callPhase])
 
   useEffect(() => {
     setActiveRoomId(selectedId)
@@ -586,6 +600,8 @@ export default function Page() {
     if (text.startsWith("[계약서 체결 완료]")) return "계약이 체결됐습니다."
     if (text.startsWith("[결제 완료]")) return "결제가 완료됐습니다."
     if (text.startsWith("[견적서 발송]")) return "견적서를 보냈습니다."
+    const callLog = parseCallLog(text)
+    if (callLog) return previewCallLog(callLog)
     const start = parseChatStart(text)
     if (start) return start.planName ? `선택한 서비스: ${start.planName}` : "채팅을 시작했어요"
     return text.replace(/\n+/g, " ")
@@ -750,9 +766,41 @@ export default function Page() {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div className="flex flex-col">
+                <div className="flex flex-col flex-1 min-w-0">
                   <span className="font-semibold text-sm">{selectedRoom.participantName}</span>
                   <span className="text-xs text-zinc-400">@{selectedRoom.participantUsername}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    aria-label="음성 통화"
+                    disabled={callPhase !== "idle"}
+                    onClick={() =>
+                      token &&
+                      startCall(token, selectedRoom.roomId, "VOICE", {
+                        name: selectedRoom.participantName,
+                        imageUrl: selectedRoom.participantImageUrl,
+                      })
+                    }
+                    className="flex items-center justify-center w-9 h-9 rounded-full text-lg text-zinc-600 transition hover:bg-zinc-100 hover:text-main disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <MdCall />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="영상 통화"
+                    disabled={callPhase !== "idle"}
+                    onClick={() =>
+                      token &&
+                      startCall(token, selectedRoom.roomId, "VIDEO", {
+                        name: selectedRoom.participantName,
+                        imageUrl: selectedRoom.participantImageUrl,
+                      })
+                    }
+                    className="flex items-center justify-center w-9 h-9 rounded-full text-lg text-zinc-600 transition hover:bg-zinc-100 hover:text-main disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <MdVideocam />
+                  </button>
                 </div>
               </div>
 
@@ -832,9 +880,12 @@ export default function Page() {
 
                   const contractMsg = parseContractMessage(msg.message)
                   const chatStart = parseChatStart(msg.message)
+                  const callLog = parseCallLog(msg.message)
                   const displayText = msg.message
 
-                  const textBubble = msg.message && !contractMsg && !paymentCard ? (
+                  const callCard = callLog ? <CallLogCard log={callLog} isSent={isSent} /> : null
+
+                  const textBubble = msg.message && !contractMsg && !paymentCard && !callCard ? (
                     <div className={`rounded-2xl px-4 py-2 max-w-xs ${isSent ? "bg-main rounded-br-none" : "bg-zinc-100 rounded-bl-none"}`}>
                       <p className={`text-sm whitespace-pre-line ${isSent ? "text-white" : ""}`}>{displayText}</p>
                     </div>
@@ -902,6 +953,7 @@ export default function Page() {
                             {textBubble}
                             {contractCard}
                             {paymentCard}
+                            {callCard}
                           </div>
                           {showTime && <span className="text-xs text-zinc-400 shrink-0">{formatTime(msg.createdAt)}</span>}
                         </div>
@@ -913,6 +965,7 @@ export default function Page() {
                             {textBubble}
                             {contractCard}
                             {paymentCard}
+                            {callCard}
                           </div>
                         </div>
                       )}
@@ -942,6 +995,19 @@ export default function Page() {
                   )
                   })
                 })()}
+                {/* 이 방에서 진행 중인 통화. 건 쪽·받는 쪽 모두에게 보이고,
+                    아직 통화 화면에 안 들어간 쪽은 이걸 눌러서 들어간다.
+                    끊기면 사라지고 그 자리에는 [통화] 기록 말풍선이 남는다. */}
+                {callPhase !== "idle" && activeCall?.roomId === selectedRoom.roomId && (
+                  // 하단에 고정한다. 대화를 위로 올려 보는 중에도 전화는 받을 수 있어야 한다.
+                  <div className="sticky bottom-0 z-10 flex flex-col bg-white pt-2">
+                    <CallSessionBubble
+                      peerName={selectedRoom.participantName}
+                      peerImageUrl={selectedRoom.participantImageUrl}
+                      isSent={activeCall.caller.username === myUsername}
+                    />
+                  </div>
+                )}
                 <div ref={messagesEndRef} />
               </div>
               {lightboxSrc && (

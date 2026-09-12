@@ -5,6 +5,7 @@ import "./globals.css";
 import AuthProvider from "@/src/components/AuthProvider";
 import BlockMobile from "@/src/components/BlockMobile";
 import SiteChrome from "@/src/components/SiteChrome";
+import CallProvider from "@/src/components/call/CallProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,8 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <AuthProvider>
           <SiteChrome>{children}</SiteChrome>
+          {/* 걸려온 전화는 채팅방 밖에서도 받아야 해서 전역에 둔다 */}
+          <CallProvider />
         </AuthProvider>
         <BlockMobile />
         <Toast />

@@ -67,6 +67,16 @@ body { margin: 0; }
   	animation: contract-sweep 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
+/* 통화 화면에서 프로필 뒤로 퍼지는 벨 파동 */
+@keyframes call-pulse {
+	0% { opacity: 0.5; transform: scale(1); }
+	100% { opacity: 0; transform: scale(1.9); }
+}
+
+.animate-call-pulse {
+	animation: call-pulse 1.6s ease-out infinite;
+}
+
 @keyframes block-height-rise {
 	from {
 		opacity: 0;
@@ -82,7 +92,8 @@ body { margin: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.block-height-rise {
+	.block-height-rise,
+	.animate-call-pulse {
 		animation: none;
 	}
 }

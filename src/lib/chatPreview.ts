@@ -1,3 +1,5 @@
+import { parseCallLog, previewCallLog } from "./callLog"
+
 export interface ChatStartInfo {
   starter: string
   planName: string
@@ -36,6 +38,8 @@ export function previewOf(text: string) {
   if (text.startsWith("[계약서 체결 완료]")) return "✅ 계약이 체결됐습니다."
   if (text.startsWith("[결제 완료]")) return "💳 결제가 완료됐습니다."
   if (text.startsWith("[견적서 발송]")) return "🧾 견적서를 보냈습니다."
+  const callLog = parseCallLog(text)
+  if (callLog) return `${callLog.status === "MISSED" || callLog.status === "CANCELED" ? "📵" : "📞"} ${previewCallLog(callLog)}`
   const start = parseChatStart(text)
   if (start) return start.planName ? `선택한 서비스: ${start.planName}` : "채팅을 시작했어요"
   // 백엔드가 만드는 PAYMENT 타입 메시지처럼 접두사 없이 JSON만 오는 경우도 원문 노출을 막는다.
