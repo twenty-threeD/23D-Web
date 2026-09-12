@@ -3,8 +3,6 @@ export interface TxDetail {
     contractUrl: string
     /** 체인에 기록된 계약서 주소와 같은지. 서버가 판단하지 못하면 null. */
     contractUrlMatched: boolean | null
-    sellerName: string | null
-    buyerName: string | null
 }
 
 /** 검증 결과가 거절된 이유. 서버가 문자열로 내려주므로 그대로 보관한다. */
@@ -22,7 +20,8 @@ export interface TxVerification {
     paidAt: string | null
     /** 체인에 같은 결제 기록이 남아 있는지. */
     ledgerMatched: boolean
-    signatureValid: boolean
+    /** 트랜잭션 서명이 유효한지. 서버가 판단하지 못하면 null. */
+    signatureValid: boolean | null
     /** 로그인한 회원이 이 결제의 당사자인지. 당사자여야 detail 이 내려온다. */
     party: boolean
     /** 당사자에게만 주는 상세 정보. 당사자가 아니면 null. */
@@ -64,7 +63,7 @@ export async function getTxVerification(txHash: string, token?: string | null): 
         amount: data.amount ?? null,
         paidAt: data.paidAt ?? null,
         ledgerMatched: data.ledgerMatched ?? false,
-        signatureValid: data.signatureValid ?? false,
+        signatureValid: data.signatureValid ?? null,
         party: data.party ?? false,
         detail: data.detail ?? null,
     }

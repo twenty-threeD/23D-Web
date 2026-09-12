@@ -60,6 +60,24 @@ function LinkField({label, url}: {label: string; url: string}) {
     )
 }
 
+/**
+ * 확인 여부만 알려주는 줄.
+ * 검은 글씨의 일반 값 사이에 묻히지 않도록 값에만 색을 준다.
+ */
+function CheckField({label, checked}: {label: string; checked: boolean | null}) {
+    // 서버가 판단하지 못한 null 은 확인 실패와 뜻이 다르므로 문구만 따로 두고 색은 같이 간다
+    const text = checked === null ? "확인불가" : checked ? "확인됨" : "확인되지 않음"
+
+    return (
+        <div className="flex flex-col gap-1">
+            <p className="text-xs font-medium text-[#aaa]">{label}</p>
+            <p className={`text-base font-semibold ${checked ? "text-main" : "text-[#FB1C1C]"}`}>
+                {text}
+            </p>
+        </div>
+    )
+}
+
 /** 체인에 기록이 남아 있는지 보여주는 배지. */
 function LedgerBadge({matched}: {matched: boolean}) {
     const color = matched ? "text-main border-main" : "text-[#aaa] border-[#aaa]"
@@ -146,10 +164,10 @@ export default function Page() {
                                     <Field label="결제액" value={formatAmount(verification?.amount ?? null)}/>
                                     <Field label="결제 일시" value={verification?.paidAt ?? null}/>
                                     {/* 결제 당사자에게만 계약 상세가 내려온다 */}
-                                    {detail && (
+                                    {detail && verification && (
                                         <>
-                                            <Field label="판매자 성명" value={detail.sellerName}/>
-                                            <Field label="구매자 성명" value={detail.buyerName}/>
+                                            <CheckField label="블록체인 결제 내역" checked={verification.ledgerMatched}/>
+                                            <CheckField label="트랜잭션 서명" checked={verification.signatureValid}/>
                                             <LinkField label="계약서 주소" url={detail.contractUrl}/>
                                         </>
                                     )}
