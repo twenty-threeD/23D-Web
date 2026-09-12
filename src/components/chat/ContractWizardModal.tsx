@@ -133,7 +133,7 @@ export default function ContractWizardModal({
       showMaximumPriceToast();
       return;
     }
-    if (startDate >= endDate) {
+    if (startDate > endDate) {
       showDateToast();
       return;
     }
