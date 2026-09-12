@@ -133,7 +133,7 @@ export default function ContractWizardModal({
       showMaximumPriceToast();
       return;
     }
-    if (startDate >= endDate) {
+    if (startDate > endDate) {
       showDateToast();
       return;
     }
@@ -217,8 +217,6 @@ export default function ContractWizardModal({
     },
   ];
 
-  const showSignatures = step === 2;
-
   return (
     <Modal
       title={`계약서 ${mode === "propose" ? "작성" : "검토 및 서명"}`}
@@ -262,53 +260,51 @@ export default function ContractWizardModal({
             ))}
           </div>
 
-          {showSignatures && (
-            <>
-              <h2 className="relative z-10 text-base font-bold text-center text-contract tracking-widest">
-                {startDate ? formatDate(startDate) : " "}
-              </h2>
-              <div className="relative z-10 grid grid-cols-2 gap-6">
-                <div className="flex flex-col gap-2 border-t-2 border-contract pt-4">
-                  <span className="font-semibold text-sm text-contract">
-                    갑 (의뢰인)
-                  </span>
-                  <span className="text-xs text-zinc-500">
-                    성명(기업명) {clientName}
-                  </span>
-                  {clientSig ? (
-                    <img
-                      src={clientSig}
-                      alt="갑 서명"
-                      className="h-24 object-contain border border-zinc-200 rounded-lg bg-white"
-                    />
-                  ) : (
-                    <div className="h-24 border border-dashed border-zinc-200 rounded-lg bg-zinc-50 flex items-center justify-center text-xs text-zinc-400">
-                      서명 대기 중
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col gap-2 border-t-2 border-contract pt-4">
-                  <span className="font-semibold text-sm text-contract">
-                    을 (수행자)
-                  </span>
-                  <span className="text-xs text-zinc-500">
-                    성명(기업명) {professionalName}
-                  </span>
-                  {professionalSig ? (
-                    <img
-                      src={professionalSig}
-                      alt="을 서명"
-                      className="h-24 object-contain border border-zinc-200 rounded-lg bg-white"
-                    />
-                  ) : (
-                    <div className="h-24 border border-dashed border-zinc-200 rounded-lg bg-zinc-50 flex items-center justify-center text-xs text-zinc-400">
-                      서명 대기 중
-                    </div>
-                  )}
-                </div>
+          <>
+            <h2 className="relative z-10 text-base font-bold text-center text-contract tracking-widest">
+              {startDate ? formatDate(startDate) : " "}
+            </h2>
+            <div className="relative z-10 grid grid-cols-2 gap-6">
+              <div className="flex flex-col gap-2 border-t-2 border-contract pt-4">
+                <span className="font-semibold text-sm text-contract">
+                  갑 (의뢰인)
+                </span>
+                <span className="text-xs text-zinc-500">
+                  성명(기업명) {clientName}
+                </span>
+                {clientSig ? (
+                  <img
+                    src={clientSig}
+                    alt="갑 서명"
+                    className="h-24 object-contain border border-zinc-200 rounded-lg bg-white"
+                  />
+                ) : (
+                  <div className="h-24 border border-dashed border-zinc-200 rounded-lg bg-zinc-50 flex items-center justify-center text-xs text-zinc-400">
+                    서명 대기 중
+                  </div>
+                )}
               </div>
-            </>
-          )}
+              <div className="flex flex-col gap-2 border-t-2 border-contract pt-4">
+                <span className="font-semibold text-sm text-contract">
+                  을 (수행자)
+                </span>
+                <span className="text-xs text-zinc-500">
+                  성명(기업명) {professionalName}
+                </span>
+                {professionalSig ? (
+                  <img
+                    src={professionalSig}
+                    alt="을 서명"
+                    className="h-24 object-contain border border-zinc-200 rounded-lg bg-white"
+                  />
+                ) : (
+                  <div className="h-24 border border-dashed border-zinc-200 rounded-lg bg-zinc-50 flex items-center justify-center text-xs text-zinc-400">
+                    서명 대기 중
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
         </div>
       </div>
 
