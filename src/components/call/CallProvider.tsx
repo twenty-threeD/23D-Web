@@ -7,7 +7,7 @@ import { useAuthStore, setWsAuthCookie } from "@/src/store/authStore"
 import { useChatRoomsStore } from "@/src/store/chatRoomsStore"
 import { useCallStore } from "@/src/store/callStore"
 import { callEngine } from "@/src/lib/agoraEngine"
-import { primeRingtone, startRingtone, stopRingtone } from "@/src/lib/ringtone"
+import { playHangupTone, primeRingtone, startRingtone, stopRingtone } from "@/src/lib/ringtone"
 import { useToast } from "@/src/hooks/useToast"
 import type { CallSignalEvent } from "@/src/lib/call"
 import CallOverlay from "./CallOverlay"
@@ -108,6 +108,13 @@ export default function CallProvider() {
   // 브라우저는 사용자가 페이지를 건드리기 전에 나는 소리를 막는다.
   // 전화가 왔을 때 오디오를 처음 만들면 이미 늦어서 벨이 안 울리므로,
   // 첫 클릭·키입력 때 미리 깨워둔다.
+  // 종료음은 통화를 끊어봐야 들을 수 있어서 손보기가 번거롭다.
+  // 개발 중에는 콘솔에서 __hangupTone() 으로 바로 들어볼 수 있게 열어둔다.
+  useEffect(() => {
+    if (!CALL_DEBUG) return
+    ;(window as unknown as Record<string, unknown>).__hangupTone = playHangupTone
+  }, [])
+
   useEffect(() => {
     const unlock = () => primeRingtone()
     window.addEventListener("pointerdown", unlock, { once: true })
@@ -123,6 +130,14 @@ export default function CallProvider() {
     if (phase !== "incoming") return
     startRingtone()
     return () => stopRingtone()
+  }, [phase])
+
+  // 통화가 끝나면 종료음을 낸다. 화면이 닫히는 것만으로는 끊긴 걸 놓치기 쉽다.
+  // 직접 끊었든 상대가 끊었든 부재중으로 흘렀든 끝은 끝이라 똑같이 울린다.
+  const prevPhase = useRef(phase)
+  useEffect(() => {
+    if (prevPhase.current !== "idle" && phase === "idle") playHangupTone()
+    prevPhase.current = phase
   }, [phase])
 
   // 아무도 받지 않는 전화가 영원히 울리지 않게 한다.

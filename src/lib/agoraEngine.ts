@@ -55,6 +55,10 @@ class CallEngine {
   private myScreenUid: number | null = null
   private playbackDeviceId: string | null = null
   private remoteAudioPlaying = new Set<IAgoraRTCRemoteUser>()
+  // join 은 채널 접속·마이크 획득·publish 로 이어지는 긴 비동기라, 그 사이에 사용자가
+  // 끊으면 이미 정리된 클라이언트에 publish 해서 터진다.
+  // leave 가 이 번호를 올려 진행 중이던 join 을 스스로 접게 만든다.
+  private generation = 0
 
   setHandlers(handlers: EngineHandlers) {
     this.handlers = handlers
@@ -85,6 +89,9 @@ class CallEngine {
   async join(session: CallSession, opts: { video: boolean }) {
     const sdk = await this.ensureSdk()
     if (this.client) await this.leave()
+
+    // leave() 가 generation 을 올리므로 그 뒤에 내 번호를 받아야 한다
+    const gen = ++this.generation
 
     const client = sdk.createClient({ mode: 'rtc', codec: 'vp8' })
     this.client = client
@@ -122,12 +129,34 @@ class CallEngine {
     client.on('token-privilege-will-expire', () => this.handlers.onTokenExpiring?.())
 
     await client.join(session.appId, session.channelName, session.rtcToken, session.uid)
+    if (gen !== this.generation) return this.discard(client)
 
     // 마이크는 항상 먼저 잡는다. 음성으로 시작해도 나중에 카메라만 얹으면 되도록.
-    this.micTrack = await sdk.createMicrophoneAudioTrack()
-    await client.publish(this.micTrack)
+    const mic = await sdk.createMicrophoneAudioTrack()
+    if (gen !== this.generation) return this.discard(client, mic)
+    this.micTrack = mic
+
+    await client.publish(mic)
+    if (gen !== this.generation) return this.discard(client, mic)
 
     if (opts.video) await this.setCamera(true)
+  }
+
+  // 접속 도중에 통화가 끝난 경우. 여기까지 만든 것만 조용히 되돌린다.
+  private async discard(client: IAgoraRTCClient, ...tracks: (IMicrophoneAudioTrack | null)[]) {
+    for (const track of tracks) {
+      if (!track) continue
+      track.stop()
+      track.close()
+    }
+    if (this.micTrack && tracks.includes(this.micTrack)) this.micTrack = null
+    try {
+      await client.leave()
+    } catch {
+      // 아직 붙지도 못한 상태일 수 있다
+    }
+    client.removeAllListeners()
+    if (this.client === client) this.client = null
   }
 
   async renewToken(rtcToken: string) {
@@ -229,6 +258,8 @@ class CallEngine {
 
   // 종료 시 track.stop() + close() + leave() 를 빠짐없이 한다. 안 하면 카메라 LED 가 안 꺼진다.
   async leave() {
+    // 진행 중인 join 이 있으면 여기서 무효가 된다
+    this.generation++
     await this.stopScreen()
 
     for (const track of [this.micTrack, this.camTrack]) {

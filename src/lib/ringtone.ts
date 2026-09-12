@@ -48,6 +48,51 @@ export function startRingtone() {
   loop = setInterval(ring, 2400)
 }
 
+// 통화 종료음.
+//
+// 두 음을 따로 치면 "알림"처럼 들려서 끊기는 느낌이 안 난다.
+// 하나의 음이 아래로 미끄러지면서(피치 하강) 여운을 남기고 사라져야 끝맺음으로 들린다.
+// 소리를 손보려면 이 네 줄의 숫자만 만지면 된다.
+const HANGUP_FROM_HZ = 988 // 시작 음 (B5)
+const HANGUP_TO_HZ = 494 // 한 옥타브 아래로 떨어뜨린다
+const HANGUP_GLIDE_SEC = 0.13 // 떨어지는 데 걸리는 시간. 짧을수록 딱 끊기는 느낌
+const HANGUP_TAIL_SEC = 0.32 // 여운이 사라지기까지
+
+export function playHangupTone() {
+  primeRingtone()
+  if (!ctx) return
+  const c = ctx
+
+  const schedule = () => {
+    const at = c.currentTime
+    const osc = c.createOscillator()
+    const gain = c.createGain()
+    // sine 은 너무 맑아서 밋밋하다. triangle 이 배음이 조금 있어 "띵" 하고 울린다.
+    osc.type = "triangle"
+
+    osc.frequency.setValueAtTime(HANGUP_FROM_HZ, at)
+    // 사람 귀는 음높이를 비율로 듣는다. 선형으로 내리면 뚝 떨어지듯 부자연스럽다.
+    osc.frequency.exponentialRampToValueAtTime(HANGUP_TO_HZ, at + HANGUP_GLIDE_SEC)
+
+    gain.gain.setValueAtTime(0, at)
+    gain.gain.linearRampToValueAtTime(0.16, at + 0.01)
+    // 0 으로는 exponential 이 안 간다. 들리지 않을 만큼만 작게 보낸다.
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + HANGUP_TAIL_SEC)
+
+    osc.connect(gain).connect(c.destination)
+    osc.start(at)
+    osc.stop(at + HANGUP_TAIL_SEC + 0.02)
+  }
+
+  // 벨을 멈추면서 컨텍스트를 재워두기 때문에, 깨어난 뒤에 소리를 잡아야 한다.
+  // 잠든 상태로 예약하면 시계가 멈춰 있어 타이밍이 어긋난다.
+  if (c.state === "suspended") {
+    void c.resume().then(schedule).catch(() => {})
+    return
+  }
+  schedule()
+}
+
 export function stopRingtone() {
   if (loop) {
     clearInterval(loop)

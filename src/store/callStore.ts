@@ -242,6 +242,10 @@ export const useCallStore = create<CallStore>()((set, get) => ({
     })
     try {
       const session = await startCall(token, roomId, callType)
+      // 채널에 붙기 전에 먼저 들고 있는다.
+      // 이게 없으면 접속하는 몇 초 사이에 끊었을 때 callId 를 몰라 서버에 종료를 못 알리고,
+      // 화면만 닫힌 채 상대 전화는 계속 울린다.
+      set({ call: session.call, session })
       callEngine.setScreenUids([session.call.caller.screenUid, session.call.callee.screenUid])
       await callEngine.join(session, { video: callType === 'VIDEO' })
 
