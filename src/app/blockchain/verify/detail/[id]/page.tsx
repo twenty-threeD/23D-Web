@@ -52,7 +52,7 @@ function LinkField({label, url}: {label: string; url: string}) {
                 target="_blank"
                 rel="noreferrer"
                 title={url}
-                className="truncate text-base font-medium text-black hover:text-main"
+                className="block w-fit max-w-full truncate text-base font-medium text-black hover:text-main"
             >
                 {url}
             </a>
