@@ -6,6 +6,7 @@ import {display} from "@/src/lib/display";
 import {formatAmount, getTxVerification, type TxVerification} from "@/src/lib/TxVerify";
 import {toRelativeUrl} from "@/src/lib/file";
 import {useAuthStore} from "@/src/store/authStore";
+import {useToast} from "@/src/hooks/useToast";
 import {LuBadgeCheck, LuBadgeX, LuChevronLeft, LuCopy} from "react-icons/lu";
 
 /** 개요 화면 경로. 뒤로가기와 검색이 모두 이 경로를 기준으로 움직인다. */
@@ -13,9 +14,12 @@ const VERIFY_PATH = "/blockchain/verify"
 
 /** 값 옆의 복사 버튼. 클립보드를 못 쓰는 환경에서는 조용히 넘어간다. */
 function CopyButton({value, label}: {value: string; label: string}) {
+    const {addToast} = useToast()
+
     const handleCopy = async () => {
         try {
             await navigator.clipboard.writeText(value)
+            addToast({message: "복사되었습니다."})
         } catch {
             // 복사에 실패해도 값은 화면에 그대로 있으므로 알리지 않는다
         }
