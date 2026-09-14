@@ -1,5 +1,16 @@
 import { throwApiError } from './apiError'
 
+/** 날짜 입력만 받는 계약서 화면의 값을 백엔드 LocalDateTime 형식으로 변환한다. */
+export function toContractDateTime(date: string, endOfDay = false): string | null {
+  if (!date) return null
+
+  const time = endOfDay
+    ? { hours: 23, minutes: 59, seconds: 59 }
+    : { hours: 0, minutes: 0, seconds: 0 }
+
+  return `${date}T${String(time.hours).padStart(2, '0')}:${String(time.minutes).padStart(2, '0')}:${String(time.seconds).padStart(2, '0')}`
+}
+
 function authHeaders(token: string) {
   return {
     'Content-Type': 'application/json',
@@ -32,7 +43,16 @@ export interface Contract {
 // 서명은 PDF 안에 이미 그려서 넣으므로 별도의 서명 API는 없다.
 export async function createContract(
   token: string,
-  data: { contractUrl: string; clientId: number; professionalId: number; price: number }
+  data: {
+    contractUrl: string
+    clientId: number
+    professionalId: number
+    startedAt: string | null
+    endedAt: string | null
+    inspectionPeriod: number
+    price: number
+    servicesDescription: string
+  }
 ) {
   const res = await fetch(`/api/contract`, {
     method: 'POST',
