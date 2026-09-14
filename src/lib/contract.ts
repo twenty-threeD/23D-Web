@@ -32,7 +32,16 @@ export interface Contract {
 // 서명은 PDF 안에 이미 그려서 넣으므로 별도의 서명 API는 없다.
 export async function createContract(
   token: string,
-  data: { contractUrl: string; clientId: number; professionalId: number; price: number }
+  data: {
+    contractUrl: string
+    clientId: number
+    professionalId: number
+    startedAt: string | null
+    endedAt: string | null
+    inspectionPeriod: number
+    price: number
+    servicesDescription: string
+  }
 ) {
   const res = await fetch(`/api/contract`, {
     method: 'POST',

@@ -484,7 +484,11 @@ export default function Page() {
           contractUrl,
           clientId: myMemberId,
           professionalId,
+          startedAt: data.startDate ? `${data.startDate}T00:00:00` : null,
+          endedAt: data.endDate ? `${data.endDate}T23:59:59` : null,
+          inspectionPeriod: Number(data.inspectionDays),
           price,
+          servicesDescription: data.serviceContent,
         })
 
         // 결제에 필요한 값(금액·PDF 경로)을 메시지에 같이 실어둔다.
