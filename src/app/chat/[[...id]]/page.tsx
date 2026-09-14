@@ -20,7 +20,7 @@ import SockJS from "sockjs-client"
 import ContractWizardModal, { type ContractData } from "@/src/components/chat/ContractWizardModal"
 import EstimateModal from "@/src/components/chat/EstimateModal"
 import { createEstimate, getEstimates, type Estimate as EstimateData } from "@/src/lib/estimate"
-import { createContract } from "@/src/lib/contract"
+import { createContract, toContractDateTime } from "@/src/lib/contract"
 import { getMyProfile } from "@/src/lib/profile"
 import { getPost, getPostMainImage, type Post } from "@/src/lib/post"
 import ChatStartCard from "@/src/components/chat/ChatStartCard"
@@ -484,8 +484,8 @@ export default function Page() {
           contractUrl,
           clientId: myMemberId,
           professionalId,
-          startedAt: data.startDate ? `${data.startDate}T00:00:00` : null,
-          endedAt: data.endDate ? `${data.endDate}T23:59:59` : null,
+          startedAt: toContractDateTime(data.startDate),
+          endedAt: toContractDateTime(data.endDate, true),
           inspectionPeriod: Number(data.inspectionDays),
           price,
           servicesDescription: data.serviceContent,
