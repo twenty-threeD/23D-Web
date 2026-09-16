@@ -11,8 +11,9 @@ export interface ChatPayment {
   // 둘 다 받아둔다 (한쪽만 오면 그쪽을 쓴다).
   blockchainTxHash?: string | null
   txHash?: string | null
-  // 결제창에서 취소된 건. 같은 카드를 취소 상태로 그린다.
+  // 승인 후 취소(환불)된 건. 같은 카드를 취소 상태로 그린다.
   canceled?: boolean
+  // 서버가 내려준 취소 사유 (예: 블록체인 기록 실패로 인한 자동 취소)
   reason?: string | null
 }
 
@@ -38,7 +39,7 @@ function formatDate(value?: string | null) {
 
 // 백엔드가 결제 승인 시 만들어주는 PAYMENT 타입 메시지를 카드로 보여준다.
 // (계약 카드와 같은 톤을 쓰되, 결제는 되돌릴 수 없는 완료 상태라 초록 계열로 구분한다)
-// 취소된 결제는 같은 구조를 회색 톤으로 그려, 완료 건과 한눈에 구분되게 한다.
+// 승인 후 취소(환불)된 결제는 같은 구조를 회색 톤으로 그려, 완료 건과 한눈에 구분되게 한다.
 export default function PaymentCard({ payment, isSent, paidAt }: PaymentCardProps) {
   const amount = formatAmount(payment.amount)
   const paidDate = formatDate(paidAt)
@@ -53,9 +54,7 @@ export default function PaymentCard({ payment, isSent, paidAt }: PaymentCardProp
             <IoCloseOutline className="text-xl text-white" />
           </div>
           <div className="flex flex-col items-center gap-0.5">
-            <span className="text-sm font-bold tracking-tight text-white">
-              {isSent ? "결제를 취소했어요" : "결제가 취소됐어요"}
-            </span>
+            <span className="text-sm font-bold tracking-tight text-white">결제가 취소됐어요</span>
             {paidDate && (
               <span className="text-[10.5px] tabular-nums text-white/60">{paidDate} 취소</span>
             )}
@@ -80,7 +79,10 @@ export default function PaymentCard({ payment, isSent, paidAt }: PaymentCardProp
           )}
 
           <span className="text-center text-[10.5px] leading-snug text-zinc-400">
-            {isSent ? "결제가 완료되지 않았어요. 다시 시도할 수 있어요." : "상대방이 결제를 완료하지 않았어요."}
+            {payment.reason ||
+              (isSent
+                ? "결제가 취소되어 금액이 환불됩니다. 다시 시도할 수 있어요."
+                : "결제가 취소되어 금액이 환불됩니다.")}
           </span>
         </div>
       </div>

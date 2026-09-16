@@ -4,8 +4,13 @@ import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/src/hooks/useToast";
 import { confirmPayment } from "@/src/lib/payment";
+import { ApiError } from "@/src/lib/apiError";
 import { useAuthStore } from "@/src/store/authStore";
 import { useChatRoomsStore } from "@/src/store/chatRoomsStore";
+
+// 블록체인 기록 실패로 서버가 결제를 자동 취소했을 때 오는 코드.
+// (백엔드 PaymentStatusCode.PAYMENT_BLOCKCHAIN_RECORD_FAILED)
+const CHAIN_FAILURE_CANCEL_CODE = "PAYMENT_BLOCKCHAIN_RECORD_FAILED";
 
 function SuccessContent() {
   const router = useRouter();
@@ -54,6 +59,20 @@ function SuccessContent() {
         }
       } catch (e) {
         addToast({ message: e instanceof Error ? e.message : "결제 승인에 실패했습니다.", type: "error" });
+
+        // 승인은 됐지만 블록체인 기록에 실패하면 서버가 토스에 취소를 보내고 이 코드로 응답한다.
+        // 즉 결제는 이미 환불된 상태다. 완료 때와 같은 대기열에 취소 건으로 넣어 채팅에 알린다.
+        // (취소까지 실패한 PAYMENT_CANCEL_FAILED 는 서버 스케줄러가 재시도하는 미결 상태라
+        //  아직 취소됐다고 단정할 수 없어 토스트로만 알린다.)
+        if (roomId && e instanceof ApiError && e.code === CHAIN_FAILURE_CANCEL_CODE) {
+          useChatRoomsStore.getState().setPendingPayment(Number(roomId), {
+            orderId,
+            orderName: "",
+            amount: Number(amount),
+            canceled: true,
+            reason: e.message,
+          });
+        }
       } finally {
         router.replace(destination);
       }
