@@ -14,7 +14,7 @@ export interface ChatRoom {
   clearBefore?: string | null
 }
 
-// 결제 승인 직후 채팅방에 알릴 내용.
+// 결제 승인(또는 결제창 취소) 직후 채팅방에 알릴 내용.
 // 백엔드는 /api/payment/confirm 응답을 클라이언트에 돌려줄 뿐 채팅 메시지를 만들지 않으므로,
 // 계약서와 마찬가지로 프론트가 채팅에 실어 보낸다.
 export interface PaymentNotice {
@@ -22,6 +22,10 @@ export interface PaymentNotice {
   orderName: string
   amount: number
   txHash?: string | null
+  // 결제창에서 사용자가 취소한 건. 완료가 아니라 취소 카드로 그린다.
+  canceled?: boolean
+  // 토스가 내려준 취소 사유 문구
+  reason?: string | null
 }
 
 export interface SelectedService {

@@ -177,7 +177,7 @@ export default function Page() {
           } catch {}
         })
 
-        // 결제 승인 후 아직 못 보낸 결제 완료 알림이 있으면 여기서 보낸다.
+        // 결제창에서 돌아온 뒤 아직 못 보낸 결제 완료/취소 알림이 있으면 여기서 보낸다.
         // 백엔드가 채팅 메시지를 만들어주지 않아 계약서와 같은 접두사 규약을 쓴다.
         const paid = useChatRoomsStore.getState().pendingPayment[selectedId]
         if (paid) {
@@ -186,7 +186,7 @@ export default function Page() {
             headers: { Authorization: `Bearer ${token}` },
             body: JSON.stringify({
               roomId: selectedId,
-              message: `[결제 완료]\n${JSON.stringify(paid)}`,
+              message: `${paid.canceled ? "[결제 취소]" : "[결제 완료]"}\n${JSON.stringify(paid)}`,
               fileUrls: [],
             }),
           })
@@ -561,13 +561,16 @@ export default function Page() {
     | { kind: "propose"; data: ContractData }
     | { kind: "completed"; data: CompletedContract }
 
-  // 결제 완료 알림. 백엔드가 PAYMENT 타입 메시지를 만들어주지 않아
+  // 결제 완료/취소 알림. 백엔드가 PAYMENT 타입 메시지를 만들어주지 않아
   // 계약서와 같은 대괄호 접두사 규약으로 프론트가 보낸다.
   function parsePaymentMessage(text: string): ChatPayment | null {
-    const PREFIX = "[결제 완료]\n"
-    if (!text.startsWith(PREFIX)) return null
+    const PAID = "[결제 완료]\n"
+    const CANCELED = "[결제 취소]\n"
+    const prefix = text.startsWith(PAID) ? PAID : text.startsWith(CANCELED) ? CANCELED : null
+    if (!prefix) return null
     try {
-      return JSON.parse(text.slice(PREFIX.length)) as ChatPayment
+      const data = JSON.parse(text.slice(prefix.length)) as ChatPayment
+      return { ...data, canceled: prefix === CANCELED }
     } catch {
       return null
     }
@@ -603,6 +606,7 @@ export default function Page() {
     if (text.startsWith("[계약서 제안]")) return "계약서를 보냈습니다."
     if (text.startsWith("[계약서 체결 완료]")) return "계약이 체결됐습니다."
     if (text.startsWith("[결제 완료]")) return "결제가 완료됐습니다."
+    if (text.startsWith("[결제 취소]")) return "결제가 취소됐습니다."
     if (text.startsWith("[견적서 발송]")) return "견적서를 보냈습니다."
     const callLog = parseCallLog(text)
     if (callLog) return previewCallLog(callLog)

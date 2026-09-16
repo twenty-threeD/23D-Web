@@ -24,12 +24,18 @@ function createOrderId() {
   return `order-${date}-${random}`;
 }
 
-// 결제 완료 후 돌아올 때 필요한 값들을 쿼리로 넘긴다
-function buildReturnQuery(postId?: number, estimateId?: number, roomId?: string | null) {
+// 결제 완료/취소 후 돌아올 때 필요한 값들을 쿼리로 넘긴다
+function buildReturnQuery(
+  postId?: number,
+  estimateId?: number,
+  roomId?: string | null,
+  extra?: Record<string, string>
+) {
   const query = new URLSearchParams();
   if (postId) query.set("postId", String(postId));
   if (estimateId) query.set("estimateId", String(estimateId));
   if (roomId) query.set("roomId", roomId);
+  for (const [key, value] of Object.entries(extra ?? {})) query.set(key, value);
   const value = query.toString();
   return value ? `?${value}` : "";
 }
@@ -92,7 +98,12 @@ export const OnClickPay = ({ isAgree, price, orderName, orderCustomerName, postI
         orderId,
         orderName: fullOrderName,
         successUrl: `${window.location.origin}/pay/success${buildReturnQuery(postId, estimateId, roomId)}`,
-        failUrl: `${window.location.origin}/pay/fail${buildReturnQuery(postId)}`,
+        // 취소도 채팅방에 알려야 하므로 성공 때와 같이 roomId 를 넘긴다.
+        // 토스는 실패 리다이렉트에 code/message/orderId 만 주므로 금액·주문명은 여기서 실어 보낸다.
+        failUrl: `${window.location.origin}/pay/fail${buildReturnQuery(postId, estimateId, roomId, {
+          amount: String(price),
+          orderName: fullOrderName,
+        })}`,
         customerName: orderCustomerName || "익명의 고객",
       });
     } catch (error) {

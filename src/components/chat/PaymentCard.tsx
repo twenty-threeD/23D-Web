@@ -1,6 +1,6 @@
 "use client"
 
-import { IoCardOutline, IoCheckmark, IoCubeOutline } from "react-icons/io5"
+import { IoCardOutline, IoCheckmark, IoCloseOutline, IoCubeOutline } from "react-icons/io5"
 
 export interface ChatPayment {
   orderId: string
@@ -11,6 +11,9 @@ export interface ChatPayment {
   // 둘 다 받아둔다 (한쪽만 오면 그쪽을 쓴다).
   blockchainTxHash?: string | null
   txHash?: string | null
+  // 결제창에서 취소된 건. 같은 카드를 취소 상태로 그린다.
+  canceled?: boolean
+  reason?: string | null
 }
 
 interface PaymentCardProps {
@@ -35,10 +38,54 @@ function formatDate(value?: string | null) {
 
 // 백엔드가 결제 승인 시 만들어주는 PAYMENT 타입 메시지를 카드로 보여준다.
 // (계약 카드와 같은 톤을 쓰되, 결제는 되돌릴 수 없는 완료 상태라 초록 계열로 구분한다)
+// 취소된 결제는 같은 구조를 회색 톤으로 그려, 완료 건과 한눈에 구분되게 한다.
 export default function PaymentCard({ payment, isSent, paidAt }: PaymentCardProps) {
   const amount = formatAmount(payment.amount)
   const paidDate = formatDate(paidAt)
   const txHash = payment.txHash ?? payment.blockchainTxHash
+  const canceled = payment.canceled === true
+
+  if (canceled) {
+    return (
+      <div className="animate-chat-card w-72 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_2px_10px_rgba(39,39,42,.08)]">
+        <div className="flex flex-col items-center gap-2 bg-zinc-500 px-3.5 pt-5 pb-4.5">
+          <div className="flex size-10 items-center justify-center rounded-full border border-white/25 bg-white/12">
+            <IoCloseOutline className="text-xl text-white" />
+          </div>
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-sm font-bold tracking-tight text-white">
+              {isSent ? "결제를 취소했어요" : "결제가 취소됐어요"}
+            </span>
+            {paidDate && (
+              <span className="text-[10.5px] tabular-nums text-white/60">{paidDate} 취소</span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 px-3.5 pt-4 pb-3.5">
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-[10.5px] font-medium tracking-wider text-zinc-400">결제 금액</span>
+            <span className="text-[26px] font-bold leading-tight tracking-tighter text-zinc-400 line-through">
+              {amount ?? "-"}
+            </span>
+          </div>
+
+          {payment.orderName && (
+            <div className="flex items-center gap-2 rounded-[10px] bg-zinc-50 px-2.5 py-2.5">
+              <IoCardOutline className="shrink-0 text-sm text-zinc-400" />
+              <span className="line-clamp-2 text-[11.5px] leading-snug text-zinc-600">
+                {payment.orderName}
+              </span>
+            </div>
+          )}
+
+          <span className="text-center text-[10.5px] leading-snug text-zinc-400">
+            {isSent ? "결제가 완료되지 않았어요. 다시 시도할 수 있어요." : "상대방이 결제를 완료하지 않았어요."}
+          </span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="animate-chat-card w-72 overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-[0_2px_10px_rgba(6,95,70,.10)]">
