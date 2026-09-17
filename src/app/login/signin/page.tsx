@@ -69,7 +69,7 @@ export default function Page() {
   };
 
   return (
-    <div className="flex justify-center items-center bg-zinc-100 h-full">
+    <div className="flex justify-center items-center bg-zinc-100 flex-1">
       <div className="flex fixed left-4 top-4 px-4 py-4">
         <BackButton />
       </div>

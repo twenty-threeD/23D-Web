@@ -22,7 +22,8 @@ export default function SiteChrome({ children }: { children: React.ReactNode }) 
 
   return (
     <>
-      <div className={showHeader ? "" : "hidden"}>
+      {/* 래퍼가 박스를 만들면 Header의 sticky가 이 div 높이 안에 갇혀 스크롤 시 사라진다 */}
+      <div className={showHeader ? "contents" : "hidden"}>
         <Header />
       </div>
       {children}

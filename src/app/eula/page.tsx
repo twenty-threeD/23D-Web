@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
-import Header from "@/src/components/Header";
-import Footer from "@/src/components/Footer";
 
 const sections = [
   { id: "purpose", label: "제1조 목적" },
@@ -26,6 +24,31 @@ const sections = [
 
 export default function Page() {
   const [activeSection, setActiveSection] = useState(sections[0].id);
+  const navRef = useRef<HTMLElement>(null);
+
+  // sticky로 붙기 전(페이지 맨 위)에는 목차가 화면 아래쪽에서 시작해 고정 max-height로는 끝이 잘린다.
+  // 현재 화면에 보이는 높이만큼만 쓰도록 스크롤·리사이즈마다 다시 잰다
+  useEffect(() => {
+    const updateNavHeight = () => {
+      const nav = navRef.current;
+      if (!nav) return;
+      // lg 미만에서는 목차가 본문 위에 펼쳐지므로 높이를 제한하지 않는다
+      if (!window.matchMedia("(min-width: 1024px)").matches) {
+        nav.style.maxHeight = "";
+        return;
+      }
+      const bottomGap = 32;
+      nav.style.maxHeight = `${window.innerHeight - nav.getBoundingClientRect().top - bottomGap}px`;
+    };
+
+    updateNavHeight();
+    window.addEventListener("scroll", updateNavHeight, { passive: true });
+    window.addEventListener("resize", updateNavHeight);
+    return () => {
+      window.removeEventListener("scroll", updateNavHeight);
+      window.removeEventListener("resize", updateNavHeight);
+    };
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -52,11 +75,10 @@ export default function Page() {
   }, []);
 
   return (
-    <div className="flex min-h-full flex-col bg-white">
-      <Header />
+    <div className="flex flex-1 flex-col bg-white">
 
-      <main className="flex-1 px-5 py-10 lg:px-20 lg:py-16">
-        <div className="mx-auto w-full max-w-6xl">
+      <main className="flex-1 px-20 py-8">
+        <div className="w-full">
           <header className="border-b border-zinc-200 py-8 lg:py-10">
             <p className="pb-3 text-sm font-bold tracking-wide text-main">
               ITDA POLICY
@@ -78,14 +100,16 @@ export default function Page() {
 
           <div className="grid gap-10 py-10 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-16 lg:py-14">
             <nav
+              ref={navRef}
               aria-label="이용약관 목차"
-              className="h-fit lg:sticky lg:top-24"
+              className="flex h-fit flex-col lg:sticky lg:top-24"
             >
               <p className="pb-4 text-xs font-bold tracking-wide text-zinc-400">
                 CONTENTS
               </p>
 
-              <ul className="flex flex-col gap-2 border-l border-zinc-200 pl-4">
+              {/* 조항이 많아 목록만 따로 스크롤한다. 끝에 닿았을 때 페이지까지 같이 내려가지 않게 overscroll을 막는다 */}
+              <ul className="flex min-h-0 flex-col gap-2 border-l border-zinc-200 pl-4 lg:overflow-y-auto lg:overscroll-contain">
                 {sections.map((section) => (
                   <li key={section.id}>
                     <Link
@@ -742,7 +766,6 @@ export default function Page() {
         </div>
       </main>
 
-      <Footer />
     </div>
   );
 }
