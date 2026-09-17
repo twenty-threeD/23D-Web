@@ -19,7 +19,6 @@ import { useHandleError } from "@/src/hooks/useHandleError";
 import { toRelativeUrl } from "@/src/lib/file"
 import ImageLightbox from "@/src/components/ImageLightbox"
 import { createReview, getReviews, type Review as ReviewData } from "@/src/lib/review"
-import { getEstimates } from "@/src/lib/estimate"
 import { signinPath } from "@/src/lib/navigation"
 
 export default function Page() {
@@ -43,17 +42,9 @@ export default function Page() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewContent, setReviewContent] = useState("");
   const [reviewBusy, setReviewBusy] = useState(false);
-  // 이 서비스를 내가 결제했는지. 후기는 결제한 사람만 남길 수 있다.
-  // 클라이언트 플래그가 아니라 서버의 견적서 상태(PAID)에서 파생시켜 새로고침에도 유지된다.
-  const [hasPaid, setHasPaid] = useState(false);
-
-  useEffect(() => {
-    if (!postId || !token) { setHasPaid(false); return; }
-    getEstimates(token, postId)
-      .then((list) => setHasPaid(list.some((e) => e.status === "PAID")))
-      .catch(() => setHasPaid(false));
-  }, [postId, token]);
-
+  // 결제 여부는 원래 견적서 상태(PAID)로 판단했지만 견적서 기능을 쓰지 않아 걷어냈다.
+  // 내 결제 이력을 조회할 API 가 없어, 생기기 전까지는 기존과 같이 후기 작성을 막아둔다.
+  const hasPaid = false;
   useEffect(() => {
     if (!postId) return;
     getPost(postId, token)

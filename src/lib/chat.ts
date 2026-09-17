@@ -27,7 +27,7 @@ function authHeaders(token?: string | null) {
 }
 
 // 응답이 { data: ... } 로 감싸져 오는 경우와 아닌 경우를 모두 받아준다
-function unwrap<T>(json: unknown): T {
+export function unwrap<T>(json: unknown): T {
   const body = json as { data?: T }
   return (body && typeof body === 'object' && 'data' in body ? body.data : json) as T
 }
