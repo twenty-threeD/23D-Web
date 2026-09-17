@@ -3,6 +3,8 @@
 @theme {
   --color-main: #fe6a4c;
   --color-contract: #1a2747;
+  /* 프로젝트 폰트는 Pretendard 로 통일한다. 기본 sans 를 덮어써서 클래스 없이도 전역에 적용되게 한다 */
+  --font-sans: var(--font-pretendard-local), system-ui, sans-serif;
 }
 
 /* body 높이를 고정하면 sticky 헤더가 첫 화면 높이 안에 갇혀 스크롤 시 사라진다 */

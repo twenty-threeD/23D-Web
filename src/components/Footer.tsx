@@ -1,71 +1,91 @@
 import Link from "next/link";
-import { FaInstagram } from "react-icons/fa";
-import { FaGithub } from "react-icons/fa";
+
+const FOOTER_LINK_GROUPS = [
+  {
+    title: "빠른 링크",
+    links: [
+      { label: "프로젝트 소개", href: "/about" },
+      { label: "커뮤니티", href: "/community" },
+      { label: "팀원소개", href: "/team" },
+      // 블록체인 설명 전용 페이지가 아직 없어 문서 페이지로 보낸다
+      { label: "블록체인이란?", href: "/docs" },
+    ],
+  },
+  {
+    title: "문의 • 지원",
+    links: [
+      { label: "문서", href: "/docs" },
+      { label: "개인정보처리방침", href: "/privateinfo" },
+      { label: "이용약관", href: "/eula" },
+    ],
+  },
+];
+
+const SOCIAL_LINKS = [
+  { label: "인스타그램", href: "https://www.instagram.com/idta.blockchain/", icon: "/instagram.svg" },
+  { label: "깃허브", href: "https://github.com/twenty-threeD/23D-Web", icon: "/github.svg" },
+];
 
 export default function Footer() {
   return (
-    <div className="bg-zinc-100 flex flex-col px-20 pt-8 pb-16 gap-8 border-t border-zinc-200 text-zinc-500">
-      <div className="flex gap-16">
-        {/* 1 */}
-        <div className="flex flex-col gap-4">
-          <img src="/icon.png" alt="Logo" className="w-12" />
-          <div className="flex flex-col">
-            <p className="text-sm">당신의 소중한 커리어를 안전하게 증명하고</p>
-            <p className="text-sm">최적의 전문가를 이어주는 &apos;잇다&apos;입니다.</p>
+    // 시안은 1440px 기준 좌우 120px 여백이다. 상하 여백은 40px 이며, 좁은 화면에서는 여백을 줄이고 블록을 세로로 쌓는다
+    <footer className="bg-neutral-50 px-5 md:px-10 xl:px-[120px] py-8 lg:py-10">
+      <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between">
+
+        <div className="flex flex-col gap-10 md:flex-row md:gap-16 lg:gap-[100px]">
+          {/* 로고 / 소개 */}
+          <div className="flex flex-col gap-5">
+            {/* Header 와 같은 logo.svg 를 쓴다. 글자 영역(92x46)이 시안의 60x30 이 되도록 파일 전체를 63x42 로 키우고,
+                파일 위아래 여백이 생기므로 시안의 로고~문구 간격(26px)에서 그만큼 뺀 gap 을 준다 */}
+            <img src="/logo.svg" alt="잇다" className="block w-[63px] h-[42px] bg-[#363636] mix-blend-multiply" />
+
+            <div className="flex flex-col gap-2 text-neutral-400">
+              <p className="text-sm leading-[normal]">
+                필요한 순간, 필요한 능력자를 찾을 수 있는,
+                <br />
+                블록체인 기반 용역 중개 플랫폼, 잇다 입니다.
+              </p>
+              <small className="text-xs leading-[normal]">Copyright © 2026 ITDA. All rights reserved.</small>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <a href="https://www.instagram.com/idta.blockchain/" target="_blank" rel="noreferrer">
-              <FaInstagram className="text-zinc-500 w-10 h-10 border-2 border-zinc-500 rounded-lg p-1" />
-            </a>
-            <a href="https://github.com/twenty-threeD/23D-Web" target="_blank" rel="noreferrer">
-              <FaGithub className="text-zinc-500 w-10 h-10 border-2 border-zinc-500 rounded-lg p-1 hover:text-zinc-700 hover:border-zinc-700 transition-colors" />
-            </a>
+
+          {/* 링크 */}
+          <div className="flex gap-16">
+            {FOOTER_LINK_GROUPS.map((group) => (
+              <div key={group.title} className="flex flex-col gap-4 min-w-[92px]">
+                <h3 className="text-xl font-semibold leading-none text-[#5d5d5d] whitespace-nowrap">{group.title}</h3>
+
+                <ul className="flex flex-col gap-3 text-xs font-medium leading-none text-neutral-400">
+                  {group.links.map((link) => (
+                    <li key={link.label}>
+                      <Link href={link.href} className="whitespace-nowrap transition-colors hover:text-main">{link.label}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* 2 */}
-        <div className="flex flex-col gap-4">
-          <h3 className="text-black text-xl font-bold">빠른 링크</h3>
-          <ul className="flex flex-col gap-1">
-            <li className="text-sm">
-              <Link href="/about">프로젝트 소개</Link>
-            </li>
-            <li className="text-sm">
-              <a href="mailto:itda23d@gmail.com">문의하기</a>
-            </li>
-            <li className="text-sm">
-              <Link href="/community">커뮤니티</Link>
-            </li>
-            <li className="text-sm">
-              <Link href="/team">팀원 소개</Link>
-            </li>
-          </ul>
+        {/* SNS */}
+        <div className="flex gap-4">
+          {SOCIAL_LINKS.map((social) => (
+            <a
+              key={social.label}
+              href={social.href}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={social.label}
+              className="flex items-center justify-center size-9 rounded-md border border-[#363636] transition-colors hover:bg-neutral-200"
+            >
+              {/* 기존 아이콘은 viewBox 전체를 채우는 검정 아이콘이라, 시안의 아이콘 영역(22px)에 맞춰 크기만 지정하고
+                  투명도로 시안 색(#363636)에 가깝게 맞춘다 */}
+              <img src={social.icon} alt="" className="block size-[22px] opacity-80" />
+            </a>
+          ))}
         </div>
 
-        {/* 3 */}
-        <div className="flex flex-col gap-4">
-          <h3 className="text-black text-xl font-bold">커뮤니티</h3>
-          <ul className="flex flex-col gap-1">
-            <li className="text-sm">
-              <Link href="/docs">문서</Link>
-            </li>
-            <li className="text-sm">
-              <Link href="/faq">자주 묻는 질문</Link>
-            </li>
-            <li className="text-sm">
-              <Link href="/privateinfo">개인정보처리방침</Link>
-            </li>
-            <li className="text-sm">
-              <Link href="/eula">이용약관</Link>
-            </li>
-          </ul>
-        </div>
       </div>
-      <div className="w-full h-0.5 bg-zinc-200"></div>
-      <small className="text-zinc-300">
-        © 2026 ITDA. All rights reserved. ITDA and all associated logos are
-        trademarks and/or service marks of ITDA.
-      </small>
-    </div>
+    </footer>
   );
 }

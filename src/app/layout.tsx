@@ -1,20 +1,19 @@
 import type { Metadata } from "next";
 import { Toast } from "@/src/components/ui/toaster"
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import AuthProvider from "@/src/components/AuthProvider";
 import BlockMobile from "@/src/components/BlockMobile";
 import SiteChrome from "@/src/components/SiteChrome";
 import CallProvider from "@/src/components/call/CallProvider";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+// Pretendard 는 next/font/google 에 없어 가변 폰트 파일을 직접 두고 self-host 한다.
+// 가변 폰트 한 파일로 시안의 모든 굵기(Medium 등)를 커버한다
+const pretendard = localFont({
+  src: "../../public/fonts/PretendardVariable.woff2",
+  variable: "--font-pretendard-local",
+  weight: "45 920",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -30,7 +29,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${pretendard.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <AuthProvider>
