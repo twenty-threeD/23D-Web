@@ -62,9 +62,9 @@ const features = [
 
 export default function Page() {
   return (
-    <div className="flex min-h-full flex-col bg-white">
-      <main className="flex-1 px-5 py-10 lg:px-20 lg:py-16">
-        <div className="mx-auto w-full max-w-6xl">
+    <div className="flex flex-1 flex-col bg-white">
+      <main className="flex-1 px-20 py-8">
+        <div className="w-full">
           <section
             className="border-b border-zinc-200 py-8 lg:py-16"
             aria-labelledby="about-title"

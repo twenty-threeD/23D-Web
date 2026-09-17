@@ -16,7 +16,7 @@ function OAuthFailContent() {
   const message = (code && FAIL_MESSAGES[code]) || '다시 시도해주세요';
 
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-2">
+    <div className="flex flex-col items-center justify-center flex-1 gap-2">
       <h1 className='text-2xl font-bold'>로그인에 실패했어요 :(</h1>
       <p className='font-medium text-zinc-400 text-center'>{message}</p>
       <button

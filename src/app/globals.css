@@ -5,8 +5,9 @@
   --color-contract: #1a2747;
 }
 
-html,
-body { height: 100%; }
+/* body 높이를 고정하면 sticky 헤더가 첫 화면 높이 안에 갇혀 스크롤 시 사라진다 */
+html { height: 100%; }
+body { min-height: 100%; }
 body { margin: 0; }
 
 @keyframes bell-ring {
