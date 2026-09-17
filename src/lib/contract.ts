@@ -64,7 +64,17 @@ export async function createContract(
   return json.data as Contract
 }
 
-// 계약서 조회. 응답에는 PDF 경로만 담겨온다 (금액 등은 내려오지 않는다).
+// 계약서 조회. 결제 금액은 URL 쿼리가 아니라 반드시 이 응답의 price 를 써야 한다
+// (prepare 가 계약 금액과 1원이라도 다르면 거부하고, 쿼리는 조작 가능하므로).
+export async function getContract(token: string, contractId: number) {
+  const res = await fetch(`/api/contract/${contractId}`, {
+    headers: authHeaders(token),
+  })
+  if (!res.ok) await throwApiError(res)
+  const json = await res.json()
+  return json.data as { id: number; price: number; contractUrl: string }
+}
+
 export async function getContractUrl(token: string, contractId: number) {
   const res = await fetch(`/api/contract/${contractId}`, {
     headers: authHeaders(token),

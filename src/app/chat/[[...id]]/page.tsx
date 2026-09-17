@@ -6,7 +6,7 @@ import Image from "next/image"
 import { IoClose, IoSend, IoAdd } from "react-icons/io5"
 import Search from "@/src/components/Search"
 import { HiDotsHorizontal } from "react-icons/hi"
-import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment, MdOutlineReceiptLong, MdCall, MdVideocam } from "react-icons/md"
+import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment, MdCall, MdVideocam } from "react-icons/md"
 import { useCallStore } from "@/src/store/callStore"
 import { useAuthStore, setWsAuthCookie } from "@/src/store/authStore"
 import { useChatRoomsStore, type ChatRoom } from "@/src/store/chatRoomsStore"
@@ -18,8 +18,6 @@ import { useToast } from "@/src/hooks/useToast"
 import { Client } from "@stomp/stompjs"
 import SockJS from "sockjs-client"
 import ContractWizardModal, { type ContractData } from "@/src/components/chat/ContractWizardModal"
-import EstimateModal from "@/src/components/chat/EstimateModal"
-import { createEstimate, getEstimates, type Estimate as EstimateData } from "@/src/lib/estimate"
 import { createContract, toContractDateTime } from "@/src/lib/contract"
 import { getMyProfile } from "@/src/lib/profile"
 import { getPost, getPostMainImage, type Post } from "@/src/lib/post"
@@ -82,7 +80,6 @@ export default function Page() {
       return p.username ?? p.sub ?? null
     } catch { return null }
   })
-  const myRole = useAuthStore((s) => s.role)
   const selectedId = params.id ? Number(Array.isArray(params.id) ? params.id[0] : params.id) : null
 
   const [tab, setTab] = useState<Tab>("all")
@@ -93,9 +90,6 @@ export default function Page() {
   const [contractBusy, setContractBusy] = useState(false)
   const [phoneVerified, setPhoneVerified] = useState<boolean | undefined>(undefined)
   const [myMemberId, setMyMemberId] = useState<number | undefined>(undefined)
-  const [showEstimate, setShowEstimate] = useState(false)
-  const [estimateBusy, setEstimateBusy] = useState(false)
-  const [estimates, setEstimates] = useState<EstimateData[]>([])
   // 통화 UI 자체는 전역(CallProvider)이 그린다. 여기서는 거는 것만 맡는다.
   const startCall = useCallStore((s) => s.start)
   const callPhase = useCallStore((s) => s.phase)
@@ -252,20 +246,8 @@ export default function Page() {
     }
   }, [token, selectedId])
 
-  // 받은 견적/보낸 견적/완료된 거래 탭을 postId 기준으로 나누기 위해 내가 관련된 견적서를 전부 가져온다.
-  const fetchEstimates = useCallback(async () => {
-    if (!token) return
-    try {
-      const list = await getEstimates(token)
-      setEstimates(list)
-    } catch {
-      setEstimates([])
-    }
-  }, [token])
-
   useEffect(() => { fetchRooms() }, [fetchRooms])
   useEffect(() => { fetchMessages() }, [fetchMessages])
-  useEffect(() => { fetchEstimates() }, [fetchEstimates])
 
   // 전화번호 인증 여부(서명 가능 조건)와 내 회원 ID(계약서 등록에 필요)를 함께 받아둔다.
   useEffect(() => {
@@ -313,22 +295,15 @@ export default function Page() {
     { key: "done", label: "완료된 거래" },
   ]
 
-  // 채팅방(postId + 상대방)에 딱 맞는 견적서를 찾는다. 견적서는 postId·의뢰인·전문가 조합으로 유일하게 정해진다.
-  function estimateForRoom(room: ChatRoom) {
-    if (!room.postId || !room.participantId) return undefined
-    return estimates.find((e) => {
-      if (e.postId !== room.postId) return false
-      return myRole === "PROFESSIONAL" ? e.clientId === room.participantId : e.professionalId === room.participantId
-    })
-  }
 
-  // 결제까지 끝난 견적서만 완료된 거래로, 나머지(견적서를 못 받았거나 아직 결제 전인 것)는 모두 받은거래로 묶는다.
-  function roomTab(room: ChatRoom): "received" | "done" {
-    return estimateForRoom(room)?.status === "PAID" ? "done" : "received"
+  // 완료 여부는 원래 견적서 결제 상태(PAID)로 판단했지만 견적서 기능을 쓰지 않아 걷어냈다.
+  // 내 결제 목록을 주는 API 가 아직 없어, 생기기 전까지는 모든 방을 받은거래로 둔다.
+  function roomTab(): "received" | "done" {
+    return "received"
   }
 
   const filteredRooms = rooms.filter(
-    (r) => r.participantName.includes(search) && (tab === "all" || roomTab(r) === tab)
+    (r) => r.participantName.includes(search) && (tab === "all" || roomTab() === tab)
   )
 
   const MAX_CHAT_FILE_SIZE = 25 * 1024 * 1024
@@ -415,43 +390,6 @@ export default function Page() {
     clearPendingDoc()
   }
 
-  // 견적서는 전문가(을)가 발행한다. 발행 후 채팅방에도 안내 메시지를 남긴다.
-  async function handleEstimateSubmit(data: { url: string; totalPay: number }) {
-    if (!token || !selectedId || !selectedRoom?.postId) return
-    if (!selectedRoom.participantId) {
-      addToast({ message: "상대방 정보를 불러오지 못했습니다.", type: "error" })
-      return
-    }
-    setEstimateBusy(true)
-    try {
-      await createEstimate(token, {
-        postId: selectedRoom.postId,
-        clientId: selectedRoom.participantId,
-        url: data.url,
-        totalPay: data.totalPay,
-      })
-
-      const client = stompClientRef.current
-      if (client?.connected) {
-        client.publish({
-          destination: "/app/chat.send",
-          headers: { Authorization: `Bearer ${token}` },
-          body: JSON.stringify({
-            roomId: selectedId,
-            message: `[견적서 발송]\n견적 금액: ${data.totalPay.toLocaleString()}원`,
-            fileUrls: [data.url],
-          }),
-        })
-      }
-      setShowEstimate(false)
-      fetchEstimates()
-    } catch (e) {
-      handleError(e)
-    } finally {
-      setEstimateBusy(false)
-    }
-  }
-
   // 계약서 진행 순서: 을(글 올린 사람, 파는 쪽)이 [계약서 제안](propose) → 갑(문의한 사람, 사는 쪽)이
   // 검토 후 서명하면 그 자리에서 양쪽 서명이 담긴 PDF를 만들어 서버에 등록([계약서 체결 완료], review)
   // → 갑이 결제.
@@ -536,12 +474,12 @@ export default function Page() {
     }
   }
 
-  // 계약 체결 후 결제 페이지로 이동한다. 금액·PDF 경로는 체결 메시지에 담겨 있다.
+  // 계약 체결 후 결제 페이지로 이동한다.
+  // 금액은 조작될 수 있어 URL 에 싣지 않고, 결제 페이지가 contractId 로 서버에서 다시 조회한다.
   function handlePayNavigate(completed: CompletedContract) {
     if (!selectedRoom?.postId) return
     const qs = new URLSearchParams()
-    qs.set("price", String(completed.price))
-    qs.set("contractUrl", completed.contractUrl)
+    qs.set("contractId", String(completed.contractId))
     // 문의를 시작할 때 고른 서비스. 결제 화면에서 그 플랜만 보여주기 위해 넘긴다
     // (스토어는 새로고침하면 비므로 URL 로 실어 보낸다)
     const picked = selectedId ? useChatRoomsStore.getState().selectedService[selectedId] : undefined
@@ -603,7 +541,6 @@ export default function Page() {
     if (text.startsWith("[계약서 제안]")) return "계약서를 보냈습니다."
     if (text.startsWith("[계약서 체결 완료]")) return "계약이 체결됐습니다."
     if (text.startsWith("[결제 완료]")) return "결제가 완료됐습니다."
-    if (text.startsWith("[견적서 발송]")) return "견적서를 보냈습니다."
     const callLog = parseCallLog(text)
     if (callLog) return previewCallLog(callLog)
     const start = parseChatStart(text)
@@ -643,15 +580,6 @@ export default function Page() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">  
-      {showEstimate && selectedRoom && token && (
-        <EstimateModal
-          token={token}
-          busy={estimateBusy}
-          onClose={() => setShowEstimate(false)}
-          onSubmit={handleEstimateSubmit}
-        />
-      )}
-
       {contractModalState && selectedRoom && myPartyRole && (
         <ContractWizardModal
           myRole={myPartyRole}
@@ -1067,17 +995,6 @@ export default function Page() {
                         <MdOutlineAssignment className="text-white text-2xl" />
                       </button>
                       <span className="text-xs text-zinc-500">계약서</span>
-                    </div>
-                  )}
-                  {myRole === "PROFESSIONAL" && selectedRoom.postId && (
-                    <div className="flex flex-col items-center gap-1">
-                      <button
-                        onClick={() => { setShowAttach(false); setShowEstimate(true) }}
-                        className="w-12 h-12 rounded-full bg-emerald-400 flex items-center justify-center transition-opacity hover:opacity-85 cursor-pointer"
-                      >
-                        <MdOutlineReceiptLong className="text-white text-2xl" />
-                      </button>
-                      <span className="text-xs text-zinc-500">견적서</span>
                     </div>
                   )}
                 </div>

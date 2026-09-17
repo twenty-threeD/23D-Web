@@ -18,7 +18,6 @@ function SuccessContent() {
     const paymentKey = searchParams.get("paymentKey");
     const orderId = searchParams.get("orderId");
     const amount = searchParams.get("amount");
-    const estimateId = searchParams.get("estimateId");
     const roomId = searchParams.get("roomId");
     // 채팅에서 넘어온 결제는 그 방으로 돌려보낸다. 결제 완료 메시지를 보내야 하고,
     // 사용자도 대화 맥락에서 결과를 확인하는 게 자연스럽다.
@@ -35,8 +34,6 @@ function SuccessContent() {
           paymentKey,
           orderId,
           amount: Number(amount),
-          // 견적서 결제인 경우에만 함께 보낸다 (승인 후 해당 견적서가 결제완료로 잠긴다)
-          ...(estimateId ? { estimateId: Number(estimateId) } : {}),
         });
         addToast({ message: "결제가 완료되었습니다.", type: "success" });
 

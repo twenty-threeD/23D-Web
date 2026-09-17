@@ -12,7 +12,7 @@ import PriceCard from "@/src/components/PriceCard";
 import { getPost, getPostMainImage, type Post } from "@/src/lib/post";
 import { useAuthStore } from "@/src/store/authStore";
 import { parsePostContent } from "@/src/types/priceCard";
-import { getEstimates, type Estimate as EstimateData } from "@/src/lib/estimate";
+import { getContract } from "@/src/lib/contract";
 import { useHandleError } from "@/src/hooks/useHandleError";
 import { getReviewSummary, type ReviewSummary } from "@/src/lib/review";
 
@@ -26,13 +26,8 @@ const PayContent = () => {
 
   const [isAgree, setIsAgree] = useState(false);
   const [post, setPost] = useState<Post | null>(null);
-  const [estimate, setEstimate] = useState<EstimateData | null>(null);
-  // 조회를 끝낸 게시글 번호. 로딩 여부는 이 값으로 파생시킨다
-  // (effect 안에서 동기적으로 setState 하지 않기 위함).
-  const [loadedPostId, setLoadedPostId] = useState<number | null>(null);
   const [reviewSummary, setReviewSummary] = useState<ReviewSummary | null>(null);
-  // 결제를 이미 마친 건인지. 결제 후 이 페이지로 되돌아왔을 때 안내가 달라진다.
-  const [alreadyPaid, setAlreadyPaid] = useState(false);
+  const [contract, setContract] = useState<{ id: number; price: number; contractUrl: string } | null>(null);
 
   useEffect(() => {
     if (!postId) return;
@@ -47,37 +42,28 @@ const PayContent = () => {
       .catch(() => setReviewSummary(null));
   }, [postId, token]);
 
-  // 결제 대상 견적서를 찾는다. 아직 결제되지 않은 것 중 가장 최근 것을 사용한다.
-  useEffect(() => {
-    if (!token || !postId) return;
-    getEstimates(token, postId)
-      .then((list) => {
-        const target = list
-          .filter((e) => e.status !== "PAID")
-          .sort((a, b) => b.id - a.id)[0];
-        setEstimate(target ?? null);
-        setAlreadyPaid(list.some((e) => e.status === "PAID"));
-      })
-      .catch(handleError)
-      .finally(() => setLoadedPostId(postId));
-  }, [token, postId]);
-
-  const estimateLoading = Boolean(token && postId) && loadedPostId !== postId;
-
   const { plans } = post ? parsePostContent(post.content) : { plans: [] };
 
-  // 채팅 계약서 플로우(갑↔을 서명 완료)에서 넘어온 경우, 그 쪽 price/contractUrl을 우선 사용한다.
-  // 없으면 기존처럼 견적서 하나를 근거로 삼는다 (게시글 플랜 가격은 결제에 절대 쓰지 않는다).
-  const queryPrice = searchParams.get("price");
-  const queryContractUrl = searchParams.get("contractUrl");
+  // 채팅 계약서 플로우(갑↔을 서명 완료)에서 넘어온 경우 contractId 만 받는다.
+  // 금액을 URL 에서 읽으면 조작이 가능하고 서버 검증(계약 금액과 1원이라도 다르면 거부)에도 걸리므로,
+  // 계약서를 다시 조회해 그 price 를 쓴다 (게시글 플랜 가격은 결제에 절대 쓰지 않는다).
+  const queryContractId = Number(searchParams.get("contractId"));
+  const contractIdParam = Number.isInteger(queryContractId) && queryContractId > 0 ? queryContractId : null;
   // 문의 시작 때 고른 플랜. 결제 화면에서는 선택이 끝났으므로 이 플랜만 보여준다.
   const selectedPlanName = searchParams.get("plan");
   // 결제 승인 후 이 방으로 돌아가 결제 완료 메시지를 보낸다
   const roomId = searchParams.get("roomId");
-  const hasContractQuery = queryPrice !== null && queryContractUrl !== null;
+  const hasContractQuery = contractIdParam !== null;
 
-  const price = hasContractQuery ? Number(queryPrice) : (estimate?.totalPay ?? 0);
-  const contractUrl = hasContractQuery ? queryContractUrl : estimate?.url;
+  useEffect(() => {
+    if (!token || !contractIdParam) return;
+    getContract(token, contractIdParam).then(setContract).catch(handleError);
+  }, [token, contractIdParam]);
+
+  const contractLoading = hasContractQuery && contract?.id !== contractIdParam;
+
+  const price = contract?.price ?? 0;
+  const contractUrl = contract?.contractUrl;
 
   // post를 올린 사람이 을(파는 쪽, 대금을 받는 "능력자")이다. 문의해서 들어온 사람이 갑(결제하는 쪽).
   const expertName = post?.member?.name ?? post?.member?.username ?? "";
@@ -121,44 +107,27 @@ const PayContent = () => {
           </div>
           <div className="pr-25">
             <ApplyPay isAgree={isAgree} setIsAgree={setIsAgree} />
-            {hasContractQuery ? (
-              <OnClickPay
-                isAgree={isAgree}
-                price={price}
-                orderName={post?.title ?? "잇다 서비스"}
-                orderCustomerName={username ?? ""}
-                postId={postId ?? undefined}
-                roomId={roomId}
-                contractUrl={contractUrl}
-              />
-            ) : estimateLoading ? (
-              <p className="w-87.5 mt-5 py-3 text-center text-sm text-zinc-400">
-                견적서를 불러오는 중입니다...
-              </p>
-            ) : estimate ? (
-              <OnClickPay
-                isAgree={isAgree}
-                price={price}
-                orderName={post?.title ?? "잇다 서비스"}
-                orderCustomerName={username ?? ""}
-                postId={postId ?? undefined}
-                roomId={roomId}
-                contractUrl={contractUrl}
-                estimateId={estimate.id}
-              />
-            ) : alreadyPaid ? (
-              // 결제가 끝난 건을 다시 열었을 때 "견적서가 없다"고 안내하면 오해를 부른다
-              <p className="w-87.5 mt-5 py-3 text-center text-sm text-emerald-700">
-                이미 결제가 완료된 건입니다.
+            {!hasContractQuery ? (
+              <p className="w-87.5 mt-5 py-3 text-center text-sm text-zinc-500">
+                결제할 계약서를 찾을 수 없습니다.
                 <br />
-                후기는 서비스 상세페이지에서 남길 수 있어요.
+                채팅방에서 계약을 체결한 뒤 결제하기 버튼을 눌러주세요.
+              </p>
+            ) : contractLoading ? (
+              <p className="w-87.5 mt-5 py-3 text-center text-sm text-zinc-400">
+                계약서를 불러오는 중입니다...
               </p>
             ) : (
-              <p className="w-87.5 mt-5 py-3 text-center text-sm text-zinc-500">
-                견적서가 아직 발행되지 않았습니다.
-                <br />
-                전문가에게 견적서를 요청해주세요.
-              </p>
+              <OnClickPay
+                isAgree={isAgree}
+                price={price}
+                orderName={post?.title ?? "잇다 서비스"}
+                orderCustomerName={username ?? ""}
+                postId={postId ?? undefined}
+                roomId={roomId}
+                contractUrl={contractUrl}
+                contractId={contractIdParam}
+              />
             )}
           </div>
         </div>

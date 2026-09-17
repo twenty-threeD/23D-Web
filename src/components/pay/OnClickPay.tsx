@@ -14,7 +14,8 @@ interface OnClickPayProps {
   /** 결제 후 돌아갈 채팅방. 결제 완료 메시지를 보낼 대상이다 */
   roomId?: string | null;
   contractUrl?: string;
-  estimateId?: number;
+  /** 결제 근거. 서버가 이 계약의 금액과 price 를 대조한다 */
+  contractId: number;
 }
 
 // 서버 제약: 6~64자
@@ -25,10 +26,9 @@ function createOrderId() {
 }
 
 // 결제 완료 후 돌아올 때 필요한 값들을 쿼리로 넘긴다
-function buildReturnQuery(postId?: number, estimateId?: number, roomId?: string | null) {
+function buildReturnQuery(postId?: number, roomId?: string | null) {
   const query = new URLSearchParams();
   if (postId) query.set("postId", String(postId));
-  if (estimateId) query.set("estimateId", String(estimateId));
   if (roomId) query.set("roomId", roomId);
   const value = query.toString();
   return value ? `?${value}` : "";
@@ -39,7 +39,7 @@ function buildOrderName(orderName?: string) {
   return `잇다: ${orderName || "잇다 서비스 결제"}`.slice(0, 100);
 }
 
-export const OnClickPay = ({ isAgree, price, orderName, orderCustomerName, postId, roomId, contractUrl, estimateId }: OnClickPayProps) => {
+export const OnClickPay = ({ isAgree, price, orderName, orderCustomerName, postId, roomId, contractUrl, contractId }: OnClickPayProps) => {
   const token = useAuthStore((s) => s.accessToken);
 
   const handlePayment = async () => {
@@ -61,17 +61,26 @@ export const OnClickPay = ({ isAgree, price, orderName, orderCustomerName, postI
 
     const fullOrderName = buildOrderName(orderName);
 
+    const numericRoomId = roomId ? Number(roomId) : NaN;
+    const prepareBody = {
+      amount: price,
+      contractUrl,
+      orderName: fullOrderName,
+      ...(Number.isFinite(numericRoomId) ? { roomId: numericRoomId } : {}),
+      contractId,
+    };
+
     try {
       // 결제창에 넘길 orderId 를 먼저 확정하고 서버에 등록한다.
       // 이 값이 결제창, 승인 요청까지 동일하게 유지되어야 한다.
       let orderId = createOrderId();
       try {
-        await preparePayment(token, { orderId, amount: price, contractUrl, orderName: fullOrderName });
+        await preparePayment(token, { orderId, ...prepareBody });
       } catch (e) {
         // 주문번호가 중복된 경우에 한해 새 번호로 한 번만 재시도한다.
         if (e instanceof ApiError && e.code === "PAYMENT_ORDER_ID_DUPLICATED") {
           orderId = createOrderId();
-          await preparePayment(token, { orderId, amount: price, contractUrl, orderName: fullOrderName });
+          await preparePayment(token, { orderId, ...prepareBody });
         } else {
           throw e;
         }
@@ -91,7 +100,7 @@ export const OnClickPay = ({ isAgree, price, orderName, orderCustomerName, postI
         },
         orderId,
         orderName: fullOrderName,
-        successUrl: `${window.location.origin}/pay/success${buildReturnQuery(postId, estimateId, roomId)}`,
+        successUrl: `${window.location.origin}/pay/success${buildReturnQuery(postId, roomId)}`,
         failUrl: `${window.location.origin}/pay/fail${buildReturnQuery(postId)}`,
         customerName: orderCustomerName || "익명의 고객",
       });
