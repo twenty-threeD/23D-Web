@@ -10,7 +10,14 @@ import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment, MdCall, MdVi
 import { useCallStore } from "@/src/store/callStore"
 import { useAuthStore, setWsAuthCookie } from "@/src/store/authStore"
 import { useChatRoomsStore, type ChatRoom } from "@/src/store/chatRoomsStore"
-import { getChatRooms, loadChatMessages, deleteChatRoom } from "@/src/lib/chat"
+import {
+  getChatRooms,
+  deleteChatRoom,
+  loadCachedChatMessages,
+  syncChatMessages,
+  loadOlderChatMessages,
+  mergeMessages,
+} from "@/src/lib/chat"
 import { cacheMessages } from "@/src/lib/chatDb"
 import { toRelativeUrl, uploadFile } from "@/src/lib/file"
 import { useHandleError } from "@/src/hooks/useHandleError"
@@ -123,14 +130,40 @@ export default function Page() {
   const [uploading, setUploading] = useState(false)
   const stompClientRef = useRef<Client | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesBoxRef = useRef<HTMLDivElement>(null)
+  // 위로 스크롤 페이지네이션 상태. 빈 배열이 오면 더 이상 과거가 없다.
+  const [hasOlder, setHasOlder] = useState(true)
+  const loadingOlderRef = useRef(false)
+  // 과거 페이지를 앞에 붙일 때 보던 위치가 튀지 않게 붙이기 전 scrollHeight 를 기억한다
+  const prependScrollHeightRef = useRef<number | null>(null)
+  const lastMessageIdRef = useRef<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const docInputRef = useRef<HTMLInputElement>(null)
   const chatInputRef = useRef<HTMLInputElement>(null)
   const handleError = useHandleError()
+  // useHandleError 는 매 렌더 새 함수를 돌려줘서 useCallback 의존성에 넣으면 동기화가 무한 반복된다
+  const handleErrorRef = useRef(handleError)
+  useEffect(() => { handleErrorRef.current = handleError })
+  // 소켓 재연결 콜백은 연결 시점의 클로저라 최신 목록을 ref 로 읽는다
+  const messagesRef = useRef<Message[]>([])
+  useEffect(() => { messagesRef.current = messages }, [messages])
+  // 방을 빠르게 바꾸면 이전 방 응답이 늦게 도착해 섞이므로 현재 방인지 확인한다
+  const currentRoomRef = useRef<number | null>(null)
   const { addToast } = useToast()
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    const box = messagesBoxRef.current
+    if (prependScrollHeightRef.current != null && box) {
+      box.scrollTop += box.scrollHeight - prependScrollHeightRef.current
+      prependScrollHeightRef.current = null
+    }
+    // 과거 페이지를 앞에 붙인 경우엔 맨 아래로 끌어내리면 안 된다. 마지막 메시지가 바뀔 때만 내린다.
+    const last = messages[messages.length - 1]
+    const lastKey = last ? (last.messageId ?? -messages.length) : null
+    if (lastKey !== lastMessageIdRef.current) {
+      lastMessageIdRef.current = lastKey
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    }
   }, [messages])
 
   // 통화 카드는 메시지 목록 맨 끝에 붙는데, 전화가 왔다고 messages 가 바뀌지는 않는다.
@@ -154,6 +187,9 @@ export default function Page() {
     setWsAuthCookie(token)
     const sockjsUrl = `${window.location.protocol}//${window.location.host}/ws-stomp`
 
+    // 첫 연결은 fetchMessages 가 동기화하므로, 재연결일 때만 끊긴 구간을 after 로 메운다
+    let connectedOnce = false
+
     const client = new Client({
       webSocketFactory: () => new SockJS(sockjsUrl),
       connectHeaders: {
@@ -163,13 +199,22 @@ export default function Page() {
         client.subscribe(`/topic/chat/rooms/${selectedId}`, (frame) => {
           try {
             const msg: Message = JSON.parse(frame.body)
-            setMessages((prev) => [...prev, msg])
-            // 서버는 3일치만 보관하므로 실시간 수신분도 로컬에 남겨둬야
-            // 나중에 과거 대화로 다시 볼 수 있다.
-            void cacheMessages([msg])
+            setMessages((prev) => mergeMessages(prev, [msg]))
+            // 다음 진입 때 네트워크 없이 바로 그리기 위한 렌더 캐시
+            void cacheMessages([msg]).catch(() => {})
             markRoomRead(selectedId)
           } catch {}
         })
+
+        if (connectedOnce) {
+          void syncChatMessages(token, selectedId, messagesRef.current as never)
+            .then((list) => {
+              if (currentRoomRef.current !== selectedId) return
+              setMessages((cur) => mergeMessages(cur, list as unknown as Message[]))
+            })
+            .catch(() => {})
+        }
+        connectedOnce = true
 
         // 결제 승인 후 아직 못 보낸 결제 완료 알림이 있으면 여기서 보낸다.
         // 백엔드가 채팅 메시지를 만들어주지 않아 계약서와 같은 접두사 규약을 쓴다.
@@ -230,24 +275,62 @@ export default function Page() {
 
   const fetchMessages = useCallback(async () => {
     if (!token || !selectedId) return
+    const roomId = selectedId as number
+    currentRoomRef.current = roomId
+    setHasOlder(true)
+    setMessages([])
     setLoadingMessages(true)
     try {
-      // 서버는 최근 3일치만 갖고 있어서, 그보다 오래된 대화는 로컬 캐시에만 남는다.
-      // loadChatMessages 가 서버 응답을 캐시에 합친 뒤 clearBefore 이전 것만 걷어낸다.
-      const roomId = selectedId as number
+      // 캐시를 먼저 그려 네트워크를 기다리지 않게 하고, 서버에서 그 이후분만 받아 합친다
       const clearBefore =
         useChatRoomsStore.getState().rooms.find((r) => r.roomId === roomId)?.clearBefore ?? null
-      const list = (await loadChatMessages(token, roomId, clearBefore)) as unknown as Message[]
-      setMessages(list)
-    } catch {
-      setMessages([])
+      const cached = await loadCachedChatMessages(roomId, clearBefore)
+      if (currentRoomRef.current !== roomId) return
+      if (cached.length > 0) {
+        setMessages(cached as unknown as Message[])
+        setLoadingMessages(false)
+      }
+      const fresh = await syncChatMessages(token, roomId, cached)
+      if (currentRoomRef.current !== roomId) return
+      setMessages((prev) => mergeMessages(prev, fresh as unknown as Message[]))
+    } catch (e) {
+      if (currentRoomRef.current === roomId) void handleErrorRef.current(e)
     } finally {
-      setLoadingMessages(false)
+      if (currentRoomRef.current === roomId) setLoadingMessages(false)
     }
   }, [token, selectedId])
 
+  const loadOlder = useCallback(async () => {
+    if (!token || !selectedId || !hasOlder || loadingOlderRef.current) return
+    const oldest = messages.find((m) => m.messageId != null)?.messageId
+    if (oldest == null) return
+    loadingOlderRef.current = true
+    try {
+      const page = await loadOlderChatMessages(token, selectedId, oldest)
+      if (currentRoomRef.current !== selectedId) return
+      if (page.length === 0) {
+        setHasOlder(false)
+        return
+      }
+      prependScrollHeightRef.current = messagesBoxRef.current?.scrollHeight ?? null
+      setMessages((prev) => mergeMessages(prev, page as unknown as Message[]))
+    } catch (e) {
+      void handleErrorRef.current(e)
+    } finally {
+      loadingOlderRef.current = false
+    }
+  }, [token, selectedId, hasOlder, messages])
+
   useEffect(() => { fetchRooms() }, [fetchRooms])
   useEffect(() => { fetchMessages() }, [fetchMessages])
+
+  // 스크롤 이벤트로만 과거를 불러오면, 받은 메시지가 목록 높이를 못 채울 때 스크롤이 안 생겨 영영 못 불러온다.
+  // 그래서 스크롤이 생기거나 더 없을 때까지 이어서 불러온다.
+  useEffect(() => {
+    const box = messagesBoxRef.current
+    if (!box || loadingMessages || !hasOlder || messages.length === 0) return
+    if (box.scrollHeight <= box.clientHeight) void loadOlder()
+  }, [messages, loadingMessages, hasOlder, loadOlder])
 
   // 전화번호 인증 여부(서명 가능 조건)와 내 회원 ID(계약서 등록에 필요)를 함께 받아둔다.
   useEffect(() => {
@@ -737,7 +820,13 @@ export default function Page() {
               </div>
 
               {/* 메시지 영역 */}
-              <div className="flex flex-col flex-1 overflow-y-auto px-6 py-6 gap-4">
+              <div
+                ref={messagesBoxRef}
+                onScroll={(e) => {
+                  if (e.currentTarget.scrollTop < 80) void loadOlder()
+                }}
+                className="flex flex-col flex-1 overflow-y-auto px-6 py-6 gap-4"
+              >
                 {loadingMessages ? (
                   <p className="text-center text-zinc-400 text-sm">불러오는 중...</p>
                 ) : (() => {
