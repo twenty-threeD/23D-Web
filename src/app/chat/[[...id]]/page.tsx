@@ -852,7 +852,7 @@ export default function Page() {
                   ) : null
 
                   return (
-                    <div key={msg.messageId}>
+                    <div key={`${msg.messageId}-${msg.createdAt}-${idx}`}>
                       {showDateDivider && (
                         <div className="flex items-center justify-center py-2">
                           <span className="text-xs text-zinc-400 bg-zinc-100 rounded-full px-3 py-1">
