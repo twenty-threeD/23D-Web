@@ -15,6 +15,63 @@ import type { CallSession, ScreenShareSession } from './call'
 
 export type RemoteVideoKind = 'camera' | 'screen'
 
+// 권한 거부는 사용자가 브라우저에서 결정하는 것이라 코드로 허용시킬 방법이 없다.
+// 대신 "서버에 통화를 만들기 전에" 먼저 물어봐서, 거부당하면 아예 걸지 않게 한다.
+// (통화를 만든 뒤에 실패하면 서버에 RINGING 통화가 남아 상대 전화가 계속 울리고,
+//  다음 통화가 CALL_ALREADY_IN_PROGRESS 로 막힌다.)
+export class MediaPermissionError extends Error {
+  constructor(
+    message: string,
+    readonly kind: 'denied' | 'notfound' | 'inuse' | 'unsupported'
+  ) {
+    super(message)
+    this.name = 'MediaPermissionError'
+  }
+}
+
+export async function ensureMediaPermission(video: boolean): Promise<void> {
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+    throw new MediaPermissionError(
+      '이 브라우저에서는 통화를 사용할 수 없어요. (HTTPS 환경인지 확인해주세요)',
+      'unsupported'
+    )
+  }
+  let stream: MediaStream | null = null
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true, video })
+  } catch (e) {
+    throw (
+      toPermissionError(e, video) ??
+      new MediaPermissionError(`${video ? '마이크·카메라' : '마이크'}를 사용할 수 없어요.`, 'unsupported')
+    )
+  } finally {
+    // 확인용으로만 잡은 것이라 바로 놓아준다. 실제 트랙은 아고라 SDK 가 다시 만든다.
+    stream?.getTracks().forEach((t) => t.stop())
+  }
+}
+
+// 아고라 SDK 가 던지는 예외도 같은 원인이라 한 곳에서 문구로 바꾼다.
+export function toPermissionError(e: unknown, video: boolean): MediaPermissionError | null {
+  const name = e instanceof Error ? e.name : ''
+  const code = (e as { code?: string } | null)?.code ?? ''
+  const text = `${name} ${code} ${e instanceof Error ? e.message : ''}`
+  const device = video ? '마이크·카메라' : '마이크'
+
+  if (/NotAllowedError|PERMISSION_DENIED|Permission denied/i.test(text)) {
+    return new MediaPermissionError(
+      `${device} 권한이 필요해요. 주소창의 자물쇠 아이콘에서 권한을 허용한 뒤 다시 걸어주세요.`,
+      'denied'
+    )
+  }
+  if (/NotFoundError|DEVICE_NOT_FOUND|OverconstrainedError/i.test(text)) {
+    return new MediaPermissionError(`${device}를 찾을 수 없어요. 기기가 연결되어 있는지 확인해주세요.`, 'notfound')
+  }
+  if (/NotReadableError|TrackStartError|DEVICE_IN_USE/i.test(text)) {
+    return new MediaPermissionError(`다른 앱이 ${device}를 사용 중이에요. 그 앱을 끄고 다시 시도해주세요.`, 'inuse')
+  }
+  return null
+}
+
 interface EngineHandlers {
   // 원격 영상 트랙이 붙거나(track) 떨어질 때(null). kind 로 카메라/화면공유를 구분한다.
   onRemoteVideo?: (kind: RemoteVideoKind, track: IRemoteVideoTrack | null) => void

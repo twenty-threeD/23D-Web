@@ -1,11 +1,19 @@
 import { create } from 'zustand'
 import type { IRemoteVideoTrack } from 'agora-rtc-sdk-ng'
-import { callEngine, type PlaybackDevice, type RemoteVideoKind } from '@/src/lib/agoraEngine'
+import {
+  callEngine,
+  ensureMediaPermission,
+  MediaPermissionError,
+  toPermissionError,
+  type PlaybackDevice,
+  type RemoteVideoKind,
+} from '@/src/lib/agoraEngine'
 import {
   acceptCall,
   endCall,
   isCallOver,
   renewCallToken,
+  getRoomCalls,
   startCall,
   startScreenShare,
   stopScreenShare,
@@ -142,6 +150,7 @@ function noticeFor(call: Call, iAmCaller: boolean, byMe: boolean): string | null
 }
 
 function messageOf(e: unknown): string {
+  if (e instanceof MediaPermissionError) return e.message
   if (e instanceof ApiError) {
     // UI 안내가 필요한 두 가지. 서버 문구가 영문이라 여기서 바꿔 보여준다.
     if (e.code === 'CALL_ALREADY_IN_PROGRESS') return '이미 진행 중인 통화가 있어요.'
@@ -151,10 +160,28 @@ function messageOf(e: unknown): string {
     if (e.status >= 500) return `서버 오류로 통화를 시작하지 못했어요. (${e.status}${e.code ? ` ${e.code}` : ''})`
     return e.message
   }
-  if (e instanceof Error && e.name === 'NotAllowedError') {
-    return '마이크·카메라 권한이 필요해요. 브라우저 주소창의 권한 설정을 확인해주세요.'
+  // 아고라 SDK 가 던진 권한·기기 예외도 같은 안내로 바꾼다
+  return toPermissionError(e, true)?.message ?? '통화를 연결하지 못했어요.'
+}
+
+// 연결 도중 실패했을 때 서버에 만들어진 통화를 반드시 접는다.
+// 이걸 빼먹으면 상대 전화가 계속 울리고, 다음 통화가 "이미 진행 중"으로 막힌다.
+async function abandonCall(token: string, callId: number | undefined) {
+  if (callId == null) return
+  await endCall(token, callId).catch(() => {})
+}
+
+// 방에 살아 있는 통화를 전부 끊는다. 끊긴 게 하나라도 있으면 true.
+async function clearStaleCalls(token: string, roomId: number): Promise<boolean> {
+  try {
+    const calls = await getRoomCalls(token, roomId)
+    const alive = calls.filter((c) => !isCallOver(c.status))
+    if (alive.length === 0) return false
+    await Promise.all(alive.map((c) => endCall(token, c.callId).catch(() => {})))
+    return true
+  } catch {
+    return false
   }
-  return '통화를 연결하지 못했어요.'
 }
 
 export const useCallStore = create<CallStore>()((set, get) => ({
@@ -241,6 +268,9 @@ export const useCallStore = create<CallStore>()((set, get) => ({
       expanded: true,
     })
     try {
+      // 서버에 통화를 만들기 전에 권한부터 확인한다.
+      // 거부당한 뒤에 만들면 상대 전화만 울리는 유령 통화가 남는다.
+      await ensureMediaPermission(callType === 'VIDEO')
       const session = await startCall(token, roomId, callType)
       // 채널에 붙기 전에 먼저 들고 있는다.
       // 이게 없으면 접속하는 몇 초 사이에 끊었을 때 callId 를 몰라 서버에 종료를 못 알리고,
@@ -266,7 +296,16 @@ export const useCallStore = create<CallStore>()((set, get) => ({
       })
     } catch (e) {
       await callEngine.leave()
-      set({ ...initial, devices: get().devices, deviceId: get().deviceId, error: messageOf(e) })
+      // 서버에 통화가 이미 만들어졌으면 접어야 상대 전화가 멈춘다
+      await abandonCall(token, get().call?.callId)
+      // 예전 버전에서 끊기지 못하고 서버에 남은 통화가 있으면 계속 409 로 막힌다.
+      // 사용자가 손쓸 방법이 없으므로 여기서 한 번 치워준다.
+      let message = messageOf(e)
+      if (e instanceof ApiError && e.code === 'CALL_ALREADY_IN_PROGRESS') {
+        const cleared = await clearStaleCalls(token, roomId)
+        if (cleared) message = '이전 통화가 정리되었어요. 다시 걸어주세요.'
+      }
+      set({ ...initial, devices: get().devices, deviceId: get().deviceId, error: message })
     }
   },
 
@@ -275,6 +314,9 @@ export const useCallStore = create<CallStore>()((set, get) => ({
     if (!call || phase !== 'incoming') return
     set({ phase: 'connecting' })
     try {
+      // 받는 쪽도 수락 전에 권한을 먼저 확인한다.
+      // 수락한 뒤에 거부하면 건 사람 화면은 통화 중인데 이쪽은 들어가지 못한 채로 갈린다.
+      await ensureMediaPermission(call.callType === 'VIDEO')
       // accept 응답이 발신 때와 똑같은 모양이라 join 코드를 그대로 재사용한다
       const session = await acceptCall(token, call.callId)
       callEngine.setScreenUids([session.call.caller.screenUid, session.call.callee.screenUid])
@@ -295,6 +337,9 @@ export const useCallStore = create<CallStore>()((set, get) => ({
       })
     } catch (e) {
       await callEngine.leave()
+      // 받지 못했으니 통화를 끊는다. 서버가 건 사람에게 거절/종료 시그널을 보내줘서
+      // 상대 화면도 "상대방이 통화를 거절했어요" 로 닫힌다.
+      await abandonCall(token, call.callId)
       set({ ...initial, devices: get().devices, deviceId: get().deviceId, error: messageOf(e) })
     }
   },
