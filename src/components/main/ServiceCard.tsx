@@ -1,3 +1,4 @@
+import { StarIcon } from "@/src/components/main/icons";
 import Link from "next/link";
 import { toRelativeUrl } from "@/src/lib/file";
 import { getPostMainImage, type Post } from "@/src/lib/post";
@@ -37,7 +38,7 @@ export default function ServiceCard({ post }: { post: Post }) {
           <h3 className="text-xl font-semibold text-ink line-clamp-1">{post.title}</h3>
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-1.5 text-ink-sub">
-              <img src="/main/star.svg" alt="" className="size-3.5" />
+              <StarIcon className="size-3.5" />
               <span>{(0).toFixed(1)}</span>
             </div>
             {price && <span className="font-medium text-ink">{price}</span>}
