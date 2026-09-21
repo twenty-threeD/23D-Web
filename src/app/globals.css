@@ -3,6 +3,10 @@
 @theme {
   --color-main: #fe6a4c;
   --color-contract: #1a2747;
+  /* 새 메인 시안의 본문 텍스트 3단계. 카드·섹션 제목에 반복돼 토큰으로 올렸다 */
+  --color-ink: #363636;
+  --color-ink-sub: #666666;
+  --color-ink-muted: #a1a1a1;
   /* 프로젝트 폰트는 Pretendard 로 통일한다. 기본 sans 를 덮어써서 클래스 없이도 전역에 적용되게 한다 */
   --font-sans: var(--font-pretendard-local), system-ui, sans-serif;
 }
