@@ -1,9 +1,9 @@
 
 const members = [
-  { name: "김경윤", role: "PM / BackEnd / BlockChain" },
+  { name: "김경윤", role: "PM / FullStack / BlockChain" },
   { name: "권민기", role: "BackEnd" },
   { name: "김승우", role: "PM / BackEnd" },
-  { name: "김준현", role: "BackEnd" },
+  { name: "김준현", role: "FullStack / DBA" },
   { name: "이도건", role: "FrontEnd / Design" },
   { name: "안재민", role: "FrontEnd / Design" },
   { name: "이재원", role: "3D Modeling" },
