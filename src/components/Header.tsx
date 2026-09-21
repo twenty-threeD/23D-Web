@@ -115,7 +115,7 @@ export default function Header() {
 
   return (
     // 시안은 1440px 기준 좌우 120px 여백이다. 좁은 화면에서는 여백을 줄이고 메뉴를 가로 스크롤로 넘겨 줄바꿈으로 높이가 깨지지 않게 한다
-    <div className={`sticky top-0 z-10 shrink-0 bg-neutral-50 flex items-center justify-between gap-6 h-[60px] px-5 md:px-10 xl:px-[120px] ${!isTop ? "border-b border-zinc-200" : ""}`}>
+    <div className={`sticky top-0 z-10 shrink-0 bg-white flex items-center justify-between gap-6 h-[60px] px-5 md:px-10 xl:px-[120px] ${!isTop ? "border-b border-zinc-200" : ""}`}>
 
       {/* 로고 / 리스트 */}
       <div className="flex min-w-0 items-center gap-8 lg:gap-20">
