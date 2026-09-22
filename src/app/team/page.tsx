@@ -1,12 +1,14 @@
+import { FaGithub } from "react-icons/fa";
 
+// github 은 각자 프로필 주소를 채워 넣는다. 빈 문자열이면 버튼을 렌더하지 않는다.
 const members = [
-  { name: "김경윤", role: "PM / FullStack / BlockChain" },
-  { name: "권민기", role: "BackEnd" },
-  { name: "김승우", role: "PM / BackEnd" },
-  { name: "김준현", role: "FullStack / DBA" },
-  { name: "이도건", role: "FrontEnd / Design" },
-  { name: "안재민", role: "FrontEnd / Design" },
-  { name: "이재원", role: "3D Modeling" },
+  { name: "김경윤", role: "PM / FullStack / BlockChain", github: "https://github.com/L98293" },
+  { name: "권민기", role: "BackEnd", github: "https://github.com/gnlandkmg" },
+  { name: "김승우", role: "PM / BackEnd", github: "https://github.com/Ze-rith" },
+  { name: "김준현", role: "FullStack / DBA", github: "https://github.com/abcb-s" },
+  { name: "이도건", role: "FrontEnd / Design", github: "https://github.com/16bit-16" },
+  { name: "안재민", role: "FrontEnd / Design", github: "https://github.com/Mercel4" },
+  { name: "이재원", role: "3D Modeling", github: "https://github.com/amguangum" },
 ];
 
 export default function Page() {
@@ -49,9 +51,22 @@ export default function Page() {
                               : "lg:col-start-3 lg:row-start-3"
                 }`}
               >
-                <p className="text-2xl font-bold tracking-tight text-zinc-900 lg:text-3xl">
-                  {member.name}
-                </p>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-2xl font-bold tracking-tight text-zinc-900 lg:text-3xl">
+                    {member.name}
+                  </p>
+                  {member.github && (
+                    <a
+                      href={member.github}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      aria-label={`${member.name} GitHub`}
+                      className="flex size-9 shrink-0 items-center justify-center rounded-full border border-zinc-300 text-zinc-600 transition-colors hover:border-main hover:text-main"
+                    >
+                      <FaGithub className="size-4.5" />
+                    </a>
+                  )}
+                </div>
                 <p className="pt-2 text-sm text-zinc-600 lg:text-base">
                   {member.role}
                 </p>
