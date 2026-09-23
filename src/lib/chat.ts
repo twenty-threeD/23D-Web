@@ -7,6 +7,7 @@ import {
   deleteRoomCache,
 } from './chatDb'
 import type { CachedMessage } from './chatDb'
+import { isDealClosed } from './deal'
 
 // 채팅방 나가기는 서버에서 소프트 삭제라 roomId 가 그대로 유지된다.
 // 나갔다가 같은 상대·같은 포스트로 다시 방을 만들면 서버는 같은 roomId 를 돌려주는데,
@@ -70,6 +71,26 @@ export async function createChatRoom(token: string, username: string, postId: nu
   }
 
   return json
+}
+
+// 문의하기로 방을 연다. 서버는 같은 상대·같은 post 면 기존 방을 돌려주는데,
+// 그 방이 이미 끝난 거래(완료·취소)면 입력이 막혀 있어 새 거래를 시작할 수 없다.
+// 서버에 "새 방 만들기" 옵션이 없어서, 끝난 방이면 나갔다가(소프트 삭제) 다시 만들어
+// 내 쪽 기록을 비운 새 대화로 시작한다. 이어서 보내는 [채팅 시작]이 종료 상태를 풀어준다.
+// 백엔드가 끝난 거래 방을 재사용하지 않게 되면 이 우회는 걷어내면 된다.
+export async function openChatRoomForPost(token: string, username: string, postId: number) {
+  const json = await createChatRoom(token, username, postId)
+  const room = unwrap<{ roomId?: number | null; existingRoom?: boolean }>(json)
+  if (!room?.existingRoom || room.roomId == null) return json
+
+  const latest = toMessageList(await getChatMessages(token, room.roomId))
+  if (!isDealClosed(latest)) return json
+
+  await deleteChatRoom(token, room.roomId)
+  const reopened = await createChatRoom(token, username, postId)
+  // 나갔다 들어온 방이라 서버는 existingRoom 을 true 로 줄 수 있지만, 인사말을 다시 보내야 하므로 새 방으로 취급한다
+  const data = unwrap<Record<string, unknown>>(reopened)
+  return { ...(reopened as object), data: { ...data, existingRoom: false } }
 }
 
 export const MESSAGE_PAGE_SIZE = 50

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, Suspense } from "react";
+import { useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/src/hooks/useToast";
 import { confirmPayment } from "@/src/lib/payment";
@@ -12,8 +12,15 @@ function SuccessContent() {
   const searchParams = useSearchParams();
   const { addToast } = useToast();
   const token = useAuthStore((s) => s.accessToken);
+  const hydrated = useAuthStore((s) => s.hydrated);
+  // 승인은 한 번만 보내야 한다. 개발 모드 StrictMode 가 effect 를 두 번 돌려 승인이 중복 요청되면
+  // 두 번째가 "이미 처리된 결제"로 실패해 성공한 결제에도 에러 토스트가 뜬다.
+  const startedRef = useRef(false);
 
   useEffect(() => {
+    // 토스에서 돌아오면 페이지가 새로 로드되므로, 저장된 로그인 정보를 불러오기 전에 돌면 토큰이 비어 실패한다
+    if (!hydrated || startedRef.current) return;
+    startedRef.current = true;
     const postId = searchParams.get("postId");
     const paymentKey = searchParams.get("paymentKey");
     const orderId = searchParams.get("orderId");
@@ -56,7 +63,9 @@ function SuccessContent() {
       }
     }
     run();
-  }, []);
+    // searchParams·router·addToast 는 바뀌어도 다시 승인하면 안 되므로 로그인 정보 복원만 기다린다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
 
   return (
     <div className="flex items-center justify-center h-screen">

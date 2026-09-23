@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/src/store/authStore"
 import { useChatRoomsStore } from "@/src/store/chatRoomsStore"
-import { createChatRoom } from "@/src/lib/chat"
+import { openChatRoomForPost } from "@/src/lib/chat"
 import { useHandleError } from "@/src/hooks/useHandleError"
 import { type PriceCardPlan } from "@/src/types/priceCard"
 import ServicePickerModal from "@/src/components/item/ServicePickerModal"
@@ -51,7 +51,7 @@ export default function PriceCard({ username, plans, postId, showInquiry = true,
     if (!username || !postId) return
     setLoading(true)
     try {
-      const res = await createChatRoom(token, username, postId)
+      const res = await openChatRoomForPost(token, username, postId)
       const roomId = res.data?.roomId
       if (roomId) {
         setSelectedService(roomId, service, !res.data?.existingRoom)

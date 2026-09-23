@@ -115,14 +115,14 @@ export async function createReview(
 }
 
 export interface ReviewSummary {
-  postId: number
+  memberId: number
   reviewCount: number
   averageRating: number
 }
 
-// 게시글 평점 요약 (평균 별점 + 리뷰 수)
-export async function getReviewSummary(postId: number, token?: string | null) {
-  const res = await fetch(`/api/post/review/summary?postId=${postId}`, {
+// 전문가(회원) 한 명이 받은 리뷰의 평점 요약. 게시글 단위가 아니라 회원 단위라 memberId 로 조회한다
+export async function getReviewSummary(memberId: number, token?: string | null) {
+  const res = await fetch(`/api/post/review/summary?memberId=${memberId}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
   if (!res.ok) await throwApiError(res)

@@ -37,6 +37,9 @@ export function previewOf(text: string) {
   if (text.startsWith("[계약서 제안]")) return "📄 계약서를 보냈습니다."
   if (text.startsWith("[계약서 체결 완료]")) return "✅ 계약이 체결됐습니다."
   if (text.startsWith("[결제 완료]")) return "💳 결제가 완료됐습니다."
+  if (text.startsWith("[거래 완료 요청]")) return "거래 완료를 기다리고 있어요."
+  if (text.startsWith("[거래 완료]")) return "거래가 완료됐습니다."
+  if (text.startsWith("[거래 취소]")) return "거래가 취소됐습니다."
   const callLog = parseCallLog(text)
   if (callLog) return `${callLog.status === "MISSED" || callLog.status === "CANCELED" ? "📵" : "📞"} ${previewCallLog(callLog)}`
   const start = parseChatStart(text)

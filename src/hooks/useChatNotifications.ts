@@ -97,7 +97,8 @@ export function useChatNotifications() {
             if (n.id > 0) readNotification(token, n.id).catch(() => {})
             return
           }
-          markRoomUnread(n.roomId, n.message)
+          // 채팅 목록은 원문의 대괄호 접두사로 거래 완료·취소를 가르므로, 요약 문구가 아닌 원문을 넘긴다
+          markRoomUnread(n.roomId, raw.message, raw.sentAt)
         }
 
         setNotifications((prev) => {
