@@ -46,7 +46,9 @@ interface ChatRoomsStore {
   // 채팅 페이지가 STOMP 연결되는 즉시 보내고 지운다 (pendingGreeting 과 같은 방식).
   pendingPayment: Record<number, PaymentNotice>
   setRooms: (rooms: ChatRoom[]) => void
-  markRoomUnread: (roomId: number, message: string) => void
+  markRoomUnread: (roomId: number, message: string, at?: string) => void
+  // 방 목록은 페이지 진입 때만 서버에서 받으므로, 실시간으로 오간 메시지는 여기서 직접 반영한다
+  applyLastMessage: (roomId: number, message: string, at?: string) => void
   markRoomRead: (roomId: number) => void
   setActiveRoomId: (roomId: number | null) => void
   setSelectedService: (roomId: number, service: SelectedService, isNewRoom: boolean) => void
@@ -88,15 +90,24 @@ export const useChatRoomsStore = create<ChatRoomsStore>((set, get) => ({
       delete next[roomId]
       return { pendingGreeting: next }
     }),
-  markRoomUnread: (roomId, message) => {
+  markRoomUnread: (roomId, message, at) => {
     // 지금 보고 있는 방이면 굳이 안읽음으로 표시하지 않는다 (SSE 알림과 STOMP 실시간 수신이
     // 동시에 도착할 때 markRoomRead 이후에 이게 실행돼서 다시 안읽음으로 덮어쓰는 걸 방지).
     if (get().activeRoomId === roomId) return
-    set((s) => ({
-      unreadRoomIds: { ...s.unreadRoomIds, [roomId]: true },
-      lastMessageOverride: { ...s.lastMessageOverride, [roomId]: message },
-    }))
+    get().applyLastMessage(roomId, message, at)
+    set((s) => ({ unreadRoomIds: { ...s.unreadRoomIds, [roomId]: true } }))
   },
+  applyLastMessage: (roomId, message, at) =>
+    set((s) => {
+      const target = s.rooms.find((r) => r.roomId === roomId)
+      if (!target) return { lastMessageOverride: { ...s.lastMessageOverride, [roomId]: message } }
+      const updated = { ...target, lastMessagePreview: message, lastMessageAt: at ?? new Date().toISOString() }
+      // 최근 메시지가 온 방이 맨 위로 오도록 앞으로 옮긴다
+      return {
+        rooms: [updated, ...s.rooms.filter((r) => r.roomId !== roomId)],
+        lastMessageOverride: { ...s.lastMessageOverride, [roomId]: message },
+      }
+    }),
   markRoomRead: (roomId) =>
     set((s) => {
       if (!s.unreadRoomIds[roomId]) return s

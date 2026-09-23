@@ -120,10 +120,11 @@ const PayContent = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, token, postId, contractId, roomId, selectedPlanName]);
 
-  // 평점은 게시글 응답에 없어 요약 API 로 따로 받는다
+  // 평점은 게시글 응답에 없어 요약 API 로 따로 받는다. 요약은 글 작성자(을) 기준이다
   useEffect(() => {
-    if (!post) return;
-    getReviewSummary(post.id, token)
+    const memberId = post?.member?.id;
+    if (!memberId) return;
+    getReviewSummary(memberId, token)
       .then(setReviewSummary)
       .catch(() => setReviewSummary(null));
   }, [post, token]);
