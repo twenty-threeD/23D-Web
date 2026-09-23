@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { IoChevronDownOutline } from "react-icons/io5"
 import { useAuthStore } from "@/src/store/authStore"
 import { useChatRoomsStore } from "@/src/store/chatRoomsStore"
 import { createChatRoom } from "@/src/lib/chat"
@@ -69,56 +70,55 @@ export default function PriceCard({ username, plans, postId, showInquiry = true,
     ? `${Number(plan.price.replace(/,/g, '')).toLocaleString()}원`
     : "가격 미정"
 
+  // 폭은 놓이는 자리에서 정한다. 여기서 self-start 로 줄이면 사이드바 안에서 내용 폭만큼 쪼그라든다
   return (
-    <div className="grow flex flex-col gap-2 border border-zinc-300 rounded-lg sticky top-24 self-start">
-      {/* Header */}
-      {showTabs && (
-      <div className="flex border-b border-zinc-300 h-12 font-medium">
-        {safePlans.map((p, i) => (
-          <button
-            key={i}
-            onClick={() => setActiveIndex(i)}
-            className={`flex items-center justify-center flex-1 py-2 border-b-2 font-semibold text-sm px-4 truncate cursor-pointer ${
-              i === active ? "border-main text-main" : "border-transparent text-zinc-400 hover:text-zinc-600"
-            }`}
+    <div className="w-full flex flex-col gap-[22px] px-1.5 pt-5 pb-4 bg-[#fafafa] rounded-xl">
+      {/* 플랜 선택 — 시안은 탭 대신 드롭다운으로 플랜을 고른다. 플랜이 하나면 이름만 보여준다 */}
+      <div className="relative h-[38px] rounded-lg border border-[#d8d8d8] font-medium text-[#838383]">
+        {showTabs ? (
+          <select
+            value={active}
+            onChange={(e) => setActiveIndex(Number(e.target.value))}
+            aria-label="플랜 선택"
+            className="size-full appearance-none bg-transparent text-center px-8 cursor-pointer focus:outline-none"
           >
-            {p.planName || `플랜 ${i + 1}`}
-          </button>
-        ))}
-      </div>
-      )}
-
-      {/* Content */}
-      <div className="flex flex-col gap-6 py-4 px-4">
-        <div className="flex flex-col gap-1">
-          <h3 className="text-xl font-semibold">{displayPrice}</h3>
-          <h4 className="text-lg font-semibold">{plan.planName}</h4>
-          {plan.description && (
-            <span className="text-sm text-zinc-400 whitespace-pre-line">{plan.description}</span>
-          )}
-        </div>
-
-        {plan.items.length > 0 && (
-          <div className="flex flex-col gap-1.5">
-            {plan.items.map((item, i) => (
-              <div key={i} className="flex items-center gap-2 w-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 shrink-0" />
-                <span className="text-sm text-zinc-400">{item.name}</span>
-              </div>
+            {safePlans.map((p, i) => (
+              <option key={i} value={i}>{p.planName || `플랜 ${i + 1}`}</option>
             ))}
+          </select>
+        ) : (
+          <div className="flex size-full items-center justify-center px-8 truncate">{plan.planName || "기본 플랜"}</div>
+        )}
+        {showTabs && <IoChevronDownOutline className="absolute right-4 top-1/2 -translate-y-1/2 size-4 pointer-events-none" />}
+      </div>
+
+      <div className="flex flex-col gap-10 px-1.5">
+        <h3 className="text-xl font-semibold text-black">{displayPrice}</h3>
+        {(plan.description || plan.items.length > 0) && (
+          <div className="flex flex-col gap-5 font-medium">
+            {plan.description && (
+              <p className="text-black whitespace-pre-line">{plan.description}</p>
+            )}
+            {plan.items.length > 0 && (
+              <ul className="flex flex-col list-disc pl-6 text-[#838383]">
+                {plan.items.map((item, i) => (
+                  <li key={i}>{item.name}</li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
-
-        {showInquiry && (
-          <button
-            onClick={() => setShowPicker(true)}
-            disabled={loading || !username}
-            className="w-full py-3 text-center bg-main text-white text-sm font-semibold rounded-xl transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
-          >
-            {loading ? "연결 중..." : "문의하기"}
-          </button>
-        )}
       </div>
+
+      {showInquiry && (
+        <button
+          onClick={() => setShowPicker(true)}
+          disabled={loading || !username}
+          className="w-full h-[38px] text-center bg-main text-white font-semibold rounded-lg transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
+        >
+          {loading ? "연결 중..." : "문의하기"}
+        </button>
+      )}
 
       {showPicker && (
         <ServicePickerModal
