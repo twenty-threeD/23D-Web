@@ -27,30 +27,36 @@ export default function NormalCard({ id, title, content, fileUrl, price, rating,
   const description = getDescription(content)
   const displayPrice = getPrice(content, price)
 
+  // 메인 ServiceCard 와 같은 시안(4147:3815)을 따른다. 설명 길이가 달라도 버튼 위치가 맞도록 높이를 고정한다
   return (
-    <div className="flex flex-col w-64 gap-2 p-3 rounded-lg hover:shadow-sm transition-transform duration-300">
-      <Link href={`/item/${id}`} className="flex flex-col gap-2">
-        <div className="h-48 rounded-lg bg-zinc-300 overflow-hidden border-zinc-100 border">
-          {fileUrl ? (
-            <img src={toRelativeUrl(fileUrl)} alt={title} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full bg-zinc-300 overflow-hidden" />
+    <div className="flex flex-col shrink-0 w-[260px] h-[360px] justify-between">
+      <Link href={`/item/${id}`} className="flex flex-col gap-4 group">
+        <div className="h-[180px] rounded-xl bg-zinc-200 overflow-hidden">
+          {fileUrl && (
+            <img
+              src={toRelativeUrl(fileUrl)}
+              alt={title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
           )}
         </div>
-        <h3 className="text-xl pt-2 font-semibold line-clamp-1">{title}</h3>
-        <div className="flex justify-between items-center text-zinc-500">
-          <div className="flex items-center gap-1">
-            <FaStar className="text-main text-xs" />
-            <span className="text-sm">{(rating ?? 0).toFixed(1)}</span>
+        <div className="flex flex-col gap-1.5">
+          <h3 className="text-xl font-semibold text-ink line-clamp-1">{title}</h3>
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-1.5 text-ink-sub">
+              <FaStar className="text-main text-xs" />
+              <span>{(rating ?? 0).toFixed(1)}</span>
+            </div>
+            {displayPrice && <span className="font-medium text-ink">{displayPrice}</span>}
           </div>
-          {displayPrice && <p className="font-medium">{displayPrice}</p>}
+          {/* 공백 없는 긴 문자열(태그 나열·URL)은 줄바꿈이 안 돼 2줄 말줄임이 깨지므로 글자 단위로 끊는다 */}
+          <p className="font-medium text-ink-sub line-clamp-2 break-all">{description}</p>
         </div>
-        <p className="font-medium text-zinc-500 line-clamp-2">{description}</p>
       </Link>
       {category && (
         <Link
           href={`/main?category=${category.id}`}
-          className="w-full py-2 text-center text-sm font-medium text-zinc-600 border border-zinc-300 rounded-lg hover:bg-zinc-50 transition-colors"
+          className="flex items-center justify-center h-9 rounded-lg border border-ink-muted font-medium text-ink hover:bg-zinc-50 transition-colors"
         >
           {category.name} 관련 더보기
         </Link>

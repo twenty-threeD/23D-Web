@@ -43,7 +43,8 @@ export default function ServiceCard({ post }: { post: Post }) {
             </div>
             {price && <span className="font-medium text-ink">{price}</span>}
           </div>
-          <p className="font-medium text-ink-sub line-clamp-3">{description || post.content}</p>
+          {/* 공백 없는 긴 문자열(태그 나열·URL)은 줄바꿈이 안 돼 2줄 말줄임이 깨지므로 글자 단위로 끊는다 */}
+          <p className="font-medium text-ink-sub line-clamp-2 break-all">{description || post.content}</p>
         </div>
       </Link>
       {post.category && (
