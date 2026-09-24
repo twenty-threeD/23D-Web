@@ -80,16 +80,17 @@ export async function getJobCategories() {
   return (json.data ?? []) as JobCategory[]
 }
 
-export async function getSidoList() {
-  const res = await fetch(`/api/location/sido`)
+// 로컬(localhost)에는 accessToken 쿠키가 없어 쿠키 인증에 기대면 401 이 난다. 다른 API 처럼 헤더로 보낸다
+export async function getSidoList(token: string) {
+  const res = await fetch(`/api/location/sido`, { headers: authHeaders(token) })
   if (!res.ok) await throwApiError(res)
   const json = await res.json()
   return (json.data ?? []) as Sido[]
 }
 
-export async function getSigunguList(ctprvnCd: string) {
+export async function getSigunguList(token: string, ctprvnCd: string) {
   const params = new URLSearchParams({ ctprvnCd })
-  const res = await fetch(`/api/location/sigungu?${params}`)
+  const res = await fetch(`/api/location/sigungu?${params}`, { headers: authHeaders(token) })
   if (!res.ok) await throwApiError(res)
   const json = await res.json()
   return (json.data ?? []) as Sigungu[]
