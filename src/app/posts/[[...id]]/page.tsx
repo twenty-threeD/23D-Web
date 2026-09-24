@@ -11,7 +11,8 @@ import MDEditor from "@uiw/react-md-editor"
 import Image from "next/image"
 import {
   getPost,
-  getPosts,
+  getPostsByCategory,
+  isCommunityCategory,
   getComments,
   createComment,
   updateComment,
@@ -19,7 +20,16 @@ import {
   addLike,
   removeLike,
   deletePost,
+  canViewPost,
+  filterByRegion,
+  parseRegion,
+  sortByLatest,
+  communityListHref,
+  fetchAllPages,
+  COMMUNITY_PAGE_SIZE,
 } from "@/src/lib/community"
+import CommunityPagination from "@/src/components/CommunityPagination"
+import { useMyLocation } from "@/src/hooks/useMyLocation"
 import { useAuthStore } from "@/src/store/authStore"
 import { toRelativeUrl } from "@/src/lib/file"
 import { useLikeStore } from "@/src/store/likeStore"
@@ -35,6 +45,7 @@ interface Post {
   imageUrl?: string | null
   title: string
   content: string
+  category?: string
   fileUrl?: string
   viewCount: number
   likeCount: number
@@ -49,6 +60,7 @@ interface PostListItem {
   username: string
   title: string
   content: string
+  category?: string
   fileUrl?: string
   updatedAt: string
 }
@@ -77,11 +89,14 @@ export default function Page() {
   })
 
   const handleError = useHandleError()
+  const { location, loaded: locationLoaded } = useMyLocation()
+  const myCtprvnCd = location?.ctprvnCd ?? null
   // 커뮤니티 응답에 작성자 이미지가 없어 서비스 게시글에서 모아둔 매핑으로 채운다
   const likeStore = useLikeStore()
   const [post, setPost] = useState<Post | null>(null)
   const [comments, setComments] = useState<CommentData[]>([])
   const [relatedPosts, setRelatedPosts] = useState<PostListItem[]>([])
+  const [relatedPage, setRelatedPage] = useState(1)
   const [commentText, setCommentText] = useState("")
   const [isLiked, setIsLiked] = useState<boolean>(false)
   const [likeCount, setLikeCount] = useState(0)
@@ -116,21 +131,36 @@ export default function Page() {
     }
   }, [postId, token])
 
+  // 관련 게시물은 목록과 같은 기준(최신순·페이지 크기)으로 자른, 지금 글이 속한 페이지를 보여준다.
+  // 페이지 번호를 누르면 글 밖으로 나가 목록의 그 페이지로 가므로, 번호가 목록과 맞도록
+  // 자르는 건 지금 글을 포함한 목록 기준으로 하고 화면에서만 지금 글을 뺀다.
+  // 카테고리를 알려면 본문 응답이 먼저 와야 한다
+  const postCategory = post?.category ?? null
   const fetchRelated = useCallback(async () => {
+    if (!isCommunityCategory(postCategory)) { setRelatedPosts([]); return }
     try {
-      const res = await getPosts(token)
-      const list: PostListItem[] = res.data ?? []
-      setRelatedPosts(list.filter((p) => p.id !== postId).slice(0, 4))
+      // 지금 글이 몇 번째 페이지인지 알아야 해서 서버 페이징을 쓰지 않고 카테고리 전체를 받는다
+      const all = await fetchAllPages<PostListItem>((p, size) => getPostsByCategory(postCategory, token, p, size))
+      const list = sortByLatest(filterByRegion(all, myCtprvnCd, myUsername))
+      const index = list.findIndex((p) => p.id === postId)
+      setRelatedPage(index === -1 ? 1 : Math.floor(index / COMMUNITY_PAGE_SIZE) + 1)
+      setRelatedPosts(list)
     } catch {
       setRelatedPosts([])
+      setRelatedPage(1)
     }
-  }, [postId, token])
+  }, [postId, postCategory, token, myCtprvnCd, myUsername])
 
   useEffect(() => {
+    if (!locationLoaded) return
     fetchPost()
     fetchComments()
+  }, [fetchPost, fetchComments, locationLoaded])
+
+  useEffect(() => {
+    if (!locationLoaded) return
     fetchRelated()
-  }, [fetchPost, fetchComments, fetchRelated])
+  }, [fetchRelated, locationLoaded])
 
   async function handleLike() {
     if (!token) { router.push(signinPath()); return }
@@ -196,6 +226,22 @@ export default function Page() {
       setSubmitting(false)
     }
   }
+
+  // 주소로 직접 들어와도 다른 시·도의 동네 주민 글은 내용을 보여주지 않는다
+  if (!loading && post && !canViewPost(post, myCtprvnCd, myUsername)) {
+    return (
+      <div>
+        <p className="text-center py-20 text-zinc-400">
+          {location ? "같은 지역 주민만 볼 수 있는 글입니다." : "프로필에서 지역을 설정하면 같은 지역 주민의 글을 볼 수 있습니다."}
+        </p>
+      </div>
+    )
+  }
+
+  const relatedTotalPages = Math.max(1, Math.ceil(relatedPosts.length / COMMUNITY_PAGE_SIZE))
+  const relatedPagePosts = relatedPosts
+    .slice((relatedPage - 1) * COMMUNITY_PAGE_SIZE, relatedPage * COMMUNITY_PAGE_SIZE)
+    .filter((p) => p.id !== postId)
 
   if (loading || !post) {
     return (
@@ -271,7 +317,7 @@ export default function Page() {
             `}</style>
             <div data-color-mode="light" className="flex flex-col gap-8 py-2">
               <MDEditor.Markdown
-                source={post.content}
+                source={parseRegion(post.content).body}
                 components={{
                   p: ({ children }) => {
                     const childArray = Children.toArray(children)
@@ -357,11 +403,11 @@ export default function Page() {
           </div>
 
           {/* 관련 게시물 */}
-          {relatedPosts.length > 0 && (
+          {(relatedPagePosts.length > 0 || relatedTotalPages > 1) && (
             <div className="flex flex-col gap-2">
               <h2 className="text-xl font-bold">관련 게시물</h2>
               <div className="flex flex-col divide-y divide-zinc-300">
-                {relatedPosts.map((p) => (
+                {relatedPagePosts.map((p) => (
                   <PostItem
                     key={p.id}
                     id={p.id}
@@ -372,6 +418,11 @@ export default function Page() {
                   />
                 ))}
               </div>
+              <CommunityPagination
+                page={relatedPage}
+                totalPages={relatedTotalPages}
+                hrefFor={(p) => communityListHref(isCommunityCategory(postCategory) ? postCategory : null, p)}
+              />
             </div>
           )}
         </main>
