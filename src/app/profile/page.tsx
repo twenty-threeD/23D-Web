@@ -80,7 +80,14 @@ export default function Page() {
       setShortDescription(data.shortDescription ?? "");
       setJobCategoryId(data.jobCategoryId ?? "");
       setSigCd(data.sigCd ?? "");
-      setMovableDistance((data.movableDistance as typeof movableDistance) ?? "");
+      // 프로필 응답엔 시/도 코드가 없다. 행정구역 코드는 시군구 코드 앞 2자리가 시/도 코드라서 여기서 복원해야
+      // 수정 화면에서 시/도·시/군/구 선택이 기존 값으로 채워진다
+      setCtprvnCd(data.sigCd ? data.sigCd.slice(0, 2) : "");
+      // 서버가 enum 대신 라벨을 줄 때도 있어 둘 다 맞춰 본다. 못 찾으면 빈 값으로 둬서 select 가 엉뚱한 값을 보여주지 않게 한다
+      const distance = DISTANCE_OPTIONS.find(
+        (o) => o.value === data.movableDistance || o.label === data.movableDistance || o.label === data.movableDistanceLabel,
+      );
+      setMovableDistance(distance?.value ?? "");
       setUsernameInput(data.username ?? "");
       // 프로필 응답에 posts 가 없으면 전체 목록을 훑어 걸러낸다
       if (data.posts) {
