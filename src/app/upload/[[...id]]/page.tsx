@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import BackButton from "@/src/components/BackButton";
+import { LuChevronLeft } from "react-icons/lu";
 import UploadFile from "@/src/components/write/UploadPicture";
 import WriteSection from "@/src/components/write/WriteSection";
 import Preview from "@/src/components/write/Preview";
@@ -132,38 +132,44 @@ export default function Page() {
   }
 
   return (
-    <div>
-      <div className="px-20 py-4">
-        <BackButton />
-      </div>
-      <main className="flex gap-8 px-20 pb-12 items-start">
-        <div className="flex-1 flex flex-col gap-8 min-w-0">
-          <div className="flex gap-8">
-            <UploadFile initialImages={imageUrls} onUpload={setImageUrls} />
-            <WriteSection
-              title={title}
-              onTitleChange={setTitle}
-              description={description}
-              onDescriptionChange={setDescription}
-              price={price}
-              onPriceChange={setPrice}
-              categoryId={categoryId}
-              onCategoryChange={setCategoryId}
-              categories={categories}
-            />
+    <div className="flex flex-col gap-9 px-20 pt-12 pb-12">
+      <button
+        type="button"
+        onClick={() => router.back()}
+        className="flex w-fit items-center gap-1 text-sm font-medium text-ink-hint cursor-pointer transition-colors hover:text-main"
+      >
+        <LuChevronLeft className="size-6" />
+        뒤로가기
+      </button>
+      <main className="flex gap-16 items-start">
+        <div className="flex-1 flex flex-col gap-6 min-w-0">
+          <div className="flex flex-col gap-12">
+            <div className="flex gap-9">
+              <UploadFile initialImages={imageUrls} onUpload={setImageUrls} />
+              <WriteSection
+                title={title}
+                onTitleChange={setTitle}
+                description={description}
+                onDescriptionChange={setDescription}
+                price={price}
+                onPriceChange={setPrice}
+                categoryId={categoryId}
+                onCategoryChange={setCategoryId}
+                categories={categories}
+              />
+            </div>
+            <PriceCardEditor plans={plans} onChange={setPlans} />
           </div>
-          <PriceCardEditor plans={plans} onChange={setPlans} />
 
           <button
+            type="button"
             onClick={isWaiting ? undefined : handleSubmit}
             disabled={isWaiting}
-            className="w-32 h-10 bg-main text-white text-sm rounded-xl font-semibold self-end transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
+            className="w-30 h-[38px] bg-main text-white text-sm rounded-xl font-semibold self-end transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
           >
             {isWaiting ? "등록 중..." : "등록하기"}
           </button>
         </div>
-
-        <div className="w-px self-stretch bg-zinc-300" />
 
         <Preview
           imageUrl={imageUrls[1] ?? imageUrls[0]}

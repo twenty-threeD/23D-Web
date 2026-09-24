@@ -7,6 +7,9 @@
   --color-ink: #363636;
   --color-ink-sub: #666666;
   --color-ink-muted: #a1a1a1;
+  /* 서비스 등록 시안의 입력창 보더·플레이스홀더색. 폼 전반에 반복돼 토큰으로 올렸다 */
+  --color-line: #a3a3a3;
+  --color-ink-hint: #838383;
   /* 프로젝트 폰트는 Pretendard 로 통일한다. 기본 sans 를 덮어써서 클래스 없이도 전역에 적용되게 한다 */
   --font-sans: var(--font-pretendard-local), system-ui, sans-serif;
 }
