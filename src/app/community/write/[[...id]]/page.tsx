@@ -5,11 +5,12 @@ import { useRouter, useParams } from "next/navigation"
 import dynamic from "next/dynamic"
 import CommunityMenu from "@/src/components/CommunitySideBar"
 import { IoImageOutline, IoChevronDown } from "react-icons/io5"
-import { getPost, createPost, updatePost, COMMUNITY_CATEGORIES, isCommunityCategory, type CommunityCategory } from "@/src/lib/community"
+import { getPost, createPost, updatePost, COMMUNITY_CATEGORIES, isCommunityCategory, parseRegion, tagRegion, type CommunityCategory } from "@/src/lib/community"
 import { uploadFile } from "@/src/lib/file"
 import { useAuthStore } from "@/src/store/authStore"
 import { useHandleError } from "@/src/hooks/useHandleError"
 import { signinPath } from "@/src/lib/navigation"
+import { useMyLocation } from "@/src/hooks/useMyLocation"
 
 const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false })
 
@@ -27,6 +28,7 @@ export default function Page() {
     } catch { return null }
   })
   const handleError = useHandleError()
+  const { location, loaded: locationLoaded } = useMyLocation()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cursorPosRef = useRef<number>(0)
 
@@ -48,7 +50,8 @@ export default function Page() {
         return
       }
       setTitle(data.title ?? "")
-      setContent(data.content ?? "")
+      // 지역 태그는 등록할 때 다시 붙이므로 에디터에는 본문만 보여준다
+      setContent(parseRegion(data.content).body)
       const c = typeof data.category === "string" ? data.category : data.category?.name
       if (isCommunityCategory(c)) setCategory(c)
     } catch (e) {
@@ -96,15 +99,19 @@ export default function Page() {
 
   async function handleSubmit() {
     if (!token) { router.push(signinPath()); return }
-    if (!title.trim() || !content.trim() || !category) return
+    if (!isReady || !category) return
     setSubmitting(true)
+    // 수정 시에도 현재 지역으로 다시 태그한다. 이사한 뒤 고친 글은 새 지역에 보이는 게 자연스럽다
+    const body = category === "NEIGHBORHOOD" && location
+      ? tagRegion(content, location.ctprvnCd)
+      : parseRegion(content).body
     try {
       if (postId) {
-        await updatePost(token, postId, { title, content, category, fileUrl: extractFileUrl(content) })
+        await updatePost(token, postId, { title, content: body, category, fileUrl: extractFileUrl(body) })
         // 작성/수정을 마친 뒤 뒤로가기로 이 화면에 돌아오지 않도록 히스토리를 치환한다
         router.replace(`/posts/${postId}`)
       } else {
-        const res = await createPost(token, { title, content, category, fileUrl: extractFileUrl(content) })
+        const res = await createPost(token, { title, content: body, category, fileUrl: extractFileUrl(body) })
         const newId = res.data?.postId
         router.replace(newId ? `/posts/${newId}` : "/community")
       }
@@ -113,7 +120,9 @@ export default function Page() {
     }
   }
 
+  const needsLocation = category === "NEIGHBORHOOD" && locationLoaded && !location
   const isReady = title.trim().length > 0 && content.trim().length > 0 && !!category
+    && (category !== "NEIGHBORHOOD" || !!location)
 
   if (loading) {
     return (
@@ -190,6 +199,12 @@ export default function Page() {
                 </select>
                 <IoChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 text-lg pointer-events-none" />
               </div>
+              {category === "NEIGHBORHOOD" && location && (
+                <p className="text-sm text-zinc-500">{location.locationName.split(" ")[0]} 주민에게만 보이는 글입니다.</p>
+              )}
+              {needsLocation && (
+                <p className="text-sm text-red-500">동네 주민 글을 쓰려면 프로필에서 지역을 먼저 설정해주세요.</p>
+              )}
             </div>
 
             <div className="flex items-center gap-3 px-6 py-3 border-t border-zinc-200 bg-zinc-50">

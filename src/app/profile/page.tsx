@@ -104,7 +104,7 @@ export default function Page() {
     if (!token) { router.push(signinPath()); return; }
     fetchProfile();
     getJobCategories().then(setJobCategories).catch(() => {});
-    getSidoList().then(setSidoList).catch(() => {});
+    getSidoList(token).then(setSidoList).catch(() => {});
   }, [token]);
 
   useEffect(() => {
@@ -132,9 +132,9 @@ export default function Page() {
   }
 
   useEffect(() => {
-    if (!ctprvnCd) { setSigunguList([]); return; }
-    getSigunguList(ctprvnCd).then(setSigunguList).catch(() => setSigunguList([]));
-  }, [ctprvnCd]);
+    if (!ctprvnCd || !token) { setSigunguList([]); return; }
+    getSigunguList(token, ctprvnCd).then(setSigunguList).catch(() => setSigunguList([]));
+  }, [ctprvnCd, token]);
 
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
