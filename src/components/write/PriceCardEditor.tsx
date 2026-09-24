@@ -46,7 +46,7 @@ function SinglePlanEditor({ plan, onChange }: SinglePlanEditorProps) {
     <div className="flex flex-col gap-4">
       <PlanField label="플랜 이름">
         <input
-          className={`${INPUT_BOX} h-11`}
+          className={`${INPUT_BOX} h-[38px] text-xs`}
           placeholder="예) 에어컨 청소(1회 기준)"
           value={plan.planName}
           onChange={(e) => update({ planName: e.target.value })}
@@ -54,7 +54,7 @@ function SinglePlanEditor({ plan, onChange }: SinglePlanEditorProps) {
       </PlanField>
 
       <PlanField label="최소 가격">
-        <label className={`${INPUT_BOX} h-11 flex items-center gap-2 focus-within:border-main`}>
+        <label className={`${INPUT_BOX} h-[38px] text-xs flex items-center gap-2 focus-within:border-main`}>
           <input
             className="flex-1 min-w-0 focus:outline-none placeholder:text-ink-hint"
             placeholder="최소 가격을 입력해주세요."
@@ -69,7 +69,7 @@ function SinglePlanEditor({ plan, onChange }: SinglePlanEditorProps) {
 
       <PlanField label="플랜 설명">
         <textarea
-          className={`${INPUT_BOX} h-24 py-3 resize-none`}
+          className={`${INPUT_BOX} h-16 py-3 text-xs resize-none`}
           placeholder="예 ) 실외기, 실내기 고압 세척 & 필터 교체 & 세척"
           value={plan.description}
           onChange={(e) => update({ description: e.target.value })}
@@ -89,7 +89,7 @@ function SinglePlanEditor({ plan, onChange }: SinglePlanEditorProps) {
             {plan.items.map((item, i) => (
               <div key={i} className="flex items-center gap-3">
                 <input
-                  className={`${INPUT_BOX} flex-1 h-11`}
+                  className={`${INPUT_BOX} flex-1 h-[38px] text-xs`}
                   placeholder="항목명"
                   value={item.name}
                   onChange={(e) => updateItem(i, { name: e.target.value })}
@@ -155,14 +155,14 @@ export default function PriceCardEditor({ plans, onChange }: PriceCardEditorProp
           {safePlans.map((_, i) => (
             <div
               key={i}
-              className={`group relative flex items-center justify-center min-w-18 h-9 border-b ${
+              className={`group relative flex items-center justify-center min-w-18 h-[22px] border-b ${
                 i === active ? "border-main text-main" : "border-line text-line hover:text-ink-hint"
               }`}
             >
               <button
                 type="button"
                 onClick={() => setActiveIndex(i)}
-                className="h-full px-3 pb-3 flex items-end text-base font-semibold leading-none cursor-pointer"
+                className="h-full px-3 pb-1.5 flex items-end text-base font-semibold leading-none cursor-pointer"
               >
                 {/* 탭 폭이 시안상 고정이라, 긴 플랜 이름 대신 번호로 표시한다 */}
                 플랜 {i + 1}

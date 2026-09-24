@@ -2,9 +2,10 @@
 
 import type { ReactNode } from "react";
 
-// 서비스 등록 폼의 입력창 공통 스타일. 시안의 보더·라운드·플레이스홀더를 한 곳에서 맞춘다
+// 서비스 등록 폼의 입력창 공통 스타일. 시안의 보더·라운드·플레이스홀더를 한 곳에서 맞춘다.
+// 글자 크기는 넣지 않는다 — 시안에서 본 폼은 14px, 플랜 카드 안은 12px 로 달라서 쓰는 쪽이 정한다
 export const INPUT_BOX =
-  "w-full border border-line rounded-[10px] px-[11px] text-xs font-medium text-ink placeholder:text-ink-hint transition-colors focus:outline-none focus:border-main hover:border-ink-hint";
+  "w-full border border-line rounded-[10px] px-[11px] font-medium text-ink placeholder:text-ink-hint transition-colors focus:outline-none focus:border-main hover:border-ink-hint";
 
 interface FieldLabelProps {
   children: ReactNode;
@@ -68,19 +69,19 @@ export default function WriteInputField({
   ) : null;
 
   return (
-    <div className="flex flex-col gap-3 w-full">
+    <div className="flex flex-col gap-3.5 w-full">
       <FieldLabel isEssential={isEssential} aside={counter}>{name}</FieldLabel>
 
       {isText ? (
         <textarea
-          className={`${INPUT_BOX} h-72 py-3 resize-none`}
+          className={`${INPUT_BOX} h-60 py-3 text-sm resize-none`}
           placeholder={placeholder ?? `${name}을 입력해주세요.`}
           value={value}
           maxLength={maxLength}
           onChange={handleChange}
         />
       ) : isInputPrice ? (
-        <label className={`${INPUT_BOX} h-11 flex items-center gap-2 focus-within:border-main`}>
+        <label className={`${INPUT_BOX} h-[38px] text-sm flex items-center gap-2 focus-within:border-main`}>
           <input
             type="text"
             inputMode="numeric"
@@ -89,12 +90,12 @@ export default function WriteInputField({
             value={displayPrice}
             onChange={handlePriceChange}
           />
-          <span className="text-ink-hint">원</span>
+          <span className="text-xs text-ink-hint">원</span>
         </label>
       ) : (
         <input
           type="text"
-          className={`${INPUT_BOX} h-11`}
+          className={`${INPUT_BOX} h-[38px] text-sm`}
           placeholder={placeholder ?? `${name}을 입력해주세요.`}
           value={value}
           maxLength={maxLength}

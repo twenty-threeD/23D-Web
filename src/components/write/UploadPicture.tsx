@@ -178,14 +178,14 @@ export default function UploadFile({ initialImages, onUpload }: UploadFileProps)
 
   return (
     <div className="w-82 shrink-0 flex flex-col gap-12">
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3.5">
         <FieldLabel isEssential>헤더 이미지</FieldLabel>
         <div className="relative">
           <button
             type="button"
             disabled={headerUploading}
             onClick={() => (headerImage ? setLightboxSrc(headerImage) : headerInputRef.current?.click())}
-            className="relative w-full h-[42px] flex items-center justify-center border border-line rounded-xl cursor-pointer transition-colors hover:border-ink-hint overflow-hidden disabled:cursor-wait"
+            className="relative w-full h-[42px] flex items-center justify-center bg-zinc-50 border border-line rounded-[10px] cursor-pointer transition-colors hover:border-ink-hint overflow-hidden disabled:cursor-wait"
             aria-label={headerImage ? "헤더 이미지 크게 보기" : "헤더 이미지 업로드"}
           >
             {headerImage ? (
@@ -220,7 +220,7 @@ export default function UploadFile({ initialImages, onUpload }: UploadFileProps)
         />
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3.5">
         <FieldLabel
           isEssential
           aside={<span className="text-xs font-medium text-ink-hint">{images.length}/{MAX_CONTENT_IMAGES}</span>}
@@ -231,7 +231,7 @@ export default function UploadFile({ initialImages, onUpload }: UploadFileProps)
           <button
             type="button"
             onClick={() => (bigImage ? setLightboxSrc(bigImage) : openContentPicker())}
-            className="relative size-82 flex flex-col items-center justify-center gap-4 border border-line rounded-xl cursor-pointer transition-colors hover:border-ink-hint overflow-hidden"
+            className="relative size-82 flex flex-col items-center justify-center gap-4 bg-zinc-50 border border-line rounded-xl cursor-pointer transition-colors hover:border-ink-hint overflow-hidden"
             aria-label={bigImage ? "메인 이미지 크게 보기" : "메인 이미지 업로드"}
           >
             {bigImage ? (
@@ -269,7 +269,7 @@ export default function UploadFile({ initialImages, onUpload }: UploadFileProps)
                   setDragIndex(null)
                   setDragOverIndex(null)
                 }}
-                className={`relative shrink-0 size-18 border rounded-xl overflow-hidden ${
+                className={`relative shrink-0 size-18 bg-zinc-50 border rounded-xl overflow-hidden ${
                   images[i] ? "cursor-grab active:cursor-grabbing" : "cursor-pointer hover:border-ink-hint"
                 } ${
                   i === dragOverIndex || (i === clampedPreview && images[i])
