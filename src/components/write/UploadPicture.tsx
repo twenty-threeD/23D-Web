@@ -240,7 +240,7 @@ export default function UploadFile({ initialImages, onUpload }: UploadFileProps)
               <>
                 <LuImage className="size-9 text-ink-hint" strokeWidth={1.5} />
                 <span className="text-base font-medium text-ink-hint">
-                  {contentUploading ? "업로드 중..." : "사진을 업로드 하세요!"}
+                  {contentUploading ? "업로드 중..." : "사진을 업로드 해주세요."}
                 </span>
               </>
             )}

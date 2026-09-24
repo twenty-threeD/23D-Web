@@ -101,7 +101,7 @@ export default function Page() {
     // 서버가 본문을 2000자로 제한한다. 본문에는 플랜 정보까지 함께 직렬화되므로
     // 화면에 보이는 설명 글자 수보다 길어진다.
     if (content.length > 2000) {
-      addToast({ message: "본문과 가격 정보가 너무 깁니다. 내용을 줄여주세요.", type: "warning" });
+      addToast({ message: "본문은 2000자 이하여야 합니다.", type: "warning" });
       return;
     }
 

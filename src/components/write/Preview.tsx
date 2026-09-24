@@ -35,13 +35,13 @@ export default function Preview({
           {imageUrl ? (
             <Image
               src={imageUrl}
-              alt="미리보기 이미지"
+              alt="미리보기 사진"
               width={260}
               height={180}
               className="w-full h-full object-cover"
             />
           ) : (
-            <span className="text-sm text-ink-muted">이미지를 업로드해주세요</span>
+            <span className="text-sm text-ink-muted">사진을 업로드 해주세요.</span>
           )}
         </div>
 
