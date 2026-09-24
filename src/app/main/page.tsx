@@ -6,20 +6,8 @@ import Link from "next/link";
 import { SearchIcon } from "@/src/components/main/icons";
 import AdCard, { AdCardSkeleton } from "@/src/components/main/AdCard";
 import ServiceSection, { CardRow, MoreLink, Empty, SECTION_INSET } from "@/src/components/main/ServiceSection";
-import { getPosts, searchPosts, getPostCategories, type Post, type PostCategory } from "@/src/lib/post";
+import { getPosts, searchPosts, getPostCategories, CATEGORIES, type Post, type PostCategory } from "@/src/lib/post";
 import { useAuthStore } from "@/src/store/authStore";
-
-// 시안의 카테고리 표기(`이사 | 청소`)와 서버 카테고리명(`이사/청소`)이 달라 이름을 따로 둔다
-const CATEGORIES: { label: string; name: string }[] = [
-  { label: "이사 | 청소", name: "이사/청소" },
-  { label: "설치 | 수리", name: "설치/수리" },
-  { label: "인테리어", name: "인테리어" },
-  { label: "외주", name: "외주" },
-  { label: "법률 | 금융", name: "법률/금융" },
-  { label: "과외", name: "과외" },
-  { label: "자동차", name: "자동차" },
-  { label: "기타", name: "기타" },
-];
 
 function MainContent() {
   const token = useAuthStore((s) => s.accessToken);

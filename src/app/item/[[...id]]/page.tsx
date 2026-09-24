@@ -292,7 +292,7 @@ export default function Page() {
                   {reviews.map((item) => <Review key={item.id} review={item} />)}
                 </div>
               ) : (
-                <p className="text-xl font-medium text-[#838383]">아직 작성된 리뷰가 없어요.</p>
+                <p className="font-medium text-[#838383]">아직 작성된 리뷰가 없어요.</p>
               )}
             </div>
           </div>
@@ -300,7 +300,7 @@ export default function Page() {
           {/* right content */}
           <div className="order-1 lg:order-2 flex flex-col gap-2 w-full lg:w-[340px] xl:w-[380px] shrink-0 lg:sticky lg:top-24">
             <PriceCard username={post?.member?.username} plans={plans} postId={postId ?? undefined} />
-            <ul className="flex flex-col list-disc pl-6 pr-4 py-4 rounded-lg bg-[#fafafa] text-sm text-ink-sub">
+            <ul className="flex flex-col list-disc pl-[25px] pr-4 py-5 rounded-lg bg-[#fafafa] text-sm text-ink-sub">
               <li>서비스 이후 금액이 전달 되니 안전하게 거래하세요.</li>
               <li>견적서와 계약서는 블록체인을 통해 평생 안전히 보관됩니다.</li>
             </ul>

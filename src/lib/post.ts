@@ -39,6 +39,18 @@ export function getPostMainImage(fileUrls?: string[]) {
 }
 
 // 게시글 카테고리는 직군 카테고리로 통합되었다 (구 /api/post-category)
+// 시안의 카테고리 표기(`이사 | 청소`)와 서버 카테고리명(`이사/청소`)이 달라 이름을 따로 둔다
+export const CATEGORIES: { label: string; name: string }[] = [
+  { label: "이사 | 청소", name: "이사/청소" },
+  { label: "설치 | 수리", name: "설치/수리" },
+  { label: "인테리어", name: "인테리어" },
+  { label: "외주", name: "외주" },
+  { label: "법률 | 금융", name: "법률/금융" },
+  { label: "과외", name: "과외" },
+  { label: "자동차", name: "자동차" },
+  { label: "기타", name: "기타" },
+];
+
 export async function getPostCategories() {
   const res = await fetch(`/api/job-category`)
   if (!res.ok) await throwApiError(res)
