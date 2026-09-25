@@ -139,57 +139,60 @@ const PayContent = () => {
   ];
 
   return (
-    <main className="flex flex-col gap-9 px-20 pt-12 pb-27.5">
-      <button
-        type="button"
-        onClick={() => router.back()}
-        className="flex items-center gap-1 self-start text-[14px] font-medium text-ink-hint cursor-pointer"
-      >
-        <LuChevronLeft className="size-6" />
-        뒤로가기
-      </button>
+    // 넓은 화면에서도 시안의 1280px 콘텐츠 폭을 유지한 채 가운데에 둔다 (마진 대신 부모 정렬로)
+    <main className="flex flex-col items-center px-20 pt-12 pb-27.5">
+      <div className="flex w-full max-w-320 flex-col gap-9">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="flex items-center gap-1 self-start text-[14px] font-medium text-ink-hint cursor-pointer"
+        >
+          <LuChevronLeft className="size-6" />
+          뒤로가기
+        </button>
 
-      <div className="flex flex-col gap-12">
-        <h1 className="text-[20px] font-semibold text-black">계약서 확인</h1>
+        <div className="flex flex-col gap-12">
+          <h1 className="text-[20px] font-semibold text-black">계약서 확인</h1>
 
-        <div className="flex items-start gap-12">
-          <div className="w-198.75 shrink-0">
-            <ContractPreview contractUrl={contractUrl} token={token} />
-          </div>
-
-          <div className="flex w-109.25 flex-col gap-14 pt-5">
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-6">
-                {fields.map((field) => (
-                  <div key={field.label} className="flex flex-col gap-3.5">
-                    <p className="text-[18px] font-semibold text-ink">{field.label}</p>
-                    <div className="flex h-9.5 items-center justify-between rounded-[10px] border border-line px-2.75 text-[12px] font-medium text-ink-hint">
-                      <span>{field.value || "-"}</span>
-                      {field.suffix && <span>{field.suffix}</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <Notice>위 표시되는 내용과 계약서의 내용이 다른 경우 고객센터로 신고 바랍니다.</Notice>
+          <div className="flex items-start gap-12">
+            <div className="w-198.75 shrink-0">
+              <ContractPreview contractUrl={contractUrl} token={token} />
             </div>
 
-            <div className="flex flex-col gap-2.5">
+            <div className="flex w-109.25 flex-col gap-14 pt-5">
               <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-2">
-                  <p className="text-[14px] font-medium text-ink-hint">총 결제 금액</p>
-                  <p className="text-[28px] font-semibold text-ink">{price.toLocaleString()}원</p>
+                <div className="flex flex-col gap-6">
+                  {fields.map((field) => (
+                    <div key={field.label} className="flex flex-col gap-3.5">
+                      <p className="text-[18px] font-semibold text-ink">{field.label}</p>
+                      <div className="flex h-9.5 items-center justify-between rounded-[10px] border border-line px-2.75 text-[12px] font-medium text-ink-hint">
+                        <span>{field.value || "-"}</span>
+                        {field.suffix && <span>{field.suffix}</span>}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <OnClickPay
-                  price={price}
-                  orderName={post.title ?? "잇다 서비스"}
-                  orderCustomerName={username ?? ""}
-                  postId={post.id}
-                  roomId={String(roomId)}
-                  contractUrl={contractUrl}
-                  contractId={contractId}
-                />
+                <Notice>위 표시되는 내용과 계약서의 내용이 다른 경우 고객센터로 신고 바랍니다.</Notice>
               </div>
-              <Notice>수수료 포함</Notice>
+
+              <div className="flex flex-col gap-2.5">
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-2">
+                    <p className="text-[14px] font-medium text-ink-hint">총 결제 금액</p>
+                    <p className="text-[28px] font-semibold text-ink">{price.toLocaleString()}원</p>
+                  </div>
+                  <OnClickPay
+                    price={price}
+                    orderName={post.title ?? "잇다 서비스"}
+                    orderCustomerName={username ?? ""}
+                    postId={post.id}
+                    roomId={String(roomId)}
+                    contractUrl={contractUrl}
+                    contractId={contractId}
+                  />
+                </div>
+                <Notice>수수료 포함</Notice>
+              </div>
             </div>
           </div>
         </div>
