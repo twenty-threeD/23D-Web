@@ -46,20 +46,12 @@ export default function Page() {
     }
   };
 
+  // 로그인이 끝나면 시작한 오리진으로 돌아오게 한다. 백엔드가 허용한 오리진(배포·localhost:3000)만 받고 나머지는 배포로 보낸다
   const OAuth = (index: number) => () => {
-    switch (index) {
-      case 0:
-        window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/google`;
-        break;
-      case 1:
-        window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/kakao`;
-        break;
-      case 2:
-        window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/naver`;
-        break;
-      default:
-        break;
-    }
+    const provider = ["google", "kakao", "naver"][index];
+    if (!provider) return;
+    const redirectUri = encodeURIComponent(`${window.location.origin}/oauth/success`);
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/${provider}?redirect_uri=${redirectUri}`;
   };
 
   const enterLogin = (e: React.KeyboardEvent<HTMLInputElement>) => {

@@ -21,9 +21,11 @@ import {
   type JobCategory,
   type Sido,
   type Sigungu,
+  needsPasswordSetup,
 } from "@/src/lib/profile";
 import { resetUsername, deleteAccount } from "@/src/lib/member";
 import AccountEditModal from "@/src/components/profile/AccountEditModal";
+import PasswordModal from "@/src/components/profile/PasswordModal";
 import { getFavoritePosts, getMyPosts, deletePost, getPostMainImage, type Post } from "@/src/lib/post";
 import { signinPath } from "@/src/lib/navigation"
 
@@ -67,6 +69,7 @@ export default function Page() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [editingField, setEditingField] = useState<"email" | "phone" | null>(null);
   const [verifyingPhone, setVerifyingPhone] = useState(false);
+  const [passwordMode, setPasswordMode] = useState<"set" | "change" | null>(null);
 
   const fetchProfile = useCallback(async () => {
     if (!token) return;
@@ -414,6 +417,40 @@ export default function Page() {
           </div>
         </div>
 
+        {/* 비밀번호 */}
+        <div className="flex flex-col gap-4">
+          <h2 className="text-xl font-bold">비밀번호</h2>
+          {needsPasswordSetup(profile) ? (
+            <div className="flex items-center justify-between gap-4 border border-main rounded-lg px-4 py-3">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-semibold text-main">비밀번호가 설정되지 않았어요</span>
+                <span className="text-xs text-zinc-500">비밀번호를 설정하면 이메일과 비밀번호로도 로그인할 수 있어요.</span>
+              </div>
+              <button
+                onClick={() => setPasswordMode("set")}
+                className="shrink-0 px-4 py-2 rounded-xl bg-main text-white text-sm font-semibold transition-colors hover:bg-orange-600 cursor-pointer"
+              >
+                비밀번호 설정
+              </button>
+            </div>
+          ) : (
+            <div className="border border-zinc-200 rounded-lg">
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-sm text-zinc-500">비밀번호</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm tracking-widest">••••••••</span>
+                  <button
+                    onClick={() => setPasswordMode("change")}
+                    className="text-xs text-zinc-500 underline underline-offset-2 hover:text-main transition-colors cursor-pointer"
+                  >
+                    재설정
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* 내가 올린 게시글 */}
         <div className="flex flex-col gap-4">
           <h2 className="text-xl font-bold">내가 올린 게시글</h2>
@@ -478,6 +515,25 @@ export default function Page() {
           verifyOnlyPhone={profile.phone}
           onClose={() => setVerifyingPhone(false)}
           onDone={() => { setVerifyingPhone(false); fetchProfile(); }}
+        />
+      )}
+
+      {passwordMode && token && (
+        <PasswordModal
+          mode={passwordMode}
+          token={token}
+          onClose={() => setPasswordMode(null)}
+          onDone={() => {
+            // 변경 API는 성공 시 서버에서 토큰을 지워서, 그대로 두면 다음 요청부터 401이 난다
+            if (passwordMode === "change") {
+              clear();
+              useProfileStore.getState().reset();
+              router.push(signinPath());
+              return;
+            }
+            setPasswordMode(null);
+            fetchProfile();
+          }}
         />
       )}
 

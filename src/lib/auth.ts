@@ -1,3 +1,5 @@
+import { throwApiError } from './apiError'
+
 // 인증코드 전송
 export async function sendVerifyCode(email: string) {
   const res = await fetch(`/api/email/code/send`, {
@@ -105,6 +107,23 @@ export async function reissueToken() {
   const json = await res.json()
   const accessToken = json?.data?.accessToken
   if (!accessToken) throw new Error('토큰 재발급에 실패했습니다.')
+  return accessToken as string
+}
+
+// localhost 처럼 .idta.store 밖에서 시작한 소셜 로그인은 쿠키를 바로 못 받아, 백엔드가 60초짜리 1회용 코드를 준다.
+// 이 코드를 프록시(같은 오리진)로 교환해야 토큰과 쿠키가 이 오리진에 심긴다
+export async function exchangeOAuthCode(code: string) {
+  const res = await fetch(`/api/auth/oauth/exchange`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ code }),
+  })
+  if (!res.ok) await throwApiError(res)
+  const json = await res.json().catch(() => null)
+  const accessToken = json?.data?.accessToken
+  // 교환 응답이 토큰을 쿠키로만 줄 때도 있어, 본문에 없으면 방금 심긴 리프레시 쿠키로 재발급해 받는다
+  if (!accessToken) return reissueToken()
   return accessToken as string
 }
 

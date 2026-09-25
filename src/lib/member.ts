@@ -53,25 +53,26 @@ export async function resetUsername(token: string, username: string) {
   return res.json()
 }
 
-// 비밀번호 재설정 인증 확인
-export async function checkPasswordReset(email: string, verifyCode: string) {
+// 로그인 상태에서 비밀번호 변경. 이미 로그인했으니 인증번호 대신 기존 비밀번호로 본인 확인한다.
+// 성공하면 서버가 토큰을 지우므로 호출한 쪽에서 재로그인시켜야 한다
+export async function changePassword(token: string, currentPassword: string, newPassword: string) {
   const res = await fetch(`/api/member/password/reset/check`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, verifyCode }),
+    headers: authHeaders(token),
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
   })
-  if (!res.ok) throw new Error('인증 확인 실패')
+  if (!res.ok) await throwApiError(res)
   return res.json()
 }
 
-// 비밀번호 재설정
-export async function resetPassword(email: string, newPassword: string) {
-  const res = await fetch(`/api/member/password/reset`, {
+// 소셜 가입자처럼 비밀번호가 없는 계정의 최초 설정. 변경과 달리 토큰이 유지돼 재로그인이 필요 없다
+export async function setPassword(token: string, newPassword: string) {
+  const res = await fetch(`/api/member/password`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, newPassword }),
+    headers: authHeaders(token),
+    body: JSON.stringify({ new_password: newPassword }),
   })
-  if (!res.ok) throw new Error('비밀번호 변경 실패')
+  if (!res.ok) await throwApiError(res)
   return res.json()
 }
 
