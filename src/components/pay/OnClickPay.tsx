@@ -6,7 +6,6 @@ import { preparePayment } from "@/src/lib/payment";
 import { ApiError } from "@/src/lib/apiError";
 
 interface OnClickPayProps {
-  isAgree: boolean;
   price: number;
   orderName?: string;
   orderCustomerName?: string;
@@ -39,12 +38,10 @@ function buildOrderName(orderName?: string) {
   return `잇다: ${orderName || "잇다 서비스 결제"}`.slice(0, 100);
 }
 
-export const OnClickPay = ({ isAgree, price, orderName, orderCustomerName, postId, roomId, contractUrl, contractId }: OnClickPayProps) => {
+export const OnClickPay = ({ price, orderName, orderCustomerName, postId, roomId, contractUrl, contractId }: OnClickPayProps) => {
   const token = useAuthStore((s) => s.accessToken);
 
   const handlePayment = async () => {
-    if (!isAgree) return;
-
     const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
     if (!clientKey) {
       alert("결제 키가 설정되지 않았습니다.");
@@ -116,18 +113,12 @@ export const OnClickPay = ({ isAgree, price, orderName, orderCustomerName, postI
   };
 
   return (
-    <div>
-      <button
-        onClick={handlePayment}
-        disabled={!isAgree}
-        className={`w-87.5 mt-5 py-3 rounded-xl text-lg font-bold transition-colors
-          ${isAgree
-            ? "bg-main text-white hover:bg-orange-600 cursor-pointer"
-            : "bg-zinc-300 text-zinc-500 cursor-not-allowed"
-          }`}
-      >
-        결제하기
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={handlePayment}
+      className="h-11 w-full rounded-xl bg-main text-[16px] font-semibold text-white cursor-pointer"
+    >
+      결제하기
+    </button>
   );
 };
