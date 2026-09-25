@@ -23,9 +23,11 @@ export const ContractPreview = ({ contractUrl, token }: ContractPreviewProps) =>
     (async () => {
       try {
         // pdf.js 는 브라우저 전용 API 를 쓰므로 서버 렌더링 때 불러오지 않게 여기서 가져온다
-        const pdfjs = await import("pdfjs-dist");
+        // 기본 빌드는 Math.sumPrecise·Map.getOrInsertComputed 를 폴리필 없이 써서,
+        // 미지원 브라우저에선 워커가 죽고 getDocument 가 끝나지 않아 로딩에서 멈춘다. 폴리필이 든 legacy 빌드를 쓴다.
+        const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
         pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-          "pdfjs-dist/build/pdf.worker.min.mjs",
+          "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
           import.meta.url,
         ).toString();
 
@@ -69,10 +71,11 @@ export const ContractPreview = ({ contractUrl, token }: ContractPreviewProps) =>
     };
   }, [contractUrl, token]);
 
-  // 높이를 A4 한 장 비율로 잡아, 한 장짜리 계약서는 스크롤 없이 전부 보이게 한다.
-  // 용역 내용이 길어 여러 장이 되면 그때만 안에서 스크롤된다.
+  // 시안대로 높이를 1000px 로 고정하고 A4 페이지를 폭에 꽉 채워 아래를 잘라 보여준다.
+  // A4 비율 박스로 두면 PDF 페이지 크기와 미세하게 달라 아래에 빈 띠가 생겼고,
+  // 스크롤바가 폭을 차지해 오른쪽에도 여백이 생겨서 스크롤바는 숨기고 스크롤만 살린다.
   return (
-    <div className="relative w-full aspect-[210/297] overflow-y-auto bg-[#faf9f8]">
+    <div className="relative w-full h-250 overflow-y-auto bg-[#faf9f8] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <div ref={containerRef} className="flex flex-col" />
       {status !== "done" && (
         <div className="absolute inset-0 flex items-center justify-center text-[14px] font-medium text-ink-hint">
