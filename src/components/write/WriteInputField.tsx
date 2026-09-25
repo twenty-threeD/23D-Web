@@ -1,5 +1,31 @@
 "use client";
 
+import type { ReactNode } from "react";
+
+// 서비스 등록 폼의 입력창 공통 스타일. 시안의 보더·라운드·플레이스홀더를 한 곳에서 맞춘다.
+// 글자 크기는 넣지 않는다 — 시안에서 본 폼은 14px, 플랜 카드 안은 12px 로 달라서 쓰는 쪽이 정한다
+export const INPUT_BOX =
+  "w-full border border-line rounded-[10px] px-[11px] font-medium text-ink placeholder:text-ink-hint transition-colors focus:outline-none focus:border-main hover:border-ink-hint";
+
+interface FieldLabelProps {
+  children: ReactNode;
+  isEssential?: boolean;
+  // 라벨 오른쪽 끝에 붙는 보조 정보(글자 수 등)
+  aside?: ReactNode;
+}
+
+export function FieldLabel({ children, isEssential, aside }: FieldLabelProps) {
+  return (
+    <div className="flex items-center justify-between">
+      <h2 className="flex items-center gap-1.5 text-lg font-semibold text-ink leading-none">
+        {children}
+        {isEssential && <span className="text-xl text-main leading-none">*</span>}
+      </h2>
+      {aside}
+    </div>
+  );
+}
+
 interface WriteInputFieldProps {
   name: string;
   isEssential?: boolean;
@@ -7,6 +33,8 @@ interface WriteInputFieldProps {
   isInputPrice?: boolean;
   value?: string;
   onChange?: (value: string) => void;
+  placeholder?: string;
+  maxLength?: number;
 }
 
 export default function WriteInputField({
@@ -16,6 +44,8 @@ export default function WriteInputField({
   isInputPrice,
   value = "",
   onChange,
+  placeholder,
+  maxLength,
 }: WriteInputFieldProps) {
   const MAX_PRICE = 2_000_000_000; // 최대 가격 설정
 
@@ -34,37 +64,41 @@ export default function WriteInputField({
     onChange?.(e.target.value);
   };
 
+  const counter = isText && maxLength ? (
+    <span className="text-xs font-medium text-ink-hint">{value.length}/{maxLength}</span>
+  ) : null;
+
   return (
-    <div className="flex flex-col gap-1 w-full">
-      <h1 className="text-xl font-bold">
-        {name}
-        {isEssential && <span className="text-red-500">*</span>}
-      </h1>
+    <div className="flex flex-col gap-3.5 w-full">
+      <FieldLabel isEssential={isEssential} aside={counter}>{name}</FieldLabel>
 
       {isText ? (
         <textarea
-          className="w-full h-64 border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500 resize-none"
-          placeholder={`${name}을 입력해주세요.`}
+          className={`${INPUT_BOX} h-60 py-3 text-sm resize-none`}
+          placeholder={placeholder ?? `${name}을 입력해주세요.`}
           value={value}
+          maxLength={maxLength}
           onChange={handleChange}
         />
       ) : isInputPrice ? (
-        <div className="w-full flex items-center gap-1 border border-zinc-300 rounded-lg px-3 py-2.5 transition-colors focus-within:border-main hover:border-zinc-400">
+        <label className={`${INPUT_BOX} h-[38px] text-sm flex items-center gap-2 focus-within:border-main`}>
           <input
             type="text"
-            className="flex-1 focus:outline-none"
-            placeholder="가격을 입력해주세요."
+            inputMode="numeric"
+            className="flex-1 min-w-0 focus:outline-none placeholder:text-ink-hint"
+            placeholder={placeholder ?? "최소 가격을 입력해주세요."}
             value={displayPrice}
             onChange={handlePriceChange}
           />
-          <span className="text-zinc-500 ml-1">원</span>
-        </div>
+          <span className="text-xs text-ink-hint">원</span>
+        </label>
       ) : (
         <input
           type="text"
-          className="w-full border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
-          placeholder={`${name}을 입력해주세요.`}
+          className={`${INPUT_BOX} h-[38px] text-sm`}
+          placeholder={placeholder ?? `${name}을 입력해주세요.`}
           value={value}
+          maxLength={maxLength}
           onChange={handleChange}
         />
       )}
