@@ -160,7 +160,9 @@ export default function Header() {
                         onClick={() => {
                           setShowNotifications(false);
 
-                          if (n.type === "chat" && n.roomId !== null) {
+                          if (n.link) {
+                            router.push(n.link);
+                          } else if (n.type === "chat" && n.roomId !== null) {
                             router.push(`/chat/${n.roomId}`);
                           }
                         }}

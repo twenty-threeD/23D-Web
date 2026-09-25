@@ -21,7 +21,12 @@ export interface Notification {
   message: string
   createdAt: string
   roomId: number | null
+  /** 클릭 시 이동할 경로. 채팅방 이동이 아닌 알림(비밀번호 설정 안내 등)에 쓴다 */
+  link?: string
 }
+
+// 서버 NOTICE 에는 이동 경로가 없어서, 비밀번호 설정 안내만 문구로 알아보고 프로필로 보낸다
+const PASSWORD_NOTICE_PREFIX = "비밀번호가 설정되지 않았어요"
 
 function toNotification(n: NotificationResponse): Notification {
   return {
@@ -32,6 +37,7 @@ function toNotification(n: NotificationResponse): Notification {
     message: n.type === "NOTICE" ? n.message : previewOf(n.message),
     createdAt: n.sentAt,
     roomId: n.roomId,
+    link: n.type === "NOTICE" && n.message.startsWith(PASSWORD_NOTICE_PREFIX) ? "/profile" : undefined,
   }
 }
 

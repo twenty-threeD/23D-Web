@@ -25,6 +25,13 @@ export interface Profile {
   jobCategoryId?: number | null
   jobCategoryName?: string | null
   updatedAt?: string | null
+  /** 비밀번호 설정 여부. 소셜 가입 후 아직 설정하지 않았으면 false */
+  hasPassword?: boolean
+}
+
+// 서버 알림은 이 기능 배포 이후 가입자에게만 가서, 기존 소셜 회원은 이 값으로 화면 배너를 띄워 안내한다
+export function needsPasswordSetup(profile: Pick<Profile, 'hasPassword'> | null | undefined) {
+  return profile?.hasPassword === false
 }
 
 export interface JobCategory {
