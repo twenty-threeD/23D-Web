@@ -72,7 +72,19 @@ export async function getContract(token: string, contractId: number) {
   })
   if (!res.ok) await throwApiError(res)
   const json = await res.json()
-  return json.data as { id: number; price: number; contractUrl: string; clientId: number; professionalId: number }
+  return json.data as {
+    id: number
+    price: number
+    contractUrl: string
+    clientId: number
+    clientName: string
+    professionalId: number
+    professionalName: string
+    startedAt: string | null
+    endedAt: string | null
+    inspectionPeriod: number
+    createdAt: string | null
+  }
 }
 
 export async function getContractUrl(token: string, contractId: number) {

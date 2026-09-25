@@ -1,15 +1,12 @@
 "use client";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, type ReactNode } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { LuChevronLeft, LuCircleAlert } from "react-icons/lu";
 
-
-import { Estimate } from "@/src/components/pay/Estimate";
-import { FinalBill } from "@/src/components/pay/FinalBill";
-import { ApplyPay } from "@/src/components/pay/ApplyPay";
 import { OnClickPay } from "@/src/components/pay/OnClickPay";
+import { ContractPreview } from "@/src/components/pay/ContractPreview";
 
-import PriceCard from "@/src/components/PriceCard";
-import { getPost, getPostMainImage, type Post } from "@/src/lib/post";
+import { getPost, type Post } from "@/src/lib/post";
 import { useAuthStore } from "@/src/store/authStore";
 import { parsePostContent } from "@/src/types/priceCard";
 import { getContract } from "@/src/lib/contract";
@@ -18,7 +15,6 @@ import { getChatRooms, unwrap } from "@/src/lib/chat";
 import { getMyProfile } from "@/src/lib/profile";
 import { signinPath } from "@/src/lib/navigation";
 import type { ChatRoom } from "@/src/store/chatRoomsStore";
-import { getReviewSummary, type ReviewSummary } from "@/src/lib/review";
 
 type Contract = Awaited<ReturnType<typeof getContract>>;
 
@@ -43,10 +39,8 @@ const PayContent = () => {
   // 문의 시작 때 고른 플랜. 결제 화면에서는 선택이 끝났으므로 이 플랜만 보여준다.
   const selectedPlanName = searchParams.get("plan");
 
-  const [isAgree, setIsAgree] = useState(false);
   const [post, setPost] = useState<Post | null>(null);
   const [contract, setContract] = useState<Contract | null>(null);
-  const [reviewSummary, setReviewSummary] = useState<ReviewSummary | null>(null);
 
   // URL 의 postId·contractId·roomId·plan 은 누구나 고쳐 칠 수 있다.
   // 서버 prepare 도 금액을 검증하지만 그건 결제하기를 눌러야 드러나므로,
@@ -120,15 +114,6 @@ const PayContent = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, token, postId, contractId, roomId, selectedPlanName]);
 
-  // 평점은 게시글 응답에 없어 요약 API 로 따로 받는다. 요약은 글 작성자(을) 기준이다
-  useEffect(() => {
-    const memberId = post?.member?.id;
-    if (!memberId) return;
-    getReviewSummary(memberId, token)
-      .then(setReviewSummary)
-      .catch(() => setReviewSummary(null));
-  }, [post, token]);
-
   // 검증을 통과하기 전에는 아무것도 그리지 않는다 (금액·버튼이 잠깐이라도 보이지 않게)
   if (!post || !contract || !contractId) {
     return (
@@ -138,69 +123,99 @@ const PayContent = () => {
     );
   }
 
-  const { plans } = parsePostContent(post.content);
   // 금액은 URL 이 아니라 서버의 계약서 금액만 쓴다 (게시글 플랜 가격은 결제에 절대 쓰지 않는다)
   const price = contract.price;
   const contractUrl = contract.contractUrl;
 
-  // post를 올린 사람이 을(파는 쪽, 대금을 받는 "능력자")이다. 문의해서 들어온 사람이 갑(결제하는 쪽).
-  const expertName = post.member?.name ?? post.member?.username ?? "";
-  const postAuthorUsername = post.member?.username;
-  const imgPath = getPostMainImage(post.fileUrls) ?? "/profile.png";
+  // 오른쪽 항목은 계약서 PDF 의 내용을 서버에 저장된 값으로 다시 보여주는 것이다.
+  // PDF 는 클라이언트가 그려 올린 파일이라, 둘이 다르면 사용자가 알아채고 신고할 수 있게 나란히 둔다.
+  const fields: { label: string; value: string; suffix?: string }[] = [
+    { label: "갑", value: contract.clientName },
+    { label: "을", value: contract.professionalName },
+    { label: "용역 시작일", value: formatDate(contract.startedAt) },
+    { label: "용역 종료일", value: formatDate(contract.endedAt) },
+    { label: "검수기간", value: String(contract.inspectionPeriod ?? ""), suffix: "일" },
+    { label: "계약서 작성일", value: formatDate(contract.createdAt) },
+  ];
 
   return (
-    <div>
-      <main className="flex flex-col gap-4 justify-center py-8 px-20">
-        <div className="w-full">
-          <h1 className="text-[24px] font-bold">견적서 확인</h1>
-        </div>
+    // 넓은 화면에서도 시안의 1280px 콘텐츠 폭을 유지한 채 가운데에 둔다 (마진 대신 부모 정렬로)
+    <main className="flex flex-col items-center px-20 pt-12 pb-27.5">
+      <div className="flex w-full max-w-320 flex-col gap-9">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="flex items-center gap-1 self-start text-[14px] font-medium text-ink-hint cursor-pointer"
+        >
+          <LuChevronLeft className="size-6" />
+          뒤로가기
+        </button>
 
-        <div className="flex items-start gap-10 justify-between">
-          <div className="flex-1 min-w-0">
-          <Estimate
-            imgPath={imgPath}
-            title={post.title ?? ""}
-            expertName={expertName}
-            serviceCategory={post.category?.fullName ?? undefined}
-            avgRating={reviewSummary?.averageRating}
-            reviewCount={reviewSummary?.reviewCount}
-          />
-          </div>
-          <div className="pr-25">
-            <FinalBill
-              defaultAmount={price}
-            />
-          </div>
-        </div>
+        <div className="flex flex-col gap-12">
+          <h1 className="text-[20px] font-semibold text-black">계약서 확인</h1>
 
-        <div className="flex items-start gap-10 justify-between">
-          <div className="flex-1 min-w-0">
-            <PriceCard
-              username={postAuthorUsername}
-              plans={plans}
-              postId={post.id}
-              showInquiry={false}
-              selectedPlanName={selectedPlanName}
-            />
-          </div>
-          <div className="pr-25">
-            <ApplyPay isAgree={isAgree} setIsAgree={setIsAgree} />
-            <OnClickPay
-              isAgree={isAgree}
-              price={price}
-              orderName={post.title ?? "잇다 서비스"}
-              orderCustomerName={username ?? ""}
-              postId={post.id}
-              roomId={String(roomId)}
-              contractUrl={contractUrl}
-              contractId={contractId}
-            />
+          <div className="flex items-start gap-12">
+            <div className="w-198.75 shrink-0">
+              <ContractPreview contractUrl={contractUrl} token={token} />
+            </div>
+
+            <div className="flex w-109.25 flex-col gap-14 pt-5">
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-6">
+                  {fields.map((field) => (
+                    <div key={field.label} className="flex flex-col gap-3.5">
+                      <p className="text-[18px] font-semibold text-ink">{field.label}</p>
+                      <div className="flex h-9.5 items-center justify-between rounded-[10px] border border-line px-2.75 text-[12px] font-medium text-ink-hint">
+                        <span>{field.value || "-"}</span>
+                        {field.suffix && <span>{field.suffix}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <Notice>위 표시되는 내용과 계약서의 내용이 다른 경우 고객센터로 신고 바랍니다.</Notice>
+              </div>
+
+              <div className="flex flex-col gap-2.5">
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-2">
+                    <p className="text-[14px] font-medium text-ink-hint">총 결제 금액</p>
+                    <p className="text-[28px] font-semibold text-ink">{price.toLocaleString()}원</p>
+                  </div>
+                  <OnClickPay
+                    price={price}
+                    orderName={post.title ?? "잇다 서비스"}
+                    orderCustomerName={username ?? ""}
+                    postId={post.id}
+                    roomId={String(roomId)}
+                    contractUrl={contractUrl}
+                    contractId={contractId}
+                  />
+                </div>
+                <Notice>수수료 포함</Notice>
+              </div>
+            </div>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 };
+
+function Notice({ children }: { children: ReactNode }) {
+  return (
+    <p className="flex items-center gap-2 text-[12px] font-medium text-ink-hint">
+      <LuCircleAlert className="size-3 shrink-0" />
+      {children}
+    </p>
+  );
+}
+
+// 서버는 LocalDateTime 을 주지만 화면에는 날짜만 필요하다
+function formatDate(value: string | null | undefined) {
+  if (!value) return "";
+  const [y, m, d] = value.slice(0, 10).split("-");
+  return `${y}년 ${Number(m)}월 ${Number(d)}일`;
+}
 
 export default function Page() {
   return (
