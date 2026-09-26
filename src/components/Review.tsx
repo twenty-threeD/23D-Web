@@ -1,3 +1,4 @@
+import Image from "next/image"
 import StarRating from "./StarRating"
 import { toRelativeUrl } from "@/src/lib/file"
 import type { Review as ReviewData } from "@/src/lib/review"
@@ -31,15 +32,15 @@ function formatRelative(value?: string | null) {
 
 export default function Review({ review }: ReviewProps) {
   const authorName = review.author?.name || review.author?.username || "익명 사용자";
-  const profileImage = review.author?.imageUrl ? toRelativeUrl(review.author.imageUrl) : "/profile.png";
+  const profileImage = review.author?.imageUrl ? toRelativeUrl(review.author.imageUrl) : "/profile.webp";
   const meta = [review.categoryName, formatRelative(review.createdAt)].filter(Boolean).join(" • ");
 
   return (
     <article className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="size-[52px] rounded-full overflow-hidden shrink-0 bg-zinc-100">
-            <img src={profileImage} alt="프로필사진" className="size-full object-cover" />
+          <div className="relative size-[52px] rounded-full overflow-hidden shrink-0 bg-zinc-100">
+            <Image src={profileImage} alt="프로필사진" fill sizes="52px" className="object-cover" />
           </div>
           <div className="flex flex-col gap-1 min-w-0 font-medium text-ink-sub">
             <span className="text-xs">{maskName(authorName)}</span>

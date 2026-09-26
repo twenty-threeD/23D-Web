@@ -228,7 +228,7 @@ export default function Page() {
           <div className="flex items-center gap-6">
             <div className="relative w-24 h-24 rounded-full overflow-hidden border border-zinc-300 bg-zinc-100 shrink-0">
               <Image
-                src={imagePreview ?? (imageUrl ? toRelativeUrl(imageUrl) : "/profile.png")}
+                src={imagePreview ?? (imageUrl ? toRelativeUrl(imageUrl) : "/profile.webp")}
                 alt="프로필 이미지"
                 width={96}
                 height={96}

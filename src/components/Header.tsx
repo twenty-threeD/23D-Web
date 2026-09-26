@@ -121,7 +121,7 @@ export default function Header() {
       <div className="flex min-w-0 items-center gap-8 lg:gap-20">
         {/* logo.svg 는 흰 사각형에 글자를 뚫어 둔 형태라 배경색을 칠해 글자색을 만들고, multiply 로 흰 사각형을 헤더 배경에 녹인다.
             글자 영역이 파일의 92x46 이므로 시안의 40x20 에 맞추려면 파일 전체를 42x28 로 키운다 */}
-        <Link href="/main" className="shrink-0"><img src="/logo.svg" alt="잇다" className="block w-[42px] h-7 bg-[#363636] mix-blend-multiply" /></Link>
+        <Link href="/main" className="shrink-0"><Image src="/logo.svg" alt="잇다" width={42} height={28} className="block w-[42px] h-7 bg-[#363636] mix-blend-multiply" /></Link>
 
         <ul className="flex min-w-0 items-center gap-5 lg:gap-7 overflow-x-auto whitespace-nowrap text-sm font-medium leading-none text-neutral-400 [scrollbar-width:none]">
           <li><Link href="/search" className="transition-colors hover:text-main">능력자 찾기</Link></li>
@@ -200,7 +200,7 @@ export default function Header() {
 
           <div ref={menuRef} className="relative">
             <button onClick={() => setShowMenu((v) => !v)} className="w-9 h-9 rounded-full overflow-hidden border border-zinc-300 transition-colors hover:border-main cursor-pointer">
-              <Image src={profileImageUrl ? toRelativeUrl(profileImageUrl) : "/profile.png"} alt="프로필" width={36} height={36} className="w-full h-full object-cover" />
+              <Image src={profileImageUrl ? toRelativeUrl(profileImageUrl) : "/profile.webp"} alt="프로필" width={36} height={36} className="w-full h-full object-cover" />
             </button>
 
             {showMenu && (

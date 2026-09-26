@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image"
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
@@ -31,7 +32,7 @@ export default function LandingHeader() {
       }`}
     >
       <Link href="/">
-        <img src="/icon.png" alt="Logo" className="h-7" />
+        <Image src="/icon.png" alt="Logo" width={42} height={28} className="h-7 w-auto" />
       </Link>
 
       <div className="flex items-center gap-4">

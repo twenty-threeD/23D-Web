@@ -69,6 +69,8 @@ export default function SignaturePad({ label, onSave, savedUrl }: SignaturePadPr
       {savedUrl ? (
         <div className="flex flex-col gap-2">
           <div className="border border-zinc-300 rounded-lg overflow-hidden w-full h-32 flex items-center justify-center bg-white">
+            {/* 방금 그린 서명은 data: URL 이라 next/image 로 못 그린다 */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={savedUrl} alt="서명" className="h-full object-contain" />
           </div>
           <button

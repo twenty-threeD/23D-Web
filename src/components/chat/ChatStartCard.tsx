@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { IoChatbubbleOutline, IoChevronForward, IoImageOutline } from "react-icons/io5"
 import { toRelativeUrl } from "@/src/lib/file"
@@ -43,8 +44,8 @@ export default function ChatStartCard({
 
       <div className="flex gap-4 px-4 py-4.5">
         {imageUrl ? (
-          <div className="size-22 shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200">
-            <img src={toRelativeUrl(imageUrl)} alt="" className="size-full object-cover" />
+          <div className="relative size-22 shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200">
+            <Image src={toRelativeUrl(imageUrl)} alt="" fill sizes="88px" className="object-cover" />
           </div>
         ) : (
           <div className="flex size-22 shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-zinc-300 bg-zinc-100">

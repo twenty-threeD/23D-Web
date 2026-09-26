@@ -1,3 +1,4 @@
+import Image from "next/image"
 import { StarIcon } from "@/src/components/main/icons";
 import Link from "next/link";
 import { toRelativeUrl } from "@/src/lib/file";
@@ -25,12 +26,14 @@ export default function ServiceCard({ post }: { post: Post }) {
   return (
     <div className="flex flex-col shrink-0 w-[260px] h-[360px] justify-between">
       <Link href={`/item/${post.id}`} className="flex flex-col gap-4 group">
-        <div className="h-[180px] rounded-xl bg-zinc-200 overflow-hidden">
+        <div className="relative h-[180px] rounded-xl bg-zinc-200 overflow-hidden">
           {image && (
-            <img
+            <Image
               src={toRelativeUrl(image)}
               alt={post.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              fill
+              sizes="260px"
+              className="object-cover group-hover:scale-105 transition-transform duration-300"
             />
           )}
         </div>

@@ -1,3 +1,4 @@
+import Image from "next/image"
 import { StarIcon } from "@/src/components/main/icons";
 import Link from "next/link";
 import { toRelativeUrl } from "@/src/lib/file";
@@ -26,8 +27,10 @@ export default function AdCard({ post }: { post: Post }) {
       href={`/item/${post.id}`}
       className="flex flex-col shrink-0 w-[360px] h-[300px] rounded-[10px] bg-[#f7f7f7] overflow-hidden hover:shadow-sm transition-shadow"
     >
-      <div className="h-40 bg-zinc-200">
-        {image && <img src={toRelativeUrl(image)} alt={post.title} className="w-full h-full object-cover" />}
+      <div className="relative h-40 bg-zinc-200">
+        {image && (
+          <Image src={toRelativeUrl(image)} alt={post.title} fill sizes="360px" className="object-cover" />
+        )}
       </div>
       <div className="flex flex-col gap-2 p-4">
         <div className="flex items-center justify-between gap-3">

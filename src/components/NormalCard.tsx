@@ -1,3 +1,4 @@
+import Image from "next/image"
 import Link from "next/link";
 import { FaStar } from "react-icons/fa"
 import { toRelativeUrl } from "@/src/lib/file"
@@ -31,12 +32,14 @@ export default function NormalCard({ id, title, content, fileUrl, price, rating,
   return (
     <div className="flex flex-col shrink-0 w-[260px] h-[360px] justify-between">
       <Link href={`/item/${id}`} className="flex flex-col gap-4 group">
-        <div className="h-[180px] rounded-xl bg-zinc-200 overflow-hidden">
+        <div className="relative h-[180px] rounded-xl bg-zinc-200 overflow-hidden">
           {fileUrl && (
-            <img
+            <Image
               src={toRelativeUrl(fileUrl)}
               alt={title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              fill
+              sizes="260px"
+              className="object-cover group-hover:scale-105 transition-transform duration-300"
             />
           )}
         </div>
