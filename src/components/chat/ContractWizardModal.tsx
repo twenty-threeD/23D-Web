@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image"
 import { useState } from "react";
 import { IoCheckmark } from "react-icons/io5";
 import SignaturePad from "./SignaturePad";
@@ -229,10 +230,12 @@ export default function ContractWizardModal({
       <div className="flex-1 overflow-y-auto px-10 py-8 border-r border-zinc-200 bg-zinc-50/60">
         <div className="relative isolate max-w-2xl mx-auto bg-white rounded-xl shadow-sm ring-1 ring-zinc-100 px-10 py-10 flex flex-col gap-6">
           <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none">
-            <img
+            <Image
               src="/icon.png"
               alt=""
               aria-hidden="true"
+              width={192}
+              height={128}
               className="h-auto w-[45%] opacity-10"
               style={{ filter: "brightness(0)", transform: "rotate(-45deg)" }}
             />
@@ -273,6 +276,8 @@ export default function ContractWizardModal({
                   성명(기업명) {clientName}
                 </span>
                 {clientSig ? (
+                  // 서명은 업로드 전까지 data: URL 이라 next/image 로 못 그린다
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={clientSig}
                     alt="갑 서명"
@@ -292,6 +297,8 @@ export default function ContractWizardModal({
                   성명(기업명) {professionalName}
                 </span>
                 {professionalSig ? (
+                  // 서명은 업로드 전까지 data: URL 이라 next/image 로 못 그린다
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={professionalSig}
                     alt="을 서명"

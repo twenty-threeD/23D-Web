@@ -616,7 +616,8 @@ export default function Page() {
       let myUploadedSig = myNewSig
       if (myNewSig && myNewSig.startsWith("data:")) {
         const file = dataUrlToFile(myNewSig, `contract-signature-${Date.now()}.png`)
-        const { url } = await uploadFile(token, file)
+        // 서명은 계약서 PDF 를 만들 때 pdf-lib 의 embedPng 로 다시 읽으므로 PNG 를 유지해야 한다.
+        const { url } = await uploadFile(token, file, { keepOriginal: true })
         myUploadedSig = url
       }
 
@@ -820,7 +821,7 @@ export default function Page() {
                 >
                   <div className="relative w-12 h-12 shrink-0">
                     <Image
-                      src={room.participantImageUrl ? toRelativeUrl(room.participantImageUrl) : "/profile.png"}
+                      src={room.participantImageUrl ? toRelativeUrl(room.participantImageUrl) : "/profile.webp"}
                       alt={room.participantName}
                       width={48}
                       height={48}
@@ -868,7 +869,7 @@ export default function Page() {
               <div className="flex items-center gap-3 px-6 py-4 border-b border-zinc-200 shrink-0">
                 <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-zinc-200">
                   <Image
-                    src={selectedRoom.participantImageUrl ? toRelativeUrl(selectedRoom.participantImageUrl) : "/profile.png"}
+                    src={selectedRoom.participantImageUrl ? toRelativeUrl(selectedRoom.participantImageUrl) : "/profile.webp"}
                     alt={selectedRoom.participantName}
                     width={40}
                     height={40}
@@ -960,10 +961,10 @@ export default function Page() {
                           {imageUrls.map((url) => (
                             <div
                               key={url}
-                              className="w-24 h-24 rounded-xl overflow-hidden transition-opacity hover:opacity-90 cursor-pointer"
+                              className="relative w-24 h-24 rounded-xl overflow-hidden transition-opacity hover:opacity-90 cursor-pointer"
                               onClick={() => setLightboxSrc(toRelativeUrl(url))}
                             >
-                              <img src={toRelativeUrl(url)} alt="첨부 이미지" className="w-full h-full object-cover" />
+                              <Image src={toRelativeUrl(url)} alt="첨부 이미지" fill sizes="96px" className="object-cover" />
                             </div>
                           ))}
                         </div>
@@ -1072,7 +1073,7 @@ export default function Page() {
                         <div className="flex items-end gap-3">
                           <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 bg-zinc-200">
                             <Image
-                              src={selectedRoom.participantImageUrl ? toRelativeUrl(selectedRoom.participantImageUrl) : "/profile.png"}
+                              src={selectedRoom.participantImageUrl ? toRelativeUrl(selectedRoom.participantImageUrl) : "/profile.webp"}
                               alt=""
                               width={36}
                               height={36}
@@ -1225,6 +1226,8 @@ export default function Page() {
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   {pendingPreviews.map((preview, i) => (
                     <div key={preview} className="relative w-24 h-24 rounded-lg overflow-hidden shrink-0">
+                      {/* blob: URL 이라 next/image 최적화 대상이 아니다. 보내기 전 로컬 미리보기일 뿐이다 */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={preview} alt="첨부 이미지" className="w-full h-full object-cover" />
                       {uploading && !pendingImageUrls[i] ? (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">

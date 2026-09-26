@@ -32,7 +32,7 @@ export default function Comment({ authorName, content, createdAt, profileImage, 
     <div className="flex gap-2 py-2">
       <div className="w-12 h-12 bg-zinc-400 rounded-full overflow-hidden border border-zinc-300 shrink-0">
         <Image
-          src={profileImage ?? "/profile.png"}
+          src={profileImage ?? "/profile.webp"}
           alt="프로필사진"
           className="object-cover"
           width={48}

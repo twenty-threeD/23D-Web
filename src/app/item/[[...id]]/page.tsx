@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image"
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import PriceCard from "@/src/components/PriceCard";
@@ -154,10 +155,17 @@ export default function Page() {
     <div className="flex flex-col gap-20 lg:gap-40 pt-8 lg:pt-[52px] pb-24 overflow-x-hidden">
       {/* 좌우 여백은 /main 과 같은 규칙(SECTION_INSET)을 써서 두 화면의 본문 시작선을 맞춘다 */}
       <div className={`flex flex-col gap-[52px] w-full ${SECTION_INSET}`}>
-      <div className="w-full h-[180px] md:h-[260px] rounded-2xl overflow-hidden bg-zinc-200">
+      <div className="relative w-full h-[180px] md:h-[260px] rounded-2xl overflow-hidden bg-zinc-200">
         {/* 기존 대체 이미지(/profile_banner.png)는 public 에 없어 깨져 보였다. 이미지가 없으면 회색 배경만 둔다 */}
         {headerImage && (
-          <img src={toRelativeUrl(headerImage)} alt="서비스 헤더 이미지" className="size-full object-cover" />
+          <Image
+            src={toRelativeUrl(headerImage)}
+            alt="서비스 헤더 이미지"
+            fill
+            sizes="(max-width: 768px) 100vw, 1200px"
+            priority
+            className="object-cover"
+          />
         )}
       </div>
 
@@ -229,10 +237,10 @@ export default function Page() {
                     <button
                       key={i}
                       type="button"
-                      className="size-48 rounded-xl overflow-hidden bg-zinc-200 transition-opacity hover:opacity-90 cursor-pointer"
+                      className="relative size-48 rounded-xl overflow-hidden bg-zinc-200 transition-opacity hover:opacity-90 cursor-pointer"
                       onClick={() => setLightboxSrc(toRelativeUrl(url))}
                     >
-                      <img src={toRelativeUrl(url)} alt={`이미지 ${i + 1}`} className="size-full object-cover" />
+                      <Image src={toRelativeUrl(url)} alt={`이미지 ${i + 1}`} fill sizes="192px" className="object-cover" />
                     </button>
                   ))}
                 </div>

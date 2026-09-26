@@ -1,3 +1,4 @@
+import Image from "next/image"
 import Link from "next/link";
 import { toRelativeUrl } from "@/src/lib/file"
 
@@ -38,9 +39,9 @@ export default function PostItem({ id, title, content = "", imageUrl, createdAt 
           <p className="text-zinc-500 line-clamp-2">{stripMarkdown(content)}</p>
         </div>
 
-        <div className="w-32 h-32 rounded-lg shrink-0 ml-4 overflow-hidden bg-white">
+        <div className="relative w-32 h-32 rounded-lg shrink-0 ml-4 overflow-hidden bg-white">
           {thumbnail && (
-            <img className="w-full h-full object-cover" src={thumbnail} alt="" />
+            <Image src={thumbnail} alt="" fill sizes="128px" className="object-cover" />
           )}
         </div>
       </div>

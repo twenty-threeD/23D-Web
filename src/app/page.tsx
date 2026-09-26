@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 import gsap from "gsap";
@@ -85,7 +86,14 @@ export default function Home() {
             </div>
           </div>
           <div className="w-1/2 h-full">
-            <img src="/landing1.png" alt="Main Image" className=" object-cover rounded-lg shadow-lg"/>
+            <Image
+              src="/landing1.webp"
+              alt="Main Image"
+              width={1440}
+              height={906}
+              priority
+              className="h-auto w-full object-cover rounded-lg shadow-lg"
+            />
           </div>
         </div>
       </div>
@@ -150,6 +158,8 @@ export default function Home() {
         </div>
 
         <div className="w-1/2 h-1/2 shrink-0">
+          {/* TODO: /main.png 이 public 에 없어 깨져 있다. 경로를 정하면 next/image 로 바꾼다 */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/main.png" alt="Image" className="w-full h-full object-cover rounded-lg shadow-lg"/>
         </div>
       </div>

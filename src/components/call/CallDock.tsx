@@ -70,7 +70,7 @@ export default function CallDock() {
 
   const peer = call ? participantsOf(call, myUsername).peer : null
   const peerName = peer?.name ?? peerNameHint ?? "상대방"
-  const avatar = peerImageUrl ? toRelativeUrl(peerImageUrl) : "/profile.png"
+  const avatar = peerImageUrl ? toRelativeUrl(peerImageUrl) : "/profile.webp"
   const elapsed = activeSince ? Math.max(0, Math.floor((now - activeSince) / 1000)) : 0
   const incoming = phase === "incoming"
 

@@ -67,7 +67,7 @@ export default function Page() {
       </div>
       <div className="w-200 h-150 rounded-3xl flex items-center mt-18.25 mb-18.25 shadow-lg">
         <div className="w-100 h-150 rounded-l-3xl flex items-center justify-center overflow-hidden">
-          <img src="/login1.png" alt="" />
+          <Image src="/login1.webp" alt="" width={800} height={1200} priority className="h-auto w-full" />
         </div>
         <div className="w-100 h-150 bg-white rounded-r-3xl flex flex-col gap-3 items-center justify-center">
           <Link href="/main">
@@ -140,12 +140,7 @@ export default function Page() {
                 className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-zinc-300 hover:border-main transition-colors"
                 onClick={OAuth(index)}
               >
-                <img
-                  src={social.src}
-                  alt={social.alt}
-                  width={20}
-                  height={20}
-                />
+                <Image src={social.src} alt={social.alt} width={20} height={20} />
               </button>
             ))}
           </div>

@@ -1,3 +1,4 @@
+import Image from "next/image"
 import Link from "next/link";
 
 const FOOTER_LINK_GROUPS = [
@@ -37,7 +38,7 @@ export default function Footer() {
           <div className="flex flex-col gap-5">
             {/* Header 와 같은 logo.svg 를 쓴다. 글자 영역(92x46)이 시안의 60x30 이 되도록 파일 전체를 63x42 로 키우고,
                 파일 위아래 여백이 생기므로 시안의 로고~문구 간격(26px)에서 그만큼 뺀 gap 을 준다 */}
-            <img src="/logo.svg" alt="잇다" className="block w-[63px] h-[42px] bg-[#363636] mix-blend-multiply" />
+            <Image src="/logo.svg" alt="잇다" width={63} height={42} className="block w-[63px] h-[42px] bg-[#363636] mix-blend-multiply" />
 
             <div className="flex flex-col gap-2 text-neutral-400">
               <p className="text-sm leading-[normal]">
@@ -80,7 +81,7 @@ export default function Footer() {
             >
               {/* 기존 아이콘은 viewBox 전체를 채우는 검정 아이콘이라, 시안의 아이콘 영역(22px)에 맞춰 크기만 지정하고
                   투명도로 시안 색(#363636)에 가깝게 맞춘다 */}
-              <img src={social.icon} alt="" className="block size-[22px] opacity-80" />
+              <Image src={social.icon} alt="" width={22} height={22} className="block size-[22px] opacity-80" />
             </a>
           ))}
         </div>

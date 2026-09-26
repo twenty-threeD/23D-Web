@@ -31,10 +31,10 @@ export default function BlockMobile() {
 
     return(
         <div className="md:hidden fixed inset-0 z-[9999] flex min-w-[320px] flex-col overflow-y-auto bg-white px-6 py-10">
-            <img src="/logo.svg" alt="잇다" className="h-7 w-fit bg-black" />
+            <Image src="/logo.svg" alt="잇다" width={42} height={28} className="h-7 w-fit bg-black" />
 
             <div className="flex flex-1 flex-col justify-center">
-                <Image src="/monitor.png" alt="" width={213} height={120} className="mb-10 -ml-9 h-auto w-[min(53vw, 213px)]" />
+                <Image src="/monitor.webp" alt="" width={213} height={120} className="mb-10 -ml-9 h-auto w-[min(53vw, 213px)]" />
 
                 <h1 className="text-[28px] font-bold leading-none">
                     더 쾌적한 <span className="text-main font-extrabold">PC</span>에서
