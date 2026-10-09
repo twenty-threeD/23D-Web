@@ -1,3 +1,5 @@
+import {isChainSocketEnabled, isChainSocketOpen, subscribeChainEvent} from "@/src/lib/ChainSocket"
+
 export interface RecentBlock {
     height: number
     /** 블록 헤더 시각(ISO 8601). 상대 시간 계산은 클라이언트가 한다. */
@@ -30,6 +32,15 @@ const RECENT_ACTIVITY_API = "/api/blockchain/recent"
 /** 결제 기록은 드물게 쌓이므로 블록 높이보다 느리게 갱신한다. */
 const POLL_INTERVAL = 15000
 
+const TX_QUERY = "tm.event='Tx'"
+
+/**
+ * 한 블록에 트랜잭션이 몰려 이벤트가 연달아 와도 재조회는 한 번만 한다.
+ * Tx 이벤트의 tx 는 protobuf 바이트라 order_id 를 바로 읽을 수 없어
+ * 이벤트는 재조회 신호로만 쓰고 내용은 REST 라우트에서 받는다.
+ */
+const REFETCH_DEBOUNCE = 500
+
 const ERROR_MESSAGE = "최근 기록을 조회할 수 없습니다."
 
 type Handlers = {
@@ -50,11 +61,7 @@ export async function getRecentActivity(): Promise<RecentActivity> {
     }
 }
 
-/**
- * 최근 블록과 트랜잭션을 주기적으로 전달한다.
- * 반환한 함수를 호출하면 중단한다.
- */
-export function subscribeRecentActivity({onActivity, onError}: Handlers): () => void {
+function subscribeViaPolling({onActivity, onError}: Handlers): () => void {
     let stopped = false
 
     const tick = async () => {
@@ -73,6 +80,62 @@ export function subscribeRecentActivity({onActivity, onError}: Handlers): () => 
         stopped = true
         window.clearInterval(intervalId)
     }
+}
+
+function subscribeViaWebSocket({onActivity, onError}: Handlers): () => void {
+    let stopped = false
+    let timer: number | null = null
+    // 늦게 도착한 이전 응답이 최신 응답을 덮어쓰지 않게 한다.
+    let requestSeq = 0
+
+    const refetch = async () => {
+        const seq = ++requestSeq
+        try {
+            const activity = await getRecentActivity()
+            if (!stopped && seq === requestSeq) { onActivity(activity) }
+        } catch {
+            if (!stopped && seq === requestSeq) { onError?.(ERROR_MESSAGE) }
+        }
+    }
+
+    const scheduleRefetch = () => {
+        if (timer !== null) { window.clearTimeout(timer) }
+        timer = window.setTimeout(() => {
+            timer = null
+            refetch()
+        }, REFETCH_DEBOUNCE)
+    }
+
+    // 웹소켓 연결을 기다리지 않고 바로 보여준다. 연결이 거부되거나 끊긴 동안에는
+    // 폴링으로 대신하고, 구독이 살아 있으면 폴링은 건너뛴다.
+    refetch()
+    const intervalId = window.setInterval(() => {
+        if (!isChainSocketOpen()) { refetch() }
+    }, POLL_INTERVAL)
+
+    const unsubscribe = subscribeChainEvent(TX_QUERY, {
+        onEvent: scheduleRefetch,
+        // 재연결 시 끊긴 동안 놓친 기록을 맞춘다.
+        onConnect: refetch,
+    })
+
+    return () => {
+        stopped = true
+        if (timer !== null) { window.clearTimeout(timer) }
+        window.clearInterval(intervalId)
+        unsubscribe()
+    }
+}
+
+/**
+ * 최근 블록과 트랜잭션을 전달한다.
+ * NEXT_PUBLIC_CHAIN_RPC_WS가 설정되어 있으면 Tx 이벤트가 올 때만, 아니면 주기적으로 조회한다.
+ * 반환한 함수를 호출하면 중단한다.
+ */
+export function subscribeRecentActivity(handlers: Handlers): () => void {
+    return isChainSocketEnabled()
+        ? subscribeViaWebSocket(handlers)
+        : subscribeViaPolling(handlers)
 }
 
 const ELLIPSIS = "....."

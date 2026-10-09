@@ -1,3 +1,5 @@
+import {isChainSocketEnabled, isChainSocketOpen, subscribeChainEvent} from "@/src/lib/ChainSocket"
+
 export interface BlockHeight {
     blockHeight: number
 }
@@ -9,17 +11,8 @@ export interface BlockHeight {
  */
 const HEIGHT_API = "/api/blockchain/height/latest"
 
-/**
- * CometBFT(Tendermint) RPC WebSocket 엔드포인트. 예) wss://rpc.idta.store/websocket
- * 설정되어 있으면 폴링 대신 NewBlock 구독을 사용한다.
- */
-const RPC_WS_URL = process.env.NEXT_PUBLIC_CHAIN_RPC_WS
-
 const POLL_INTERVAL = 5000
-const RECONNECT_DELAY = 3000
 
-const STATUS_ID = 1
-const SUBSCRIBE_ID = 2
 const NEW_BLOCK_QUERY = "tm.event='NewBlock'"
 
 const ERROR_MESSAGE = "블록 높이를 조회할 수 없습니다."
@@ -41,75 +34,51 @@ export async function getLatestBlockHeight(): Promise<BlockHeight> {
     return {blockHeight: payload.blockHeight as number}
 }
 
-function parseWsHeight(payload: unknown): number | null {
-    const result = (payload as { result?: Record<string, unknown> } | null)?.result
-    if (!result) { return null }
+function parseNewBlockHeight(value: unknown): number | null {
+    const height = (value as {
+        block?: { header?: { height?: string } }
+    } | null)?.block?.header?.height
 
-    // status 응답
-    const syncInfo = (result as {
-        sync_info?: { latest_block_height?: string }
-    }).sync_info
-    if (syncInfo?.latest_block_height) { return Number(syncInfo.latest_block_height) }
-
-    // NewBlock 이벤트
-    const height = (result as {
-        data?: { value?: { block?: { header?: { height?: string } } } }
-    }).data?.value?.block?.header?.height
-    if (height) { return Number(height) }
-
-    return null
+    return height ? Number(height) : null
 }
 
-function subscribeViaWebSocket(url: string, {onHeight, onError}: Handlers): () => void {
-    let socket: WebSocket | null = null
-    let reconnectTimer: number | null = null
-    let closed = false
+function subscribeViaWebSocket({onHeight, onError}: Handlers): () => void {
+    let stopped = false
+    let latest = 0
 
-    const connect = () => {
-        if (closed) { return }
-
-        socket = new WebSocket(url)
-
-        socket.onopen = () => {
-            // 최초 높이 조회 + 이후 블록 구독
-            socket?.send(JSON.stringify({
-                jsonrpc: "2.0", id: STATUS_ID, method: "status", params: {},
-            }))
-            socket?.send(JSON.stringify({
-                jsonrpc: "2.0", id: SUBSCRIBE_ID, method: "subscribe",
-                params: {query: NEW_BLOCK_QUERY},
-            }))
-        }
-
-        socket.onmessage = (event) => {
-            try {
-                const height = parseWsHeight(JSON.parse(event.data))
-                if (height !== null && Number.isFinite(height)) { onHeight(height) }
-            } catch {
-                // 파싱 불가한 메시지는 무시
-            }
-        }
-
-        socket.onerror = () => { onError?.(ERROR_MESSAGE) }
-
-        socket.onclose = () => {
-            if (closed) { return }
-            reconnectTimer = window.setTimeout(connect, RECONNECT_DELAY)
-        }
+    // 높이는 단조 증가한다. REST 응답과 이벤트가 엇갈려 와도 되돌아가지 않게 한다.
+    const emit = (height: number) => {
+        if (stopped || !Number.isFinite(height) || height <= latest) { return }
+        latest = height
+        onHeight(height)
     }
 
-    connect()
+    const fetchLatest = () => {
+        getLatestBlockHeight()
+            .then(({blockHeight}) => emit(blockHeight))
+            .catch(() => { if (!stopped) { onError?.(ERROR_MESSAGE) } })
+    }
+
+    // 웹소켓 연결을 기다리지 않고 바로 보여준다. 연결이 거부되거나 끊긴 동안에는
+    // 폴링으로 대신하고, 구독이 살아 있으면 폴링은 건너뛴다.
+    fetchLatest()
+    const intervalId = window.setInterval(() => {
+        if (!isChainSocketOpen()) { fetchLatest() }
+    }, POLL_INTERVAL)
+
+    const unsubscribe = subscribeChainEvent(NEW_BLOCK_QUERY, {
+        onEvent: (value) => {
+            const height = parseNewBlockHeight(value)
+            if (height !== null) { emit(height) }
+        },
+        // 끊긴 동안 지나간 블록을 맞춘다.
+        onConnect: fetchLatest,
+    })
 
     return () => {
-        closed = true
-        if (reconnectTimer !== null) { window.clearTimeout(reconnectTimer) }
-        if (socket?.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({
-                jsonrpc: "2.0", id: SUBSCRIBE_ID, method: "unsubscribe",
-                params: {query: NEW_BLOCK_QUERY},
-            }))
-        }
-        socket?.close()
+        stopped = true
+        window.clearInterval(intervalId)
+        unsubscribe()
     }
 }
 
@@ -140,7 +109,7 @@ function subscribeViaPolling({onHeight, onError}: Handlers): () => void {
  * 반환한 함수를 호출하면 중단한다.
  */
 export function subscribeBlockHeight(handlers: Handlers): () => void {
-    return RPC_WS_URL
-        ? subscribeViaWebSocket(RPC_WS_URL, handlers)
+    return isChainSocketEnabled()
+        ? subscribeViaWebSocket(handlers)
         : subscribeViaPolling(handlers)
 }
