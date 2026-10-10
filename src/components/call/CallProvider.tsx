@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react"
 import { Client } from "@stomp/stompjs"
 import SockJS from "sockjs-client"
-import { useAuthStore, setWsAuthCookie } from "@/src/store/authStore"
+import { useAuthStore, setWsAuthCookie, wsStompUrl } from "@/src/store/authStore"
 import { useChatRoomsStore } from "@/src/store/chatRoomsStore"
 import { useCallStore } from "@/src/store/callStore"
 import { callEngine } from "@/src/lib/agoraEngine"
@@ -171,7 +171,7 @@ export default function CallProvider() {
 
     // 채팅과 같은 이유로 인증은 쿠키로 넘어간다(SockJS 핸드셰이크에 헤더를 실을 수 없다).
     setWsAuthCookie(token)
-    const sockjsUrl = `${window.location.protocol}//${window.location.host}/ws-stomp`
+    const sockjsUrl = wsStompUrl()
 
     const client = new Client({
       webSocketFactory: () => new SockJS(sockjsUrl),

@@ -49,6 +49,12 @@ const EXPIRED = 'Thu, 01 Jan 1970 00:00:00 GMT'
 // ensureAccessToken 이 clear() 로 이 쿠키까지 걷어내므로 남아도 문제되지 않는다.
 const SESSION_COOKIE_MAX_AGE = 60 * 60 * 24 * 30
 const WS_COOKIE_PATH = '/ws-stomp'
+const COOKIE_DOMAIN = 'idta.store'
+
+function isServiceHost() {
+  const host = window.location.hostname
+  return host === COOKIE_DOMAIN || host.endsWith(`.${COOKIE_DOMAIN}`)
+}
 
 export function setSessionCookie(active: boolean) {
   if (typeof document === 'undefined') return
@@ -69,11 +75,27 @@ export function setSessionCookie(active: boolean) {
 // path 를 /ws-stomp 로 좁히는 게 핵심이다. 이러면 이 쿠키는 웹소켓 요청에만 실려서,
 // /api/* 호출에서 백엔드의 동명 httpOnly 쿠키와 겹치지 않는다.
 // (예전에 path=/ 로 심었다가 동명 쿠키가 2개씩 쌓였던 문제를 피한다.)
+//
+// 배포 환경에서는 웹소켓이 api.idta.store 로 직접 붙으므로(wsStompUrl 참고)
+// Domain 을 .idta.store 로 넓혀야 그 요청에도 실린다. localhost 에서는 Domain 을 붙이면 저장되지 않는다.
 export function setWsAuthCookie(token: string | null) {
   if (typeof document === 'undefined') return
+  const domain = isServiceHost() ? `; Domain=${COOKIE_DOMAIN}` : ''
   document.cookie = token
-    ? `accessToken=${token}; path=${WS_COOKIE_PATH}; SameSite=Lax`
-    : `accessToken=; path=${WS_COOKIE_PATH}; expires=${EXPIRED}`
+    ? `accessToken=${token}; path=${WS_COOKIE_PATH}${domain}; SameSite=Lax`
+    : `accessToken=; path=${WS_COOKIE_PATH}${domain}; expires=${EXPIRED}`
+}
+
+// SockJS 접속 주소.
+//
+// Vercel rewrite 는 WebSocket 업그레이드를 프록시하지 못해서, 같은 오리진(/ws-stomp)으로 붙으면
+// 웹소켓이 실패하고 SockJS 가 xhr 폴링으로 내려간다. 그래서 배포 환경에서는 백엔드로 직접 붙는다.
+// 로컬은 Domain=.idta.store 쿠키를 쓸 수 없어 기존처럼 같은 오리진 프록시를 탄다.
+export function wsStompUrl() {
+  if (isServiceHost()) {
+    return `${process.env.NEXT_PUBLIC_API_URL ?? 'https://api.idta.store'}/ws-stomp`
+  }
+  return `${window.location.protocol}//${window.location.host}/ws-stomp`
 }
 
 interface AuthStore {

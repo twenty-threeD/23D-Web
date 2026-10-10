@@ -8,7 +8,7 @@ import Search from "@/src/components/Search"
 import { HiDotsHorizontal } from "react-icons/hi"
 import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment, MdCall, MdVideocam, MdOutlineCancel } from "react-icons/md"
 import { useCallStore } from "@/src/store/callStore"
-import { useAuthStore, setWsAuthCookie } from "@/src/store/authStore"
+import { useAuthStore, setWsAuthCookie, wsStompUrl } from "@/src/store/authStore"
 import { useChatRoomsStore, type ChatRoom } from "@/src/store/chatRoomsStore"
 import {
   getChatRooms,
@@ -196,7 +196,7 @@ export default function Page() {
     // 인증은 쿠키로 넘어간다(setWsAuthCookie). 백엔드가 ?token= 쿼리 인증을 막았고,
     // 토큰을 URL 에 실으면 브라우저 히스토리·프록시 로그에 남기 때문에 쿼리는 쓰지 않는다.
     setWsAuthCookie(token)
-    const sockjsUrl = `${window.location.protocol}//${window.location.host}/ws-stomp`
+    const sockjsUrl = wsStompUrl()
 
     // 첫 연결은 fetchMessages 가 동기화하므로, 재연결일 때만 끊긴 구간을 after 로 메운다
     let connectedOnce = false
