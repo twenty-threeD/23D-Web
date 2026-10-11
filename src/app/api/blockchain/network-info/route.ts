@@ -15,10 +15,18 @@ const CHAIN_RPC_URL = process.env.CHAIN_RPC_URL
 /** 평균 블록 생성 시간을 계산할 구간(블록 수). */
 const BLOCK_WINDOW = 100
 
+/**
+ * 업스트림 한 건당 대기 한도.
+ * Vercel 에서 rpc.idta.store 호출이 20초가량 걸리는 경우가 있었고, allSettled 가
+ * 가장 느린 요청을 기다리는 탓에 화면의 지표 전체가 그동안 비어 있었다.
+ * 늦는 지표는 null('-')로 포기하고 나머지를 먼저 내려준다.
+ */
+const UPSTREAM_TIMEOUT_MS = 3000
+
 export const dynamic = 'force-dynamic'
 
 async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(url, { cache: 'no-store' })
+  const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) })
   if (!res.ok) { throw new Error(`${url} responded ${res.status}`) }
   return await res.json() as T
 }
