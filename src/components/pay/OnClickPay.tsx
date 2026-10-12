@@ -4,6 +4,7 @@ import { loadTossPayments } from "@tosspayments/tosspayments-sdk";
 import { useAuthStore } from "@/src/store/authStore";
 import { preparePayment } from "@/src/lib/payment";
 import { ApiError } from "@/src/lib/apiError";
+import { MIN_AMOUNT_MESSAGE, isAmountRejected, isBelowMinAmount } from "@/src/lib/amount";
 
 interface OnClickPayProps {
   price: number;
@@ -40,8 +41,12 @@ function buildOrderName(orderName?: string) {
 
 export const OnClickPay = ({ price, orderName, orderCustomerName, postId, roomId, contractUrl, contractId }: OnClickPayProps) => {
   const token = useAuthStore((s) => s.accessToken);
+  // 금액은 사용자가 입력하지 않고 계약에서 온다. 하한이 1000원으로 오르기 전에 만든 계약은
+  // 그보다 작을 수 있어, 결제창을 열기 전에 막고 이유를 보여준다
+  const priceTooLow = isBelowMinAmount(price);
 
   const handlePayment = async () => {
+    if (priceTooLow) return;
     const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
     if (!clientKey) {
       alert("결제 키가 설정되지 않았습니다.");
@@ -105,20 +110,26 @@ export const OnClickPay = ({ price, orderName, orderCustomerName, postId, roomId
       console.error("결제 요청 중 오류 발생:", error);
       // 사전 등록에 실패하면 결제창을 띄우지 않고 중단한다.
       alert(
-        error instanceof ApiError
-          ? error.message
-          : "결제 요청 중 오류가 발생했습니다. 다시 시도해주세요."
+        isAmountRejected(error, "amount")
+          ? MIN_AMOUNT_MESSAGE
+          : error instanceof ApiError
+            ? error.message
+            : "결제 요청 중 오류가 발생했습니다. 다시 시도해주세요."
       );
     }
   };
 
   return (
-    <button
-      type="button"
-      onClick={handlePayment}
-      className="h-11 w-full rounded-xl bg-main text-[16px] font-semibold text-white cursor-pointer"
-    >
-      결제하기
-    </button>
+    <div className="flex w-full flex-col gap-2">
+      <button
+        type="button"
+        onClick={handlePayment}
+        disabled={priceTooLow}
+        className="h-11 w-full rounded-xl bg-main text-[16px] font-semibold text-white cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        결제하기
+      </button>
+      {priceTooLow && <p className="text-xs text-red-500">{MIN_AMOUNT_MESSAGE}</p>}
+    </div>
   );
 };

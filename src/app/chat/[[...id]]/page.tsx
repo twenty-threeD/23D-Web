@@ -28,6 +28,7 @@ import { Client } from "@stomp/stompjs"
 import SockJS from "sockjs-client"
 import ContractWizardModal, { type ContractData } from "@/src/components/chat/ContractWizardModal"
 import { createContract, toContractDateTime } from "@/src/lib/contract"
+import { MIN_AMOUNT_MESSAGE, isAmountRejected } from "@/src/lib/amount"
 import { getMyProfile } from "@/src/lib/profile"
 import { getPost, getPostMainImage, type Post } from "@/src/lib/post"
 import ChatStartCard from "@/src/components/chat/ChatStartCard"
@@ -636,6 +637,10 @@ export default function Page() {
       })
       setContractModalState(null)
     } catch (e) {
+      if (isAmountRejected(e, "price")) {
+        addToast({ message: MIN_AMOUNT_MESSAGE, type: "error" })
+        return
+      }
       handleError(e)
     } finally {
       setContractBusy(false)
