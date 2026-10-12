@@ -101,6 +101,24 @@ export async function createReview(
   return response.data ? normalizeReview(response.data) : null
 }
 
+export interface ReviewableContract {
+  contractId: number
+  professionalId: number | null
+  professionalName: string
+  createdAt: string | null
+}
+
+// 이 글에서 내가 지금 후기를 남길 수 있는 계약 목록(최신순). 없으면 빈 배열이다.
+// 서버가 후기 등록과 같은 조건(내가 의뢰인 · 의뢰인 결제가 체인 기록까지 완료 · 아직 후기 없음)으로 거른 결과라,
+// 여기 나온 계약은 등록 검증을 통과한다. 한 글에서 여러 전문가와 계약할 수 있어 배열로 온다
+export async function getReviewableContracts(token: string, postId: number) {
+  const params = new URLSearchParams({ postId: String(postId) })
+  const res = await fetch(`/api/post/review/reviewable?${params}`, { headers: authHeaders(token) })
+  if (!res.ok) await throwApiError(res)
+  const json = await res.json()
+  return (Array.isArray(json?.data) ? json.data : []) as ReviewableContract[]
+}
+
 export interface ReviewSummary {
   memberId: number
   reviewCount: number
