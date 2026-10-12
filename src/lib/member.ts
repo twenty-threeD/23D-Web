@@ -42,17 +42,6 @@ export async function getUsername(email: string) {
   return res.json()
 }
 
-// 아이디 재설정
-export async function resetUsername(token: string, username: string) {
-  const res = await fetch(`/api/member/username/reset`, {
-    method: 'POST',
-    headers: authHeaders(token),
-    body: JSON.stringify({ username }),
-  })
-  if (!res.ok) throw new Error('아이디 변경 실패')
-  return res.json()
-}
-
 // 로그인 상태에서 비밀번호 변경. 이미 로그인했으니 인증번호 대신 기존 비밀번호로 본인 확인한다.
 // 성공하면 서버가 토큰을 지우므로 호출한 쪽에서 재로그인시켜야 한다
 export async function changePassword(token: string, currentPassword: string, newPassword: string) {

@@ -23,7 +23,7 @@ import {
   type Sigungu,
   needsPasswordSetup,
 } from "@/src/lib/profile";
-import { resetUsername, deleteAccount } from "@/src/lib/member";
+import { deleteAccount } from "@/src/lib/member";
 import AccountEditModal from "@/src/components/profile/AccountEditModal";
 import PasswordModal from "@/src/components/profile/PasswordModal";
 import { getFavoritePosts, getMyPosts, deletePost, getPostMainImage, type Post } from "@/src/lib/post";
@@ -176,17 +176,29 @@ export default function Page() {
   async function handleSave() {
     if (!token) return;
     setSaving(true);
+    // 아이디 변경은 별도 API 가 없고 프로필 수정에 함께 실린다.
+    // 바뀌지 않았으면 아예 보내지 않는다. 서버는 "값이 있고 현재 아이디와 다를 때"만 변경으로 보는데,
+    // 그 판단을 여기서도 똑같이 해두어야 아래에서 재로그인이 필요한지 알 수 있다.
+    const nextUsername = usernameInput.trim();
+    const usernameChanged = !!nextUsername && nextUsername !== profile?.username;
     try {
-      if (usernameInput.trim() && usernameInput.trim() !== profile?.username) {
-        await resetUsername(token, usernameInput.trim());
-      }
       await updateMyProfile(token, {
+        username: usernameChanged ? nextUsername : undefined,
         imageUrl: imageUrl || undefined,
         sigCd: sigCd || undefined,
         movableDistance: movableDistance || undefined,
         shortDescription: shortDescription || undefined,
         jobCategoryId: jobCategoryId === "" ? undefined : Number(jobCategoryId),
       });
+      // 아이디가 바뀌면 서버가 응답 직전에 토큰을 지운다. 응답은 200 이고 문구만 달라서 상태 코드로는 구분할 수 없다.
+      // 지금 들고 있는 토큰은 옛 아이디로 발급돼 다음 요청부터 실패하므로, 비밀번호 변경과 같이 로그인부터 다시 시킨다.
+      if (usernameChanged) {
+        addToast({ message: "아이디가 변경되었습니다. 다시 로그인해주세요.", type: "success" });
+        clear();
+        useProfileStore.getState().reset();
+        router.replace(signinPath());
+        return;
+      }
       addToast({ message: "프로필이 저장되었습니다.", type: "success" });
       setEditing(false);
       await fetchProfile();
