@@ -9,6 +9,7 @@ import Modal from "@/src/components/ui/Modal";
 import Button from "@/src/components/ui/Button";
 import { inputClass, inputShellClass } from "@/src/components/ui/Field";
 import { useToast } from "@/src/hooks/useToast";
+import { MIN_AMOUNT, MIN_AMOUNT_MESSAGE, isBelowMinAmount } from "@/src/lib/amount";
 
 export interface ContractData {
   clientName: string;
@@ -99,8 +100,11 @@ export default function ContractWizardModal({
   const isReview = mode === "review";
   const verified = phoneVerified !== false;
   const maxPrice = 1_000_000_000;
+  const numericPrice = Number(price.replace(/[^0-9]/g, ""));
+  const priceTooLow = isBelowMinAmount(numericPrice);
 
   const step1Valid =
+    !priceTooLow &&
     clientName.trim() !== "" &&
     professionalName.trim() !== "" &&
     (!termsEditable ||
@@ -108,10 +112,6 @@ export default function ContractWizardModal({
         endDate !== "" &&
         inspectionDays.trim() !== "" &&
         serviceContent.trim() !== ""));
-
-  function showMinimumPriceToast() {
-    addToast({ message: "최소 금액은 100원이에요.", type: "error" });
-  }
 
   function showMaximumPriceToast() {
     addToast({ message: "최대 결제금액은 10억원이에요.", type: "error" });
@@ -125,11 +125,6 @@ export default function ContractWizardModal({
   }
 
   function goToSignature() {
-    const numericPrice = Number(price.replace(/[^0-9]/g, ""));
-    if (numericPrice < 100) {
-      showMinimumPriceToast();
-      return;
-    }
     if (numericPrice > maxPrice) {
       showMaximumPriceToast();
       return;
@@ -409,7 +404,7 @@ export default function ContractWizardModal({
               <div className={inputShellClass}>
                 <input
                   type="number"
-                  min={100}
+                  min={MIN_AMOUNT}
                   max={maxPrice}
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
@@ -423,6 +418,11 @@ export default function ContractWizardModal({
                 />
                 <span className="text-sm text-zinc-400">원</span>
               </div>
+              {/* 빈 칸일 때는 아직 입력 전이라 띄우지 않는다. 버튼은 그때도 막혀 있다.
+                  받은 계약서(수정 불가)에 하한 미만 금액이 들어 있으면 서명 전에 여기서 이유를 보여준다 */}
+              {price !== "" && priceTooLow && (
+                <p className="text-xs text-red-500">{MIN_AMOUNT_MESSAGE}</p>
+              )}
             </label>
             <label className="flex flex-col gap-1 text-sm">
               1조 내용 (용역 내용)
