@@ -7,7 +7,8 @@ import { ApiError } from "@/src/lib/apiError";
 import { MIN_AMOUNT_MESSAGE, isAmountRejected, isBelowMinAmount } from "@/src/lib/amount";
 
 interface OnClickPayProps {
-  price: number;
+  /** 수수료를 포함해 서버와 Toss 결제창에 전달할 금액 */
+  amount: number;
   orderName?: string;
   orderCustomerName?: string;
   postId?: number;
@@ -39,14 +40,13 @@ function buildOrderName(orderName?: string) {
   return `잇다: ${orderName || "잇다 서비스 결제"}`.slice(0, 100);
 }
 
-export const OnClickPay = ({ price, orderName, orderCustomerName, postId, roomId, contractUrl, contractId }: OnClickPayProps) => {
+export const OnClickPay = ({ amount, orderName, orderCustomerName, postId, roomId, contractUrl, contractId }: OnClickPayProps) => {
   const token = useAuthStore((s) => s.accessToken);
-  // 금액은 사용자가 입력하지 않고 계약에서 온다. 하한이 1000원으로 오르기 전에 만든 계약은
-  // 그보다 작을 수 있어, 결제창을 열기 전에 막고 이유를 보여준다
-  const priceTooLow = isBelowMinAmount(price);
+  // 계약 금액에 수수료를 더한 최종액도 서버의 최소 결제 금액보다 작으면 결제창을 열지 않는다.
+  const amountTooLow = isBelowMinAmount(amount);
 
   const handlePayment = async () => {
-    if (priceTooLow) return;
+    if (amountTooLow) return;
     const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
     if (!clientKey) {
       alert("결제 키가 설정되지 않았습니다.");
@@ -65,7 +65,7 @@ export const OnClickPay = ({ price, orderName, orderCustomerName, postId, roomId
 
     const numericRoomId = roomId ? Number(roomId) : NaN;
     const prepareBody = {
-      amount: price,
+      amount,
       contractUrl,
       orderName: fullOrderName,
       ...(Number.isFinite(numericRoomId) ? { roomId: numericRoomId } : {}),
@@ -98,7 +98,7 @@ export const OnClickPay = ({ price, orderName, orderCustomerName, postId, roomId
         method: "CARD",
         amount: {
           currency: "KRW",
-          value: price,
+          value: amount,
         },
         orderId,
         orderName: fullOrderName,
@@ -124,12 +124,12 @@ export const OnClickPay = ({ price, orderName, orderCustomerName, postId, roomId
       <button
         type="button"
         onClick={handlePayment}
-        disabled={priceTooLow}
+        disabled={amountTooLow}
         className="h-11 w-full rounded-xl bg-main text-[16px] font-semibold text-white cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
       >
         결제하기
       </button>
-      {priceTooLow && <p className="text-xs text-red-500">{MIN_AMOUNT_MESSAGE}</p>}
+      {amountTooLow && <p className="text-xs text-red-500">{MIN_AMOUNT_MESSAGE}</p>}
     </div>
   );
 };

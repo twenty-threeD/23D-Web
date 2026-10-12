@@ -15,6 +15,7 @@ import { getChatRooms, unwrap } from "@/src/lib/chat";
 import { getMyProfile } from "@/src/lib/profile";
 import { signinPath } from "@/src/lib/navigation";
 import type { ChatRoom } from "@/src/store/chatRoomsStore";
+import { calculatePaymentFee, PAYMENT_FEE_TIERS } from "@/src/lib/paymentFee";
 
 type Contract = Awaited<ReturnType<typeof getContract>>;
 
@@ -41,6 +42,7 @@ const PayContent = () => {
 
   const [post, setPost] = useState<Post | null>(null);
   const [contract, setContract] = useState<Contract | null>(null);
+  const [paymentTab, setPaymentTab] = useState<"amount" | "fee">("amount");
 
   // URL 의 postId·contractId·roomId·plan 은 누구나 고쳐 칠 수 있다.
   // 서버 prepare 도 금액을 검증하지만 그건 결제하기를 눌러야 드러나므로,
@@ -125,6 +127,7 @@ const PayContent = () => {
 
   // 금액은 URL 이 아니라 서버의 계약서 금액만 쓴다 (게시글 플랜 가격은 결제에 절대 쓰지 않는다)
   const price = contract.price;
+  const paymentFee = calculatePaymentFee(price);
   const contractUrl = contract.contractUrl;
 
   // 오른쪽 항목은 계약서 PDF 의 내용을 서버에 저장된 값으로 다시 보여주는 것이다.
@@ -178,11 +181,70 @@ const PayContent = () => {
               <div className="flex flex-col gap-2.5">
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-2">
-                    <p className="text-[14px] font-medium text-ink-hint">총 결제 금액</p>
-                    <p className="text-[28px] font-semibold text-ink">{price.toLocaleString()}원</p>
+                    <p className="text-[14px] font-medium text-ink-hint">최종 결제 금액</p>
+                    <p className="text-[28px] font-semibold text-ink">{paymentFee.total.toLocaleString("ko-KR")}원</p>
                   </div>
+
+                  <section className="overflow-hidden rounded-[10px] border border-line" aria-label="결제 금액 안내">
+                    <div className="grid grid-cols-2 border-b border-line" role="tablist" aria-label="결제 안내">
+                      <button
+                        id="payment-amount-tab"
+                        type="button"
+                        role="tab"
+                        aria-selected={paymentTab === "amount"}
+                        aria-controls="payment-details-panel"
+                        onClick={() => setPaymentTab("amount")}
+                        className={`h-10 cursor-pointer border-b-2 px-3 text-[13px] font-semibold ${paymentTab === "amount" ? "border-main text-main" : "border-transparent text-ink-hint"}`}
+                      >
+                        결제 금액
+                      </button>
+                      <button
+                        id="payment-fee-tab"
+                        type="button"
+                        role="tab"
+                        aria-selected={paymentTab === "fee"}
+                        aria-controls="payment-details-panel"
+                        onClick={() => setPaymentTab("fee")}
+                        className={`h-10 cursor-pointer border-b-2 px-3 text-[13px] font-semibold ${paymentTab === "fee" ? "border-main text-main" : "border-transparent text-ink-hint"}`}
+                      >
+                        수수료
+                      </button>
+                    </div>
+
+                    <div
+                      id="payment-details-panel"
+                      role="tabpanel"
+                      aria-labelledby={paymentTab === "amount" ? "payment-amount-tab" : "payment-fee-tab"}
+                      className="flex flex-col gap-3 px-3.5 py-3.5"
+                    >
+                      <div className="flex items-center justify-between gap-2 text-[13px]">
+                        <span className="text-ink-hint">계약 금액</span>
+                        <span className="font-medium text-ink">{price.toLocaleString("ko-KR")}원</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 text-[13px]">
+                        <span className="text-ink-hint">수수료 ({paymentFee.rate}%)</span>
+                        <span className="font-medium text-ink">+{paymentFee.fee.toLocaleString("ko-KR")}원</span>
+                      </div>
+
+                      {paymentTab === "fee" && (
+                        <div className="flex flex-col gap-2 border-t border-line pt-3">
+                          <p className="text-[12px] font-medium text-ink-hint">계약 금액별 수수료율</p>
+                          {PAYMENT_FEE_TIERS.map((tier) => (
+                            <div
+                              key={tier.label}
+                              className={`flex items-center justify-between gap-2 rounded-md px-2.5 py-2 text-[12px] ${paymentFee.rate === tier.rate ? "bg-main/10 font-semibold text-main" : "text-ink-hint"}`}
+                            >
+                              <span>{tier.label}</span>
+                              <span>{tier.rate}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </section>
+
                   <OnClickPay
-                    price={price}
+                    amount={paymentFee.total}
                     orderName={post.title ?? "잇다 서비스"}
                     orderCustomerName={username ?? ""}
                     postId={post.id}
@@ -191,7 +253,7 @@ const PayContent = () => {
                     contractId={contractId}
                   />
                 </div>
-                <Notice>수수료 포함</Notice>
+                <Notice>계약 금액에 수수료를 더해 결제합니다.</Notice>
               </div>
             </div>
           </div>
