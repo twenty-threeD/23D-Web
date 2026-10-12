@@ -9,13 +9,16 @@ import StarRating from "@/src/components/StarRating";
 import TopButton from "@/src/components/TopButton";
 import ServiceSection, { SECTION_INSET } from "@/src/components/main/ServiceSection";
 import { IoMdHeart, IoMdHeartEmpty } from "react-icons/io";
+import { IoChevronDownOutline } from "react-icons/io5";
 import { getPost, getPosts, favoritePost, unfavoritePost, getFavoritePosts, type Post } from "@/src/lib/post"
 import { parsePostContent } from "@/src/types/priceCard";
 import { useAuthStore } from "@/src/store/authStore";
 import { useHandleError } from "@/src/hooks/useHandleError";
+import { useToast } from "@/src/hooks/useToast";
+import { ApiError } from "@/src/lib/apiError";
 import { toRelativeUrl } from "@/src/lib/file"
 import ImageLightbox from "@/src/components/ImageLightbox"
-import { createReview, getReviews, type Review as ReviewData } from "@/src/lib/review"
+import { createReview, getReviews, getReviewableContracts, type Review as ReviewData, type ReviewableContract } from "@/src/lib/review"
 import { signinPath } from "@/src/lib/navigation"
 
 export default function Page() {
@@ -26,6 +29,7 @@ export default function Page() {
   const token = useAuthStore((s) => s.accessToken);
   const myUsername = useAuthStore((s) => s.username);
   const handleError = useHandleError();
+  const { addToast } = useToast();
   const [isExpanded, setIsExpanded] = useState(false);
   const [canExpand, setCanExpand] = useState(false);
   const descriptionRef = useRef<HTMLParagraphElement>(null);
@@ -39,9 +43,15 @@ export default function Page() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewContent, setReviewContent] = useState("");
   const [reviewBusy, setReviewBusy] = useState(false);
-  // 결제 여부는 원래 견적서 상태(PAID)로 판단했지만 견적서 기능을 쓰지 않아 걷어냈다.
-  // 내 결제 이력을 조회할 API 가 없어, 생기기 전까지는 기존과 같이 후기 작성을 막아둔다.
-  const hasPaid = false;
+  // 후기는 글이 아니라 계약 단위로 남는다. 서버가 "지금 후기를 쓸 수 있는 내 계약"만 골라주므로
+  // 이 목록이 비어 있으면 폼을 숨기고, 여러 건이면 어느 전문가와의 계약인지 고르게 한다
+  const [reviewableContracts, setReviewableContracts] = useState<ReviewableContract[]>([]);
+  const [selectedContractId, setSelectedContractId] = useState<number | null>(null);
+  // 목록이 바뀌면(후기를 써서 하나 빠짐 등) 고른 계약이 사라질 수 있어, 그때는 가장 최근 계약으로 본다
+  const activeContractId =
+    reviewableContracts.some((c) => c.contractId === selectedContractId)
+      ? selectedContractId
+      : reviewableContracts[0]?.contractId ?? null;
   useEffect(() => {
     if (!postId) return;
     getPost(postId, token)
@@ -66,6 +76,14 @@ export default function Page() {
     getReviews(postId, token)
       .then(setReviews)
       .catch(() => setReviews([]));
+  }, [postId, token]);
+
+  useEffect(() => {
+    // 비로그인이면 서버가 401 을 주므로 묻지 않는다. 조회에 실패해도 폼만 숨기면 되는 값이라 조용히 비운다
+    if (!token || !postId) return;
+    getReviewableContracts(token, postId)
+      .then(setReviewableContracts)
+      .catch(() => setReviewableContracts([]));
   }, [postId, token]);
 
   useEffect(() => {
@@ -97,6 +115,7 @@ export default function Page() {
       router.push(signinPath());
       return;
     }
+    if (activeContractId === null) return;
 
     const content = reviewContent.trim();
     if (!content) return;
@@ -104,7 +123,7 @@ export default function Page() {
     setReviewBusy(true);
     try {
       const created = await createReview(token, {
-        postId,
+        contractId: activeContractId,
         rating: reviewRating,
         content,
       });
@@ -116,9 +135,16 @@ export default function Page() {
         author: { username: myUsername },
       };
       setReviews((current) => [newReview, ...current]);
+      // 한 계약에는 후기를 한 번만 쓸 수 있어 방금 쓴 계약을 목록에서 뺀다. 남은 계약이 없으면 폼이 사라진다
+      setReviewableContracts((current) => current.filter((c) => c.contractId !== activeContractId));
       setReviewContent("");
       setReviewRating(5);
     } catch (e) {
+      // 버튼은 결제를 마친 계약에만 보이지만, 그 사이 결제가 취소되면 서버가 막는다. 공통 처리보다 구체적으로 안내한다
+      if (e instanceof ApiError && e.code === "REVIEW_PAYMENT_REQUIRED") {
+        addToast({ message: "결제가 완료된 계약만 리뷰를 작성할 수 있습니다.", type: "error" });
+        return;
+      }
       handleError(e);
     } finally {
       setReviewBusy(false);
@@ -127,9 +153,11 @@ export default function Page() {
 
   const { description, plans } = post ? parsePostContent(post.content) : { description: "", plans: [] };
   const isOwner = !!(post?.member?.username && myUsername && post.member.username === myUsername);
-  // 같은 사람이 후기를 여러 번 남기지 못하게 막는다
-  const alreadyReviewed = !!myUsername && reviews.some((r) => r.author?.username === myUsername);
-  const canReview = !isOwner && hasPaid && !alreadyReviewed;
+  // 의뢰인 여부 · 결제 완료 · 이미 쓴 후기는 서버가 목록에서 이미 걸렀다.
+  // 예전처럼 작성자 이름으로 "이미 썼는지" 를 다시 보면, 같은 글에 계약이 두 건일 때 두 번째 후기를 못 쓰게 된다
+  // 로그아웃하면 이전 계정의 목록이 남지 않도록 토큰이 있을 때만 쓴다
+  const myReviewableContracts = token ? reviewableContracts : [];
+  const canReview = myReviewableContracts.length > 0;
   const reviewCount = reviews.length;
   const review = reviewCount > 0
     ? reviews.reduce((total, item) => total + item.rating, 0) / reviewCount
@@ -263,7 +291,7 @@ export default function Page() {
                 </div>
               </div>
 
-              {/* 후기는 결제를 마친 구매자만, 한 번만 남길 수 있다. 글쓴이 본인에게는 폼 자체를 보여주지 않는다 */}
+              {/* 후기는 이 글에서 내가 의뢰인으로 결제까지 마친 계약에만, 계약당 한 번 남길 수 있다 */}
               {canReview && (
                 <div className="flex flex-col gap-3 p-5 rounded-xl bg-[#fafafa]">
                   <div className="flex items-center justify-between">
@@ -273,6 +301,25 @@ export default function Page() {
                       <span className="text-sm font-semibold text-ink-sub">{reviewRating}.0</span>
                     </div>
                   </div>
+                  {/* 계약이 하나면 고를 게 없어 감춘다. 같은 전문가와 여러 번 계약했을 수 있어 계약일을 같이 보여준다 */}
+                  {myReviewableContracts.length > 1 && (
+                    <div className="relative h-[38px] rounded-lg border border-[#d8d8d8] bg-white text-sm">
+                      <select
+                        value={activeContractId ?? ""}
+                        onChange={(e) => setSelectedContractId(Number(e.target.value))}
+                        aria-label="후기를 남길 계약 선택"
+                        className="size-full appearance-none bg-transparent px-3 pr-9 cursor-pointer focus:outline-none"
+                      >
+                        {myReviewableContracts.map((c) => (
+                          <option key={c.contractId} value={c.contractId}>
+                            {c.professionalName}
+                            {c.createdAt ? ` · ${new Date(c.createdAt).toLocaleDateString("ko-KR")} 계약` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      <IoChevronDownOutline className="absolute right-3 top-1/2 -translate-y-1/2 size-4 pointer-events-none text-ink-sub" />
+                    </div>
+                  )}
                   <textarea
                     value={reviewContent}
                     onChange={(e) => setReviewContent(e.target.value.slice(0, 500))}

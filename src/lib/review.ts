@@ -1,18 +1,5 @@
 import { throwApiError } from './apiError'
 
-/**
- * 후기 API 연결 위치
- *
- * 주의: 아래 API는 백엔드 명세를 확인하지 못한 상태에서 추정해서 연결한 API입니다.
- * - 조회 API: GET /api/post/review?postId={게시글ID}&page={페이지}&size={개수}
- * - 등록 API: POST /api/post/review
- * - 추정된 등록 요청 본문: { postId, rating, content }
- *
- * 이 경로는 next.config.ts의 rewrite에 의해 백엔드 API 주소로 전달됩니다.
- * 백엔드 명세가 확정되면 위 경로와 필드명을 실제 명세에 맞춰 수정해야 합니다.
- * 사용처: src/app/item/[[...id]]/page.tsx의 서비스 상세 페이지 후기 영역
- */
-
 function authHeaders(token?: string | null) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token) headers.Authorization = `Bearer ${token}`
@@ -90,18 +77,18 @@ function getReviewList(json: ReviewResponse | unknown) {
 }
 
 export async function getReviews(postId: number, token?: string | null, page = 0, size = 20) {
-  // TODO: 추정된 API입니다. 백엔드 후기 조회 엔드포인트 확정 후 경로를 확인하세요.
   const params = new URLSearchParams({ postId: String(postId), page: String(page), size: String(size) })
   const res = await fetch(`/api/post/review?${params}`, { headers: authHeaders(token) })
   if (!res.ok) await throwApiError(res)
   return getReviewList(await res.json())
 }
 
+// 후기는 게시글이 아니라 계약 단위로 남는다. 서버가 계약에서 글·작성자·대상자를 찾아 채우므로
+// 게시글 id 는 보내지 않는다. 의뢰인이 아니거나 결제가 끝나지 않은 계약이면 403 으로 막힌다
 export async function createReview(
   token: string,
-  data: { postId: number; rating: number; content: string }
+  data: { contractId: number; rating: number; content: string }
 ) {
-  // TODO: 추정된 API입니다. 백엔드 후기 등록 엔드포인트와 요청 필드를 확인하세요.
   const res = await fetch('/api/post/review', {
     method: 'POST',
     headers: authHeaders(token),
@@ -112,6 +99,24 @@ export async function createReview(
   const json = await res.json()
   const response = asRecord(json)
   return response.data ? normalizeReview(response.data) : null
+}
+
+export interface ReviewableContract {
+  contractId: number
+  professionalId: number | null
+  professionalName: string
+  createdAt: string | null
+}
+
+// 이 글에서 내가 지금 후기를 남길 수 있는 계약 목록(최신순). 없으면 빈 배열이다.
+// 서버가 후기 등록과 같은 조건(내가 의뢰인 · 의뢰인 결제가 체인 기록까지 완료 · 아직 후기 없음)으로 거른 결과라,
+// 여기 나온 계약은 등록 검증을 통과한다. 한 글에서 여러 전문가와 계약할 수 있어 배열로 온다
+export async function getReviewableContracts(token: string, postId: number) {
+  const params = new URLSearchParams({ postId: String(postId) })
+  const res = await fetch(`/api/post/review/reviewable?${params}`, { headers: authHeaders(token) })
+  if (!res.ok) await throwApiError(res)
+  const json = await res.json()
+  return (Array.isArray(json?.data) ? json.data : []) as ReviewableContract[]
 }
 
 export interface ReviewSummary {
