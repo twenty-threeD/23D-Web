@@ -13,6 +13,8 @@ import { getPost, getPosts, favoritePost, unfavoritePost, getFavoritePosts, type
 import { parsePostContent } from "@/src/types/priceCard";
 import { useAuthStore } from "@/src/store/authStore";
 import { useHandleError } from "@/src/hooks/useHandleError";
+import { useToast } from "@/src/hooks/useToast";
+import { ApiError } from "@/src/lib/apiError";
 import { toRelativeUrl } from "@/src/lib/file"
 import ImageLightbox from "@/src/components/ImageLightbox"
 import { createReview, getReviews, type Review as ReviewData } from "@/src/lib/review"
@@ -26,6 +28,7 @@ export default function Page() {
   const token = useAuthStore((s) => s.accessToken);
   const myUsername = useAuthStore((s) => s.username);
   const handleError = useHandleError();
+  const { addToast } = useToast();
   const [isExpanded, setIsExpanded] = useState(false);
   const [canExpand, setCanExpand] = useState(false);
   const descriptionRef = useRef<HTMLParagraphElement>(null);
@@ -39,9 +42,9 @@ export default function Page() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewContent, setReviewContent] = useState("");
   const [reviewBusy, setReviewBusy] = useState(false);
-  // 결제 여부는 원래 견적서 상태(PAID)로 판단했지만 견적서 기능을 쓰지 않아 걷어냈다.
-  // 내 결제 이력을 조회할 API 가 없어, 생기기 전까지는 기존과 같이 후기 작성을 막아둔다.
-  const hasPaid = false;
+  // 후기는 계약 단위라, 이 글에 대해 내가 의뢰인으로 결제까지 마친 계약의 id 가 있어야 쓸 수 있다.
+  // 계약 조회 응답에 결제 상태가 없고 글 기준으로 내 계약을 찾는 API 도 없어, 찾을 방법이 정해질 때까지 비워두고 작성 폼을 숨긴다.
+  const reviewContractId: number | null = null;
   useEffect(() => {
     if (!postId) return;
     getPost(postId, token)
@@ -97,6 +100,7 @@ export default function Page() {
       router.push(signinPath());
       return;
     }
+    if (reviewContractId === null) return;
 
     const content = reviewContent.trim();
     if (!content) return;
@@ -104,7 +108,7 @@ export default function Page() {
     setReviewBusy(true);
     try {
       const created = await createReview(token, {
-        postId,
+        contractId: reviewContractId,
         rating: reviewRating,
         content,
       });
@@ -119,6 +123,11 @@ export default function Page() {
       setReviewContent("");
       setReviewRating(5);
     } catch (e) {
+      // 버튼은 결제를 마친 계약에만 보이지만, 그 사이 결제가 취소되면 서버가 막는다. 공통 처리보다 구체적으로 안내한다
+      if (e instanceof ApiError && e.code === "REVIEW_PAYMENT_REQUIRED") {
+        addToast({ message: "결제가 완료된 계약만 리뷰를 작성할 수 있습니다.", type: "error" });
+        return;
+      }
       handleError(e);
     } finally {
       setReviewBusy(false);
@@ -129,7 +138,7 @@ export default function Page() {
   const isOwner = !!(post?.member?.username && myUsername && post.member.username === myUsername);
   // 같은 사람이 후기를 여러 번 남기지 못하게 막는다
   const alreadyReviewed = !!myUsername && reviews.some((r) => r.author?.username === myUsername);
-  const canReview = !isOwner && hasPaid && !alreadyReviewed;
+  const canReview = !isOwner && reviewContractId !== null && !alreadyReviewed;
   const reviewCount = reviews.length;
   const review = reviewCount > 0
     ? reviews.reduce((total, item) => total + item.rating, 0) / reviewCount
