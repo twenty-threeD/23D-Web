@@ -12,8 +12,11 @@ const CHAIN_REST_URL = process.env.CHAIN_REST_URL ?? 'https://blockchain.idta.st
  */
 const TX_QUERY = 'tx.height>0'
 
-/** 한 번에 가져올 트랜잭션 수. 화면에 필요한 블록 수를 채울 만큼 넉넉히 잡는다. */
-const FETCH_LIMIT = 25
+/**
+ * 한 번에 가져올 트랜잭션 수. 자세히 보기 화면이 이 결과를 나눠 페이지로 보여주므로 노드 상한(100)까지 받는다.
+ * 블록은 트랜잭션을 높이로 묶어 만들기 때문에, 노드 쪽에서 페이지를 나누면 한 블록이 두 페이지로 쪼개질 수 있다.
+ */
+const FETCH_LIMIT = 100
 
 export const dynamic = 'force-dynamic'
 

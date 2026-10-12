@@ -3,6 +3,7 @@ import SearchInput from "@/src/components/blockchain/SearchInput";
 import {useEffect, useState} from "react";
 import type {ReactNode} from "react";
 import {useRouter} from "next/navigation";
+import Link from "next/link";
 import {subscribeBlockHeight} from "@/src/lib/BlockHeight";
 import {formatBlockTime, subscribeNetworkInfo, type NetworkInfo} from "@/src/lib/NetworkInfo";
 import {
@@ -37,7 +38,11 @@ function CardTitle({
                 <p className="text-xl font-medium text-black">{children}</p>
                 <HelpTooltip title={children}>{help}</HelpTooltip>
             </div>
-            {link && <span className="text-xs font-medium text-[#aaa] underline">{link}</span>}
+            {link && (
+                <Link href={link} className="text-xs font-medium text-[#aaa] underline hover:text-main">
+                    자세히보기
+                </Link>
+            )}
         </div>
     )
 }
@@ -213,12 +218,18 @@ export default function Page() {
                         <CardTitle
                             icon={<LuBlocks {...CARD_ICON}/>}
                             help="최근 거래를 담아 만들어진 블록들이에요. 각 블록이 언제 만들어졌는지와 몇 건의 거래가 담겨 있는지를 확인할 수 있어요."
-                            link="자세히보기"
+                            link="/blockchain/more"
                         >최근 블록</CardTitle>
                         <div className="flex flex-col gap-4">
                             <TableRow header cells={["블록높이", "시간", "TX 수"]}/>
                             {padRows(blocks.map((block): Cells => [
-                                String(block.height),
+                                <Link
+                                    key={block.height}
+                                    href={`/blockchain/more?type=transactions&height=${block.height}`}
+                                    className="hover:text-main hover:underline"
+                                >
+                                    {block.height}
+                                </Link>,
                                 <RelativeTime key={block.height} iso={block.time} now={now}/>,
                                 `${block.txCount} tx`,
                             ])).map((cells, index) => (
@@ -231,12 +242,19 @@ export default function Page() {
                         <CardTitle
                             icon={<TbCashBanknotePlus {...CARD_ICON}/>}
                             help="최근 블록체인에 기록된 거래들이에요. 거래를 하면 각 거래마다 세부 내용을 조회할 수 있는 고유한 트랜잭션 해시가 생겨나요."
-                            link="자세히보기"
+                            link="/blockchain/more?type=transactions"
                         >최근 트랜잭션</CardTitle>
                         <div className="flex flex-col gap-4">
                             <TableRow header cells={["트랜잭션 해시", "서명자", "결제 ID"]}/>
                             {padRows(transactions.map((transaction): Cells => [
-                                display(truncateHash(transaction.hash)),
+                                <Link
+                                    key={transaction.hash}
+                                    href={`/blockchain/verify/detail/${encodeURIComponent(transaction.hash)}`}
+                                    title={transaction.hash}
+                                    className="hover:text-main hover:underline"
+                                >
+                                    {display(truncateHash(transaction.hash))}
+                                </Link>,
                                 display(truncateAddress(transaction.signer)),
                                 display(truncatePaymentId(transaction.paymentId)),
                             ])).map((cells, index) => (
