@@ -1,17 +1,15 @@
 "use client"
 
-import { IoBagCheckOutline, IoCheckmark, IoClose, IoLockClosedOutline } from "react-icons/io5"
+import { IoBagCheckOutline, IoChatbubbleEllipsesOutline, IoCheckmark, IoClose } from "react-icons/io5"
 
 type DealCardProps =
   | {
+      // 결제 후 갑이 직접 완료를 누르던 예전 방식의 카드. 이제 완료는 결제로 바로 정해지므로
+      // 지난 대화에 남은 카드를 그릴 때만 쓰고, 누를 버튼 없이 그 방의 결과만 보여준다
       kind: "request"
       orderName?: string
       amount?: number
-      /** 이미 완료·취소된 거래라 더 누를 게 없는 상태 */
-      ended?: "completed" | "canceled" | null
-      /** 갑(대금을 지급한 쪽)에게만 넘긴다. 없으면 기다리는 쪽 문구가 나온다 */
-      onComplete?: () => void
-      busy?: boolean
+      ended: "completed" | "canceled"
     }
   | {
       kind: "completed" | "canceled"
@@ -40,7 +38,6 @@ export default function DealCard(props: DealCardProps) {
           </div>
           <div className="flex flex-col items-center gap-0.5">
             <span className="text-sm font-bold tracking-tight text-white">작업을 받으셨나요?</span>
-            <span className="text-[10.5px] text-white/70">거래를 완료하면 채팅이 종료돼요</span>
           </div>
         </div>
 
@@ -59,25 +56,11 @@ export default function DealCard(props: DealCardProps) {
             </div>
           )}
 
-          {props.ended ? (
-            <div className="flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.75">
-              <IoLockClosedOutline className="text-sm text-zinc-400" />
-              <span className="text-xs font-semibold tracking-tight text-zinc-500">
-                {props.ended === "completed" ? "완료된 거래예요" : "취소된 거래예요"}
-              </span>
-            </div>
-          ) : props.onComplete ? (
-            <button
-              onClick={props.onComplete}
-              disabled={props.busy}
-              className="flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-main shadow-[0_2px_6px_rgba(254,106,76,.32)] transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <IoCheckmark className="text-[15px] text-white" />
-              <span className="text-[13.5px] font-semibold tracking-tight text-white">거래 완료하기</span>
-            </button>
-          ) : (
-            <span className="text-center text-[10.5px] text-zinc-400">상대방이 거래를 완료하면 알려드려요</span>
-          )}
+          <div className="flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.75">
+            <span className="text-xs font-semibold tracking-tight text-zinc-500">
+              {props.ended === "completed" ? "완료된 거래예요" : "취소된 거래예요"}
+            </span>
+          </div>
         </div>
       </div>
     )
@@ -105,9 +88,10 @@ export default function DealCard(props: DealCardProps) {
         </div>
       </div>
 
+      {/* 거래가 끝나도 채팅은 막지 않는다. 같은 글로 다시 문의하면 이 방에서 새 거래를 이어간다 */}
       <div className="flex items-center justify-center gap-1.5 px-3.5 py-3.5">
-        <IoLockClosedOutline className="shrink-0 text-xs text-zinc-400" />
-        <span className="text-[11.5px] text-zinc-500">이 채팅방은 더 이상 메시지를 보낼 수 없어요</span>
+        <IoChatbubbleEllipsesOutline className="shrink-0 text-xs text-zinc-400" />
+        <span className="text-[11.5px] text-zinc-500">대화는 이어서 할 수 있어요</span>
       </div>
     </div>
   )

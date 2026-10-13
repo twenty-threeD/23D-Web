@@ -1,5 +1,9 @@
 import { create } from 'zustand'
 
+// 서버(ChatRoom.tradeStatus)가 관리하는 거래 상태.
+// 결제가 체인 기록까지 끝나면 COMPLETED, 전액 환불·수동 취소면 CANCELED, 새 계약서가 등록되면 다시 IN_PROGRESS 가 된다
+export type TradeStatus = 'IN_PROGRESS' | 'COMPLETED' | 'CANCELED'
+
 export interface ChatRoom {
   roomId: number
   postId?: number | null
@@ -12,6 +16,8 @@ export interface ChatRoom {
   // 나가기는 서버에서 소프트 삭제라 roomId 가 유지된다. 이 시각 이전 메시지는
   // 이 사용자에게 보이면 안 된다 (나간 적이 없으면 null). 로컬 캐시 정리 기준.
   clearBefore?: string | null
+  // 상태 컬럼이 생기기 전 방이나 배포 전 서버는 값을 주지 않는다. 그때는 진행 중으로 본다
+  tradeStatus?: TradeStatus | null
 }
 
 // 결제 승인 직후 채팅방에 알릴 내용.
@@ -51,6 +57,9 @@ interface ChatRoomsStore {
   applyLastMessage: (roomId: number, message: string, at?: string) => void
   markRoomRead: (roomId: number) => void
   setActiveRoomId: (roomId: number | null) => void
+  // 서버는 거래 상태가 바뀌어도 따로 알려주지 않는다. 방 목록은 진입 때만 받아오므로,
+  // 결제·계약·취소처럼 상태를 바꾸는 일을 화면에서 보면 여기서 바로 반영한다
+  setRoomTradeStatus: (roomId: number, status: TradeStatus) => void
   setSelectedService: (roomId: number, service: SelectedService, isNewRoom: boolean) => void
   clearPendingGreeting: (roomId: number) => void
   setPendingPayment: (roomId: number, notice: PaymentNotice) => void
@@ -116,4 +125,8 @@ export const useChatRoomsStore = create<ChatRoomsStore>((set, get) => ({
       return { unreadRoomIds: next }
     }),
   setActiveRoomId: (roomId) => set({ activeRoomId: roomId }),
+  setRoomTradeStatus: (roomId, status) =>
+    set((s) => ({
+      rooms: s.rooms.map((r) => (r.roomId === roomId ? { ...r, tradeStatus: status } : r)),
+    })),
 }))
