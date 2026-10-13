@@ -52,6 +52,7 @@ export default function Page() {
   const [imageUrl, setImageUrl] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [resettingImage, setResettingImage] = useState(false);
   const [shortDescription, setShortDescription] = useState("");
   const [jobCategoryId, setJobCategoryId] = useState<number | "">("");
   const [ctprvnCd, setCtprvnCd] = useState("");
@@ -209,6 +210,30 @@ export default function Page() {
     }
   }
 
+  async function handleResetImage() {
+    if (!token) return;
+    if (!confirm("프로필 사진을 지우고 기본 프로필을 사용할까요?")) return;
+    setResettingImage(true);
+    try {
+      await updateMyProfile(token, { imageUrl: null });
+      // 보낸 값이 아니라 서버에 실제로 남은 값으로 화면을 맞춘다. 헤더도 같은 스토어를 보고 있어 함께 바뀐다
+      const { data } = await getMyProfile(token);
+      setProfile(data);
+      setImageUrl(data.imageUrl ?? "");
+      useProfileStore.getState().setImageUrl(data.imageUrl ?? null);
+      if (data.imageUrl) {
+        // 요청은 성공했는데 이미지가 남아 있으면 서버가 null 을 "변경 없음"으로 받은 것이다. 바뀐 척하지 않고 알린다
+        addToast({ message: "프로필 사진을 지우지 못했습니다. 잠시 후 다시 시도해주세요.", type: "error" });
+        return;
+      }
+      addToast({ message: "기본 프로필로 변경했습니다.", type: "success" });
+    } catch (e) {
+      handleError(e);
+    } finally {
+      setResettingImage(false);
+    }
+  }
+
   async function handleDeleteAccount() {
     if (!token) return;
     if (!confirm("정말로 회원 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) return;
@@ -238,25 +263,38 @@ export default function Page() {
 
         <div className="flex flex-col gap-6 border border-zinc-200 rounded-lg p-8">
           <div className="flex items-center gap-6">
-            <div className="relative w-24 h-24 rounded-full overflow-hidden border border-zinc-300 bg-zinc-100 shrink-0">
-              <Image
-                src={imagePreview ?? (imageUrl ? toRelativeUrl(imageUrl) : "/profile.webp")}
-                alt="프로필 이미지"
-                width={96}
-                height={96}
-                className="w-full h-full object-cover"
-                unoptimized={!!imagePreview}
-              />
-              {uploadingImage && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                  <div className="w-6 h-6 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                </div>
-              )}
-              {editing && !uploadingImage && (
-                <label className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
-                  <CiCamera className="text-white text-3xl" />
-                  <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-                </label>
+            <div className="flex flex-col items-center gap-2 shrink-0">
+              <div className="relative w-24 h-24 rounded-full overflow-hidden border border-zinc-300 bg-zinc-100 shrink-0">
+                <Image
+                  src={imagePreview ?? (imageUrl ? toRelativeUrl(imageUrl) : "/profile.webp")}
+                  alt="프로필 이미지"
+                  width={96}
+                  height={96}
+                  className="w-full h-full object-cover"
+                  unoptimized={!!imagePreview}
+                />
+                {uploadingImage && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                    <div className="w-6 h-6 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                  </div>
+                )}
+                {editing && !uploadingImage && (
+                  <label className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
+                    <CiCamera className="text-white text-3xl" />
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                  </label>
+                )}
+              </div>
+              {/* 저장된 사진이 있을 때만 보여준다. 이미 기본 프로필이면 되돌릴 게 없다 */}
+              {profile.imageUrl && (
+                <button
+                  type="button"
+                  onClick={handleResetImage}
+                  disabled={resettingImage || uploadingImage}
+                  className="px-3 py-1.5 rounded-lg border border-zinc-300 text-xs font-semibold text-zinc-600 hover:bg-zinc-100 disabled:opacity-50 cursor-pointer"
+                >
+                  {resettingImage ? "변경 중..." : "기본 프로필 사용하기"}
+                </button>
               )}
             </div>
             <div className="flex flex-col gap-1">
