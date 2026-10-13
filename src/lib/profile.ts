@@ -64,7 +64,8 @@ export async function updateMyProfile(
   token: string,
   data: {
     username?: string
-    imageUrl?: string
+    // null 은 "기본 프로필로 되돌리기" 요청이다. 생략하면 서버가 기존 이미지를 그대로 둔다
+    imageUrl?: string | null
     sigCd?: string
     movableDistance?: 'TEN_KM' | 'TWENTY_FIVE_KM' | 'FIFTY_KM' | 'OVER_HUNDRED_KM'
     shortDescription?: string
