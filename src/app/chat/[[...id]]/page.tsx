@@ -3,15 +3,16 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Image from "next/image"
-import { IoClose, IoSend, IoAdd, IoLockClosedOutline } from "react-icons/io5"
+import { IoClose, IoSend, IoAdd } from "react-icons/io5"
 import Search from "@/src/components/Search"
 import { HiDotsHorizontal } from "react-icons/hi"
 import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment, MdCall, MdVideocam, MdOutlineCancel } from "react-icons/md"
 import { useCallStore } from "@/src/store/callStore"
 import { useAuthStore, setWsAuthCookie, wsStompUrl } from "@/src/store/authStore"
-import { useChatRoomsStore, type ChatRoom } from "@/src/store/chatRoomsStore"
+import { useChatRoomsStore, type ChatRoom, type TradeStatus } from "@/src/store/chatRoomsStore"
 import {
   getChatRooms,
+  cancelTrade,
   deleteChatRoom,
   getChatMessages,
   unwrap,
@@ -41,14 +42,8 @@ import { pdfBlobToFile } from "@/src/lib/contractPdf"
 import ImageLightbox from "@/src/components/ImageLightbox"
 import { parseChatStart } from "@/src/lib/chatPreview"
 import DealCard from "@/src/components/chat/DealCard"
-import {
-  formatDealEnd,
-  formatDealRequest,
-  isDealClosed,
-  isDealEndPreview,
-  parseDealEnd,
-  parseDealRequest,
-} from "@/src/lib/deal"
+import { formatDealCancel, parseDealEnd, parseDealRequest } from "@/src/lib/deal"
+import { ApiError } from "@/src/lib/apiError"
 
 function isImageUrl(url: string) {
   return /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(url)
@@ -212,6 +207,15 @@ export default function Page() {
           try {
             const msg: Message = JSON.parse(frame.body)
             setMessages((prev) => mergeMessages(prev, [msg]))
+            // 서버는 거래 상태가 바뀌어도 따로 알려주지 않는다. 상태를 바꾸는 일과 같이 오는 메시지를 보고 맞춘다.
+            // 결제 승인 → 서버가 COMPLETED 로 바꾼 직후 PAYMENT 메시지를 보낸다
+            // 계약서 등록 → 서버가 IN_PROGRESS 로 되돌리고, 프론트가 이어서 [계약서 체결 완료]를 보낸다
+            const nextStatus: TradeStatus | null =
+              msg.type === "PAYMENT" ? "COMPLETED"
+              : msg.message?.startsWith("[계약서 체결 완료]") ? "IN_PROGRESS"
+              : parseDealEnd(msg.message ?? "")?.kind === "canceled" ? "CANCELED"
+              : null
+            if (nextStatus) useChatRoomsStore.getState().setRoomTradeStatus(selectedId, nextStatus)
             // 보고 있는 방은 SSE 알림이 오지 않아, 내가 보낸 것·받은 것 모두 여기서 목록 미리보기에 반영한다
             useChatRoomsStore.getState().applyLastMessage(
               selectedId,
@@ -245,17 +249,6 @@ export default function Page() {
             body: JSON.stringify({
               roomId: selectedId,
               message: `[결제 완료]\n${JSON.stringify(paid)}`,
-              fileUrls: [],
-            }),
-          })
-          // 결제가 끝났으면 갑이 작업물을 받고 거래를 마무리할 수 있게 완료 카드를 바로 이어 보낸다.
-          // 결제 알림을 보내는 쪽(=결제한 갑)만 여기 들어오므로 카드가 한 번만 찍힌다.
-          client.publish({
-            destination: "/app/chat.send",
-            headers: { Authorization: `Bearer ${token}` },
-            body: JSON.stringify({
-              roomId: selectedId,
-              message: formatDealRequest({ orderName: paid.orderName, amount: paid.amount }),
               fileUrls: [],
             }),
           })
@@ -434,44 +427,47 @@ export default function Page() {
   ]
 
 
-  // 백엔드에 거래 상태가 없어 마지막 메시지가 종료 메시지인지로 가른다(src/lib/deal.ts 참고).
-  // 지금 열어 둔 방은 목록 갱신 전에도 바로 옮겨지도록 불러온 메시지로 판단한다.
-  const dealClosed = isDealClosed(messages)
-  // 완료 요청 카드에 "완료/취소된 거래" 중 무엇으로 끝났는지 보여주려고 마지막 종료 메시지를 본다
-  const dealEndKind = dealClosed
-    ? [...messages].reverse().map((m) => parseDealEnd(m.message)).find(Boolean)?.kind ?? null
-    : null
-  function roomDealEnd(room: ChatRoom): "completed" | "canceled" | null {
-    if (room.roomId === selectedId && !loadingMessages) return dealEndKind
-    const last = lastMessageOverride[room.roomId] ?? room.lastMessagePreview
-    if (!isDealEndPreview(last)) return null
-    return last.startsWith("[거래 취소]") ? "canceled" : "completed"
+  // 거래 상태는 서버가 관리한다. 값이 없으면(상태 컬럼 이전 방) 진행 중으로 본다
+  function tradeStatusOf(room?: ChatRoom): TradeStatus {
+    return room?.tradeStatus ?? "IN_PROGRESS"
   }
+  const selectedTradeStatus = tradeStatusOf(selectedRoom)
   function roomTab(room: ChatRoom): "received" | "done" {
-    return roomDealEnd(room) ? "done" : "received"
+    return tradeStatusOf(room) === "IN_PROGRESS" ? "received" : "done"
   }
 
-  const filteredRooms = rooms.filter(
-    (r) => r.participantName.includes(search) && (tab === "all" || roomTab(r) === tab)
-  )
+  // 거래가 끝난 방은 더 챙길 일이 없어 목록 맨 아래로 보낸다. 나머지 순서(최근 메시지 순)는 그대로 둔다
+  const filteredRooms = rooms
+    .filter((r) => r.participantName.includes(search) && (tab === "all" || roomTab(r) === tab))
+    .sort((a, b) => Number(tradeStatusOf(a) === "COMPLETED") - Number(tradeStatusOf(b) === "COMPLETED"))
 
   const [dealBusy, setDealBusy] = useState(false)
-  function sendDealEnd(kind: "completed" | "canceled") {
+  // 상태는 서버에서 바꾸고, 상대도 알 수 있게 대화에 취소 카드를 남긴다
+  async function handleCancelTrade() {
     const client = stompClientRef.current
-    if (!client?.connected || !selectedId || !myUsername || dealClosed || dealBusy) return
-    const ask = kind === "completed"
-      ? "거래를 완료할까요? 완료하면 이 채팅방에서는 더 이상 메시지를 보낼 수 없어요."
-      : "거래를 취소할까요? 취소하면 이 채팅방에서는 더 이상 메시지를 보낼 수 없어요."
-    if (!confirm(ask)) return
+    if (!token || !client?.connected || !selectedId || !myUsername || dealBusy) return
+    if (!confirm("거래를 취소할까요?")) return
     setDealBusy(true)
-    client.publish({
-      destination: "/app/chat.send",
-      headers: { Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ roomId: selectedId, message: formatDealEnd(kind, myUsername), fileUrls: [] }),
-    })
-    setShowAttach(false)
-    // 소켓으로 메시지가 돌아오면 dealClosed 가 켜져 버튼이 사라지므로 잠깐만 막아두면 된다
-    setTimeout(() => setDealBusy(false), 1500)
+    try {
+      await cancelTrade(token, selectedId)
+      useChatRoomsStore.getState().setRoomTradeStatus(selectedId, "CANCELED")
+      client.publish({
+        destination: "/app/chat.send",
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ roomId: selectedId, message: formatDealCancel(myUsername), fileUrls: [] }),
+      })
+      setShowAttach(false)
+    } catch (e) {
+      // 상대가 먼저 결제했거나 취소해서 이미 끝난 거래다. 화면이 늦게 반영된 경우라 목록을 다시 받아 맞춘다
+      if (e instanceof ApiError && e.code === "TRADE_NOT_CANCELABLE") {
+        addToast({ message: "이미 끝난 거래라 취소할 수 없어요. 결제된 거래는 결제 취소로 되돌려주세요.", type: "error" })
+        void fetchRooms()
+        return
+      }
+      handleError(e)
+    } finally {
+      setDealBusy(false)
+    }
   }
 
   const MAX_CHAT_FILE_SIZE = 25 * 1024 * 1024
@@ -810,7 +806,7 @@ export default function Page() {
             ) : (
               filteredRooms.map((room) => {
                 const isUnread = !!unreadRoomIds[room.roomId]
-                const dealEnd = roomDealEnd(room)
+                const roomStatus = tradeStatusOf(room)
                 // 안 읽은 방도 내용을 보여준다. 안 읽음은 빨간 점과 굵은 글씨로 이미 구분된다
                 const previewText = previewOf(lastMessageOverride[room.roomId] ?? room.lastMessagePreview)
                 return (
@@ -835,17 +831,16 @@ export default function Page() {
                     {isUnread && <span className="absolute top-0 -right-1 w-2 h-2 rounded-full bg-red-500 shrink-0" />}
                   </div>
                   <div className="flex flex-col flex-1 min-w-0">
+                    {/* 거래가 끝나도 대화는 이어지므로 마지막 메시지는 그대로 보여주고, 결과는 이름 옆에 붙인다 */}
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm font-semibold">{room.participantName}</span>
+                      {roomStatus !== "IN_PROGRESS" && (
+                        <span className={`text-xs font-semibold ${roomStatus === "COMPLETED" ? "text-emerald-700" : "text-red-500"}`}>
+                          {roomStatus === "COMPLETED" ? "완료된 거래" : "취소된 거래"}
+                        </span>
+                      )}
                     </div>
-                    {/* 전체 탭에서 진행 중인 방과 구분되도록, 끝난 거래는 마지막 메시지 대신 결과를 보여준다 */}
-                    {dealEnd ? (
-                      <span className={`text-xs font-semibold truncate ${dealEnd === "completed" ? "text-emerald-700" : "text-red-500"}`}>
-                        {dealEnd === "completed" ? "완료된 거래" : "취소된 거래"}
-                      </span>
-                    ) : (
-                      <span className={`text-xs truncate ${isUnread ? "text-zinc-700 font-semibold" : "text-zinc-400"}`}>{previewText}</span>
-                    )}
+                    <span className={`text-xs truncate ${isUnread ? "text-zinc-700 font-semibold" : "text-zinc-400"}`}>{previewText}</span>
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     <span className="text-xs text-zinc-400">{room.lastMessageAt ? formatTime(room.lastMessageAt) : ""}</span>
@@ -889,7 +884,7 @@ export default function Page() {
                   <button
                     type="button"
                     aria-label="음성 통화"
-                    disabled={callPhase !== "idle" || dealClosed}
+                    disabled={callPhase !== "idle"}
                     onClick={() =>
                       token &&
                       startCall(token, selectedRoom.roomId, "VOICE", {
@@ -904,7 +899,7 @@ export default function Page() {
                   <button
                     type="button"
                     aria-label="영상 통화"
-                    disabled={callPhase !== "idle" || dealClosed}
+                    disabled={callPhase !== "idle"}
                     onClick={() =>
                       token &&
                       startCall(token, selectedRoom.roomId, "VIDEO", {
@@ -1008,15 +1003,16 @@ export default function Page() {
 
                   const dealReq = parseDealRequest(msg.message)
                   const dealEnd = parseDealEnd(msg.message)
-                  // 대금을 지급한 갑만 작업물 수령을 확인하고 거래를 완료할 수 있다
-                  const dealCard = dealReq ? (
+                  // 서버는 결제 승인으로 거래를 완료 처리한 직후 PAYMENT 메시지를 보낸다. 그래서 이 메시지가 곧 거래 완료 시점이고,
+                  // 따로 확인 단계 없이 결제 카드 바로 아래에 완료 카드를 붙인다. 메시지 자체가 남으므로 지난 대화에서도 그대로 보인다
+                  const dealCard = msg.type === "PAYMENT" && msg.payment ? (
+                    <DealCard kind="completed" isSent={isSent} endedAt={msg.createdAt} />
+                  ) : dealReq ? (
                     <DealCard
                       kind="request"
                       orderName={dealReq.orderName}
                       amount={dealReq.amount}
-                      ended={dealEndKind}
-                      onComplete={myPartyRole === "client" ? () => sendDealEnd("completed") : undefined}
-                      busy={dealBusy}
+                      ended={selectedTradeStatus === "CANCELED" ? "canceled" : "completed"}
                     />
                   ) : dealEnd ? (
                     <DealCard kind={dealEnd.kind} isSent={isSent} endedAt={msg.createdAt} />
@@ -1041,7 +1037,7 @@ export default function Page() {
                         serviceContent={contractMsg.data.serviceContent}
                         sentAt={msg.createdAt}
                         settled={idx < lastCompletedIdx}
-                        onReview={!isSent && !dealClosed ? () => setContractModalState({ mode: "review", initial: contractMsg.data }) : undefined}
+                        onReview={!isSent ? () => setContractModalState({ mode: "review", initial: contractMsg.data }) : undefined}
                       />
                     ) : (
                       <ContractCard
@@ -1051,7 +1047,7 @@ export default function Page() {
                         contractUrl={contractMsg.data.contractUrl}
                         signedAt={msg.createdAt}
                         paid={idx < lastPaymentIdx}
-                        onPay={isSent && selectedRoom.postId && !dealClosed ? () => handlePayNavigate(contractMsg.data) : undefined}
+                        onPay={isSent && selectedRoom.postId ? () => handlePayNavigate(contractMsg.data) : undefined}
                       />
                     )
                   ) : null
@@ -1159,17 +1155,8 @@ export default function Page() {
             </div>
           )}
 
-          {/* 입력 영역 */}
-          {/* 끝난 거래는 입력창 대신 안내만 남긴다 */}
-          {selectedRoom && dealClosed && !loadingMessages && (
-            <div className="shrink-0 border-t border-zinc-200 px-6 py-4">
-              <div className="flex items-center justify-center gap-2 rounded-lg bg-zinc-50 p-4">
-                <IoLockClosedOutline className="text-zinc-400" />
-                <span className="text-sm text-zinc-500">종료된 거래예요. 더 이상 메시지를 보낼 수 없어요.</span>
-              </div>
-            </div>
-          )}
-          {selectedRoom && !dealClosed && (
+          {/* 입력 영역. 거래가 끝나도 대화는 막지 않는다 */}
+          {selectedRoom && (
             <div className="shrink-0 border-t border-zinc-200 px-6 py-4 flex flex-col gap-3">
               {showAttach && (
                 <div className="flex gap-6">
@@ -1213,10 +1200,11 @@ export default function Page() {
                       <span className="text-xs text-zinc-500">계약서</span>
                     </div>
                   )}
-                  {/* 갑·을 누구든 거래를 그만둘 수 있다. 결제 환불은 따로 처리되지 않는다 */}
+                  {/* 갑·을 누구든 진행 중인 거래를 그만둘 수 있다. 끝난 거래는 서버가 취소를 받지 않아 버튼을 숨긴다 */}
+                  {selectedTradeStatus === "IN_PROGRESS" && (
                   <div className="flex flex-col items-center gap-1">
                     <button
-                      onClick={() => sendDealEnd("canceled")}
+                      onClick={handleCancelTrade}
                       disabled={dealBusy}
                       className="w-12 h-12 rounded-full bg-zinc-500 flex items-center justify-center transition-opacity hover:opacity-85 cursor-pointer disabled:opacity-50"
                     >
@@ -1224,6 +1212,7 @@ export default function Page() {
                     </button>
                     <span className="text-xs text-zinc-500">거래 취소</span>
                   </div>
+                  )}
                 </div>
               )}
 
