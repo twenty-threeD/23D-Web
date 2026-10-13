@@ -11,6 +11,8 @@ import {
 import {
   acceptCall,
   endCall,
+  getActiveCall,
+  participantsOf,
   isCallOver,
   renewCallToken,
   getRoomCalls,
@@ -91,6 +93,8 @@ interface CallStore {
     peer?: { name?: string | null; imageUrl?: string | null }
   ) => Promise<void>
   accept: (token: string) => Promise<void>
+  // 새로고침·재진입 직후 서버에 남아 있는 내 통화를 되살린다
+  resume: (token: string) => Promise<void>
   hangUp: (token: string) => Promise<void>
   toggleMic: (token: string) => Promise<void>
   toggleCam: (token: string) => Promise<void>
@@ -338,6 +342,60 @@ export const useCallStore = create<CallStore>()((set, get) => ({
       // 상대 화면도 "상대방이 통화를 거절했어요" 로 닫힌다.
       await abandonCall(token, call.callId)
       set({ ...initial, devices: get().devices, deviceId: get().deviceId, error: messageOf(e) })
+    }
+  },
+
+  resume: async (token) => {
+    if (get().phase !== 'idle') return
+    // 조회 자체가 실패하면 되살릴 통화가 있는지도 모르는 상태라, 아무것도 건드리지 않는다
+    const active = await getActiveCall(token).catch(() => null)
+    if (!active || isCallOver(active.call.status) || get().phase !== 'idle') return
+
+    const { call, connection } = active
+    const { me, peer } = participantsOf(call, get().myUsername)
+    const base = {
+      ...initial,
+      devices: get().devices,
+      deviceId: get().deviceId,
+      call,
+      peerNameHint: peer.name,
+      peerImageUrl: peer.imageUrl ?? null,
+    }
+
+    // 받는 쪽이 아직 수락하지 않은 통화는 서버가 접속 정보를 주지 않는다.
+    // 채널에는 붙지 않고, INVITED 를 받았을 때와 같은 벨 화면으로 되돌려 받거나 거절할 수 있게 한다
+    if (!connection) {
+      set({ ...base, phase: 'incoming', camOn: call.callType === 'VIDEO' })
+      return
+    }
+
+    // 마이크·카메라는 끄기 전 상태를 서버가 들고 있다. 그대로 이어가야 상대 화면의 표시와 맞는다
+    const video = me.videoEnabled
+    set({ ...base, phase: 'connecting', micOn: me.audioEnabled, camOn: video, expanded: true })
+    try {
+      await ensureMediaPermission(video)
+      const session = { ...connection, call }
+      set({ session })
+      const joined = await joinChannel(session, video, () => get().phase === 'connecting')
+      if (!joined) return
+      // join 은 마이크를 켠 채로 붙으므로, 꺼둔 상태였으면 다시 끈다
+      if (!me.audioEnabled) await callEngine.setMic(false)
+
+      // 내가 건 통화가 아직 울리는 중이면 기다리는 화면으로, 이미 받은 통화면 통화 중으로 돌아간다.
+      // 접속하는 사이 상대가 받았을 수 있어 시그널이 넣어둔 최신 상태를 먼저 본다
+      const latest = get().call ?? call
+      const accepted = latest.status === 'ACCEPTED'
+      set({
+        phase: accepted ? 'active' : 'outgoing',
+        call: latest,
+        // 통화 시간이 새로고침 때문에 0 부터 다시 세지지 않도록 서버의 시작 시각을 쓴다
+        activeSince: accepted ? (latest.startedAt ? Date.parse(latest.startedAt) : Date.now()) : null,
+      })
+    } catch {
+      // 반쯤 붙은 채로 남으면 상대는 통화 중인데 나는 소리가 안 들리는 상태가 된다. 채널과 서버 통화를 모두 접는다
+      await callEngine.leave()
+      await abandonCall(token, call.callId)
+      set({ ...initial, devices: get().devices, deviceId: get().deviceId, error: '진행 중이던 통화에 다시 연결하지 못했어요.' })
     }
   },
 

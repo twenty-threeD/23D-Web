@@ -22,6 +22,7 @@ export type CallSignal =
 export interface CallParticipant {
   username: string
   name: string
+  imageUrl?: string | null
   // 아고라 채널 안에서의 식별자. 카메라용 uid 와 화면공유용 screenUid 가 따로 있다.
   uid: number
   screenUid: number
