@@ -58,6 +58,15 @@ export default function CallProvider() {
     setMyUsername(username)
   }, [username, setMyUsername])
 
+  // 새로고침하면 채널에서 빠지지만 서버의 통화는 남아 있다. 들어오자마자 한 번만 되살린다.
+  // 내 이름을 알아야 건 쪽·받는 쪽을 가를 수 있어 username 이 채워진 뒤에 부른다
+  const resumedRef = useRef(false)
+  useEffect(() => {
+    if (!token || !username || resumedRef.current) return
+    resumedRef.current = true
+    void useCallStore.getState().resume(token)
+  }, [token, username])
+
   useEffect(() => {
     callEngine.setHandlers({
       onRemoteVideo: (kind, track) => useCallStore.getState().setRemoteVideo(kind, track),
