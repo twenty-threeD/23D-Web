@@ -396,6 +396,14 @@ export const useCallStore = create<CallStore>()((set, get) => ({
       if (!joined) return
       // join 은 마이크를 켠 채로 붙으므로, 꺼둔 상태였으면 다시 끈다
       if (!me.audioEnabled) await callEngine.setMic(false)
+      // 화면공유는 별도 클라이언트로 송출하던 거라 새로고침과 함께 끊겼는데, 서버는 아직 공유 중으로 알고 있다.
+      // 그대로 두면 상대 화면엔 공유 중 표시가 남고, 상대가 공유를 시작하려 하면 SCREEN_SHARE_OCCUPIED 로 막힌다.
+      // 브라우저가 공유할 화면을 다시 골라야 해서 이어서 공유할 수는 없으니 서버 쪽 상태를 끈다.
+      // 실패해도 통화 자체는 살릴 수 있어 재접속을 실패로 돌리지 않는다
+      if (me.screenSharing) {
+        const updated = await stopScreenShare(token, call.callId).catch(() => null)
+        if (updated) set({ call: updated })
+      }
 
       // 내가 건 통화가 아직 울리는 중이면 기다리는 화면으로, 이미 받은 통화면 통화 중으로 돌아간다.
       // 접속하는 사이 상대가 받았을 수 있어 시그널이 넣어둔 최신 상태를 먼저 본다
