@@ -26,19 +26,34 @@ export async function getPaymentByOrder(token: string, orderId: string) {
 }
 
 // 결제 사전 등록 (결제창을 띄우기 전에 반드시 호출해야 한다)
-// 여기서 등록한 orderId, amount 를 결제창과 승인 요청에 그대로 사용해야 한다.
-// 서버가 contractId 의 계약 금액과 amount 를 대조하므로 반드시 보내야 한다 (없으면 400).
+// 계약 금액을 등록하면 서버가 수수료와 을 정산액을 함께 계산해 반환한다.
+export interface PreparedPayment {
+  orderId: string
+  amount: number
+  feeAmount: number | null
+  settlementAmount: number | null
+}
+
 export async function preparePayment(
   token: string,
   data: { orderId: string; amount: number; contractUrl: string; orderName?: string; roomId?: number; contractId: number }
-) {
+): Promise<PreparedPayment> {
   const res = await fetch(`/api/payment/prepare`, {
     method: 'POST',
     headers: authHeaders(token),
     body: JSON.stringify(data),
   })
   if (!res.ok) await throwApiError(res)
-  return res.json()
+  const payload: unknown = await res.json()
+  const result = payload && typeof payload === 'object' && 'data' in payload
+    ? (payload as { data?: unknown }).data
+    : payload
+
+  if (!result || typeof result !== 'object') {
+    throw new Error('결제 준비 응답을 확인할 수 없습니다.')
+  }
+
+  return result as PreparedPayment
 }
 
 // 결제 승인 (토스페이먼츠 콜백 후 서버 최종 승인)

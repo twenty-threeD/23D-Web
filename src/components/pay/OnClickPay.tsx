@@ -7,15 +7,17 @@ import { ApiError } from "@/src/lib/apiError";
 import { MIN_AMOUNT_MESSAGE, isAmountRejected, isBelowMinAmount } from "@/src/lib/amount";
 
 interface OnClickPayProps {
-  /** 수수료를 포함해 서버와 Toss 결제창에 전달할 금액 */
+  /** 계약서에 적힌 금액이며 서버와 Toss 결제창에서 동일하게 사용한다 */
   amount: number;
+  feeAmount: number;
+  settlementAmount: number;
   orderName?: string;
   orderCustomerName?: string;
   postId?: number;
   /** 결제 후 돌아갈 채팅방. 결제 완료 메시지를 보낼 대상이다 */
   roomId?: string | null;
   contractUrl?: string;
-  /** 결제 근거. 서버가 이 계약의 금액과 price 를 대조한다 */
+  /** 서버가 결제 당사자와 계약 금액을 확인할 근거 */
   contractId: number;
 }
 
@@ -40,9 +42,9 @@ function buildOrderName(orderName?: string) {
   return `잇다: ${orderName || "잇다 서비스 결제"}`.slice(0, 100);
 }
 
-export const OnClickPay = ({ amount, orderName, orderCustomerName, postId, roomId, contractUrl, contractId }: OnClickPayProps) => {
+export const OnClickPay = ({ amount, feeAmount, settlementAmount, orderName, orderCustomerName, postId, roomId, contractUrl, contractId }: OnClickPayProps) => {
   const token = useAuthStore((s) => s.accessToken);
-  // 계약 금액에 수수료를 더한 최종액도 서버의 최소 결제 금액보다 작으면 결제창을 열지 않는다.
+  // 계약 금액이 서버의 최소 결제 금액보다 작으면 결제창을 열지 않는다.
   const amountTooLow = isBelowMinAmount(amount);
 
   const handlePayment = async () => {
@@ -74,18 +76,28 @@ export const OnClickPay = ({ amount, orderName, orderCustomerName, postId, roomI
 
     try {
       // 결제창에 넘길 orderId 를 먼저 확정하고 서버에 등록한다.
-      // 이 값이 결제창, 승인 요청까지 동일하게 유지되어야 한다.
+      // 서버에 저장된 금액을 결제창과 승인 요청까지 그대로 유지해야 금액 검증을 통과한다.
       let orderId = createOrderId();
+      let preparedPayment: Awaited<ReturnType<typeof preparePayment>>;
       try {
-        await preparePayment(token, { orderId, ...prepareBody });
+        preparedPayment = await preparePayment(token, { orderId, ...prepareBody });
       } catch (e) {
         // 주문번호가 중복된 경우에 한해 새 번호로 한 번만 재시도한다.
         if (e instanceof ApiError && e.code === "PAYMENT_ORDER_ID_DUPLICATED") {
           orderId = createOrderId();
-          await preparePayment(token, { orderId, ...prepareBody });
+          preparedPayment = await preparePayment(token, { orderId, ...prepareBody });
         } else {
           throw e;
         }
+      }
+
+      if (
+        preparedPayment.orderId !== orderId ||
+        preparedPayment.amount !== amount ||
+        preparedPayment.feeAmount !== feeAmount ||
+        preparedPayment.settlementAmount !== settlementAmount
+      ) {
+        throw new Error("서버 수수료 정보와 결제 화면이 일치하지 않습니다. 페이지를 새로고침한 뒤 다시 시도해주세요.");
       }
 
       const tossPayments = await loadTossPayments(clientKey);
@@ -98,7 +110,7 @@ export const OnClickPay = ({ amount, orderName, orderCustomerName, postId, roomI
         method: "CARD",
         amount: {
           currency: "KRW",
-          value: amount,
+          value: preparedPayment.amount,
         },
         orderId,
         orderName: fullOrderName,
@@ -114,7 +126,9 @@ export const OnClickPay = ({ amount, orderName, orderCustomerName, postId, roomI
           ? MIN_AMOUNT_MESSAGE
           : error instanceof ApiError
             ? error.message
-            : "결제 요청 중 오류가 발생했습니다. 다시 시도해주세요."
+            : error instanceof Error
+              ? error.message
+              : "결제 요청 중 오류가 발생했습니다. 다시 시도해주세요."
       );
     }
   };

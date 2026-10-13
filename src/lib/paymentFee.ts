@@ -14,6 +14,6 @@ export function calculatePaymentFee(price: number) {
   return {
     rate: tier.rate,
     fee,
-    total: price + fee,
+    settlement: price - fee,
   };
 }
