@@ -77,6 +77,8 @@ interface CallStore {
   // 전체화면 여부. 통화는 우하단 도크에서 시작하고, 영상이 붙으면 그때 넓힌다.
   // 벨이 울리는 것만으로 화면을 덮으면 하던 일을 가린다.
   expanded: boolean
+  // 상대가 채널에서 빠져 다시 들어오길 기다리는 중. 그동안 통화 시간 대신 대기 문구를 보여준다
+  peerReconnecting: boolean
 
   setMyUsername: (username: string | null) => void
   applySignal: (event: CallSignalEvent) => void
@@ -95,6 +97,9 @@ interface CallStore {
   accept: (token: string) => Promise<void>
   // 새로고침·재진입 직후 서버에 남아 있는 내 통화를 되살린다
   resume: (token: string) => Promise<void>
+  // 토큰은 기다리는 15초 사이에 갱신될 수 있어 값이 아니라 최신 값을 꺼내는 함수로 받는다
+  handlePeerLeft: (getToken: () => string | null) => void
+  handlePeerJoined: () => void
   hangUp: (token: string) => Promise<void>
   toggleMic: (token: string) => Promise<void>
   toggleCam: (token: string) => Promise<void>
@@ -124,6 +129,17 @@ const initial = {
   notice: null,
   pendingLog: null,
   expanded: false,
+  peerReconnecting: false,
+}
+
+// 상대가 종료 버튼으로 끊으면 서버가 ENDED 신호를 보내 즉시 끝난다. 그 신호 없이 채널에서만 빠졌다면
+// 새로고침이나 일시적인 네트워크 끊김일 수 있어, 다시 들어올 시간을 주고 그래도 없을 때만 끊는다
+const PEER_RECONNECT_TIMEOUT_MS = 15_000
+let peerLeftTimer: ReturnType<typeof setTimeout> | null = null
+
+function clearPeerLeftTimer() {
+  if (peerLeftTimer) clearTimeout(peerLeftTimer)
+  peerLeftTimer = null
 }
 
 // 통화가 끝나는 길이 여러 개다(내가 끊기 / 서버 종료 시그널 / 무응답 타임아웃).
@@ -399,6 +415,32 @@ export const useCallStore = create<CallStore>()((set, get) => ({
     }
   },
 
+  handlePeerLeft: (getToken) => {
+    const { phase } = get()
+    // 벨만 울리는 단계는 채널에 아무도 없어 기다릴 상대가 없다
+    if (phase === 'idle' || phase === 'incoming' || peerLeftTimer) return
+    set({ peerReconnecting: true })
+    peerLeftTimer = setTimeout(() => {
+      peerLeftTimer = null
+      // 같은 uid 로 다시 붙었는데 이전 접속의 이탈 이벤트만 늦게 온 경우다. 상대는 이미 돌아와 있다
+      if (callEngine.hasRemotePeer()) {
+        set({ peerReconnecting: false })
+        return
+      }
+      const state = get()
+      if (state.phase === 'idle' || state.phase === 'incoming') return
+      state.setNotice('상대방과의 연결이 끊어졌어요.')
+      const token = getToken()
+      if (token) void state.hangUp(token)
+      else void state.reset()
+    }, PEER_RECONNECT_TIMEOUT_MS)
+  },
+
+  handlePeerJoined: () => {
+    clearPeerLeftTimer()
+    if (get().peerReconnecting) set({ peerReconnecting: false })
+  },
+
   // 끊기는 /end 하나로 통일한다. RINGING 이면 서버가 발신자는 취소, 수신자는 거절로 처리한다.
   hangUp: async (token) => {
     const { call, screenOn, phase, activeSince, myUsername } = get()
@@ -509,6 +551,8 @@ export const useCallStore = create<CallStore>()((set, get) => ({
   },
 
   reset: async () => {
+    // 어느 길로 끝났든 대기 타이머가 남아 있으면 다음 통화를 엉뚱하게 끊는다
+    clearPeerLeftTimer()
     await callEngine.leave()
     // 고른 출력 장치는 통화마다 다시 고르게 하지 않는다.
     // notice("왜 끝났는지")와 pendingLog(채팅에 남길 기록)는 통화가 끝난 뒤에 쓰이므로

@@ -45,6 +45,7 @@ export default function CallDock() {
     busy,
     expanded,
     activeSince,
+    peerReconnecting,
     setExpanded,
     accept,
     hangUp,
@@ -82,7 +83,9 @@ export default function CallDock() {
       ? "연결하는 중"
       : phase === "outgoing"
         ? "상대방을 기다리는 중"
-        : formatDuration(elapsed)
+        : peerReconnecting
+          ? "상대방 연결을 기다리는 중"
+          : formatDuration(elapsed)
 
   return (
     <div
