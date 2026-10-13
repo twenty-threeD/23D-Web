@@ -8,8 +8,8 @@ export const PAYMENT_FEE_TIERS = [
 
 export function calculatePaymentFee(price: number) {
   const tier = PAYMENT_FEE_TIERS.find(({ maximum }) => price <= maximum) ?? PAYMENT_FEE_TIERS[PAYMENT_FEE_TIERS.length - 1];
-  // Toss 원화 결제는 정수 단위이므로 계약 금액 기준 수수료의 원 미만을 반올림한다.
-  const fee = Math.round((price * tier.rate) / 100);
+  // 수수료에서 원 미만을 버리면 정해진 비율보다 낮아지므로 결제 가능한 정수 금액으로 올림한다.
+  const fee = Math.ceil((price * tier.rate) / 100);
 
   return {
     rate: tier.rate,
