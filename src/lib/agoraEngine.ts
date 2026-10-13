@@ -79,7 +79,10 @@ interface EngineHandlers {
   onTokenExpiring?: () => void
   // 브라우저 자체의 "공유 중지" 버튼을 눌렀을 때
   onScreenEnded?: () => void
+  // 상대 카메라 uid 가 채널에서 빠졌을 때. 종료 버튼이 아니라 새로고침·네트워크로 빠진 경우도 여기로 온다
   onPeerLeft?: () => void
+  // 상대 카메라 uid 가 채널에 (다시) 들어왔을 때
+  onPeerJoined?: () => void
   onError?: (message: string) => void
 }
 
@@ -139,6 +142,13 @@ class CallEngine {
     return this.sdk
   }
 
+  // 지금 채널에 상대 카메라 uid 가 붙어 있는지.
+  // 같은 uid 로 다시 들어오면 아고라는 새 접속을 살리고 이전 접속을 끊는데, 이때 이전 접속의 user-left 가
+  // 새 접속의 user-joined 보다 늦게 올 수 있다. 이벤트 순서만 믿지 않고 실제 목록으로 한 번 더 확인한다
+  hasRemotePeer(): boolean {
+    return !!this.client?.remoteUsers.some((u) => this.kindOf(u.uid) === 'camera')
+  }
+
   private kindOf(uid: number | string): RemoteVideoKind {
     return this.screenUids.has(Number(uid)) ? 'screen' : 'camera'
   }
@@ -173,6 +183,12 @@ class CallEngine {
     client.on('user-unpublished', (user, mediaType) => {
       if (mediaType === 'video') this.handlers.onRemoteVideo?.(this.kindOf(user.uid), null)
       else this.remoteAudioPlaying.delete(user)
+    })
+
+    client.on('user-joined', (user) => {
+      // 내 화면공유 클라이언트도 같은 채널에 들어와 있어 나한테 되돌아온다. 상대가 아니다
+      if (this.myScreenUid !== null && Number(user.uid) === this.myScreenUid) return
+      if (this.kindOf(user.uid) === 'camera') this.handlers.onPeerJoined?.()
     })
 
     client.on('user-left', (user) => {

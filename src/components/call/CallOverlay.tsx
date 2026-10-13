@@ -43,6 +43,7 @@ export default function CallOverlay() {
     remoteCamTrack,
     remoteScreenTrack,
     activeSince,
+    peerReconnecting,
     expanded,
     setExpanded,
     accept,
@@ -90,7 +91,9 @@ export default function CallOverlay() {
         ? "연결하는 중"
         : phase === "outgoing"
           ? "상대방을 기다리는 중"
-          : formatDuration(elapsed)
+          : peerReconnecting
+            ? "상대방 연결을 기다리는 중"
+            : formatDuration(elapsed)
 
   return (
     <div className="fixed inset-0 z-[120] flex flex-col text-white">

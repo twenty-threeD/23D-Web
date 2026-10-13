@@ -80,16 +80,10 @@ export default function CallProvider() {
         const t = tokenRef.current
         if (t && useCallStore.getState().screenOn) void useCallStore.getState().toggleScreen(t)
       },
-      onPeerLeft: () => {
-        // 상대가 탭을 닫으면 서버 종료 신호 없이 채널에서만 사라질 수 있다.
-        // 그대로 두면 아무도 없는 통화 화면이 남으므로 여기서 끊는다.
-        const store = useCallStore.getState()
-        if (store.phase === 'idle' || store.phase === 'incoming') return
-        store.setNotice('상대방과의 연결이 끊어졌어요.')
-        const t = tokenRef.current
-        if (t) void store.hangUp(t)
-        else void store.reset()
-      },
+      // 상대가 탭을 닫거나 새로고침하면 서버 종료 신호 없이 채널에서만 사라진다.
+      // 새로고침이면 곧 돌아오므로 바로 끊지 않고 기다린다(callStore.handlePeerLeft)
+      onPeerLeft: () => useCallStore.getState().handlePeerLeft(() => tokenRef.current),
+      onPeerJoined: () => useCallStore.getState().handlePeerJoined(),
       onError: (message) => useCallStore.getState().setError(message),
     })
   }, [])
