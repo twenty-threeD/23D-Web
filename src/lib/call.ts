@@ -44,13 +44,24 @@ export interface Call {
 }
 
 // 채널 접속에 필요한 것이 한 번에 온다 (POST /api/call, /accept, /token)
-export interface CallSession {
-  call: Call
+// Agora 채널 접속 정보. 발신·수락·토큰 갱신 응답에는 통화와 함께, 진행 중 통화 조회에는 따로 담겨 온다
+export interface CallConnection {
   appId: string
   channelName: string
   uid: number
   rtcToken: string
   tokenExpiresAt: string
+}
+
+export interface CallSession extends CallConnection {
+  call: Call
+}
+
+// 내가 참여 중인 진행 중 통화. 새로고침 뒤 통화를 되살릴 때 쓴다.
+// connection 은 받는 쪽이 아직 수락하지 않았으면 null 이다(수락 전에 토큰을 주면 건 사람 소리가 들리기 때문)
+export interface ActiveCall {
+  call: Call
+  connection: CallConnection | null
 }
 
 // 화면공유는 같은 채널에 별도 uid 로 한 번 더 접속하는 방식이라 전용 토큰을 따로 받는다
@@ -144,6 +155,11 @@ export function stopScreenShare(token: string, callId: number) {
 
 export function getCall(token: string, callId: number) {
   return request<Call>(`/api/call/${callId}`, token)
+}
+
+// 진행 중인 통화가 없으면 data 가 null 로 온다(404 가 아니다)
+export function getActiveCall(token: string) {
+  return request<ActiveCall | null>('/api/call/active', token)
 }
 
 export function getRoomCalls(token: string, roomId: number) {

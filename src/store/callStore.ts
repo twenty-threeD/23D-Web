@@ -27,6 +27,16 @@ import {
 import { formatCallLogMessage } from '@/src/lib/callLog'
 import { ApiError } from '@/src/lib/apiError'
 
+// 서버에서 받은 접속 정보로 채널에 붙는다. 발신·수락·재접속이 같은 순서를 밟아야 해서 한 곳에 둔다.
+// 붙는 데 몇 초가 걸려 그 사이 통화가 정리될 수 있다(상대 거절·내 종료). 그때는 채널에서 다시 나오고 false 를 돌려준다
+async function joinChannel(session: CallSession, video: boolean, stillConnecting: () => boolean) {
+  callEngine.setScreenUids([session.call.caller.screenUid, session.call.callee.screenUid])
+  await callEngine.join(session, { video })
+  if (stillConnecting()) return true
+  await callEngine.leave()
+  return false
+}
+
 // outgoing  = 내가 걸고 상대 응답을 기다리는 중
 // incoming  = 상대가 걸어와 벨이 울리는 중
 // connecting= 수락/발신 직후 채널에 붙는 중
@@ -276,14 +286,8 @@ export const useCallStore = create<CallStore>()((set, get) => ({
       // 이게 없으면 접속하는 몇 초 사이에 끊었을 때 callId 를 몰라 서버에 종료를 못 알리고,
       // 화면만 닫힌 채 상대 전화는 계속 울린다.
       set({ call: session.call, session })
-      callEngine.setScreenUids([session.call.caller.screenUid, session.call.callee.screenUid])
-      await callEngine.join(session, { video: callType === 'VIDEO' })
-
-      // 채널에 붙는 동안 상대가 거절해서 이미 정리된 통화면 그대로 접는다
-      if (get().phase !== 'connecting') {
-        await callEngine.leave()
-        return
-      }
+      const joined = await joinChannel(session, callType === 'VIDEO', () => get().phase === 'connecting')
+      if (!joined) return
       // 상대가 아주 빨리 받으면 ACCEPTED 가 join 보다 먼저 도착한다.
       // 그때는 시그널이 넣어둔 최신 스냅샷을 살리고 바로 통화 중으로 넘어간다.
       const arrived = get().call
@@ -317,16 +321,9 @@ export const useCallStore = create<CallStore>()((set, get) => ({
       // 받는 쪽도 수락 전에 권한을 먼저 확인한다.
       // 수락한 뒤에 거부하면 건 사람 화면은 통화 중인데 이쪽은 들어가지 못한 채로 갈린다.
       await ensureMediaPermission(call.callType === 'VIDEO')
-      // accept 응답이 발신 때와 똑같은 모양이라 join 코드를 그대로 재사용한다
       const session = await acceptCall(token, call.callId)
-      callEngine.setScreenUids([session.call.caller.screenUid, session.call.callee.screenUid])
-      await callEngine.join(session, { video: call.callType === 'VIDEO' })
-
-      // 붙는 동안 상대가 끊었으면(reset 이 돌아 phase 가 idle 이 된다) 되돌린다
-      if (get().phase !== 'connecting') {
-        await callEngine.leave()
-        return
-      }
+      const joined = await joinChannel(session, call.callType === 'VIDEO', () => get().phase === 'connecting')
+      if (!joined) return
       set({
         phase: 'active',
         call: get().call ?? session.call,
