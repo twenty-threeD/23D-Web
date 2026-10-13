@@ -7,7 +7,7 @@ import {
   deleteRoomCache,
 } from './chatDb'
 import type { CachedMessage } from './chatDb'
-import { isDealClosed } from './deal'
+import type { TradeStatus } from '@/src/store/chatRoomsStore'
 
 // 채팅방 나가기는 서버에서 소프트 삭제라 roomId 가 그대로 유지된다.
 // 나갔다가 같은 상대·같은 포스트로 다시 방을 만들면 서버는 같은 roomId 를 돌려주는데,
@@ -73,24 +73,30 @@ export async function createChatRoom(token: string, username: string, postId: nu
   return json
 }
 
-// 문의하기로 방을 연다. 서버는 같은 상대·같은 post 면 기존 방을 돌려주는데,
-// 그 방이 이미 끝난 거래(완료·취소)면 입력이 막혀 있어 새 거래를 시작할 수 없다.
-// 서버에 "새 방 만들기" 옵션이 없어서, 끝난 방이면 나갔다가(소프트 삭제) 다시 만들어
-// 내 쪽 기록을 비운 새 대화로 시작한다. 이어서 보내는 [채팅 시작]이 종료 상태를 풀어준다.
-// 백엔드가 끝난 거래 방을 재사용하지 않게 되면 이 우회는 걷어내면 된다.
+// 문의하기로 방을 연다. 서버는 같은 상대·같은 post 면 항상 기존 방을 돌려준다.
+// 거래가 끝난 방이어도 그대로 이어 쓴다(이전 대화와 거래 카드를 남겨야 하므로 나갔다 다시 만들지 않는다).
+// 다만 새 문의라 [채팅 시작] 카드는 다시 보내야 해서, 끝난 거래 방은 새 방처럼 알린다.
+// 상태는 새 계약서가 등록될 때 서버가 IN_PROGRESS 로 되돌린다
 export async function openChatRoomForPost(token: string, username: string, postId: number) {
   const json = await createChatRoom(token, username, postId)
-  const room = unwrap<{ roomId?: number | null; existingRoom?: boolean }>(json)
-  if (!room?.existingRoom || room.roomId == null) return json
+  const room = unwrap<{ roomId?: number | null; existingRoom?: boolean; tradeStatus?: TradeStatus | null }>(json)
+  if (!room?.existingRoom || !room.tradeStatus || room.tradeStatus === 'IN_PROGRESS') return json
 
-  const latest = toMessageList(await getChatMessages(token, room.roomId))
-  if (!isDealClosed(latest)) return json
+  const data = unwrap<Record<string, unknown>>(json)
+  return { ...(json as object), data: { ...data, existingRoom: false } }
+}
 
-  await deleteChatRoom(token, room.roomId)
-  const reopened = await createChatRoom(token, username, postId)
-  // 나갔다 들어온 방이라 서버는 existingRoom 을 true 로 줄 수 있지만, 인사말을 다시 보내야 하므로 새 방으로 취급한다
-  const data = unwrap<Record<string, unknown>>(reopened)
-  return { ...(reopened as object), data: { ...data, existingRoom: false } }
+// 진행 중인 거래를 취소한다. 서버는 CANCELED 만 받는다(완료는 결제로만 생긴다).
+// 이미 끝난 거래면 409 TRADE_NOT_CANCELABLE 이다. 완료된 거래는 결제 취소로 되돌려야 한다
+export async function cancelTrade(token: string, roomId: number) {
+  const res = await fetch(`/api/chat/rooms/${roomId}/trade-status`, {
+    method: 'PATCH',
+    headers: authHeaders(token),
+    body: JSON.stringify({ status: 'CANCELED' }),
+  })
+  if (!res.ok) await throwApiError(res)
+  const json = await res.json()
+  return unwrap<{ roomId: number; tradeStatus: TradeStatus }>(json)
 }
 
 export const MESSAGE_PAGE_SIZE = 50

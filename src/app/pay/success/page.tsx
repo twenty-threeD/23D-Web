@@ -48,6 +48,8 @@ function SuccessContent() {
         // 계약서와 같은 방식으로 프론트가 채팅에 알린다 —
         // 여기서는 STOMP 연결이 없으므로 대기열에 넣어두고, 채팅 페이지가 연결되면 보낸다.
         if (roomId) {
+          // 서버가 승인과 함께 이 방을 거래 완료로 바꿔둔다. 방 목록을 다시 받기 전에도 채팅방에 바로 보이도록 맞춰둔다
+          useChatRoomsStore.getState().setRoomTradeStatus(Number(roomId), "COMPLETED");
           const paid = res?.data?.payment;
           useChatRoomsStore.getState().setPendingPayment(Number(roomId), {
             orderId: paid?.orderId ?? orderId,
