@@ -81,6 +81,7 @@ export async function cancelPayment(
     headers: authHeaders(token),
     body: JSON.stringify(data),
   })
-  if (!res.ok) throw new Error('결제 취소 실패')
+  // 환불 한도 초과·환불할 금액 없음을 구분해 안내해야 해서 서버 에러 코드를 살려 던진다
+  if (!res.ok) await throwApiError(res)
   return res.json()
 }

@@ -7,7 +7,8 @@ export async function sendVerifyCode(email: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
   })
-  if (!res.ok) throw new Error('인증코드 전송 실패')
+  // 발송 한도 초과·메일 서버 장애를 구분해 안내해야 해서 서버 에러 코드를 살려 던진다
+  if (!res.ok) await throwApiError(res)
   return res.json()
 }
 
@@ -29,7 +30,7 @@ export async function sendEmailChangeCode(email: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
   })
-  if (!res.ok) throw new Error('인증코드 전송 실패')
+  if (!res.ok) await throwApiError(res)
   return res.json()
 }
 
