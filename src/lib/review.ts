@@ -1,4 +1,10 @@
 import { throwApiError } from './apiError'
+import { cached, invalidate, MINUTE } from './cache'
+import { ME_KEY } from './profile'
+
+const REVIEW_KEY = 'review:'
+const REVIEWABLE_KEY = `${ME_KEY}reviewable:`
+const REVIEW_TTL = 30_000
 
 function authHeaders(token?: string | null) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -76,11 +82,13 @@ function getReviewList(json: ReviewResponse | unknown) {
   return list.map((review, index) => normalizeReview(review, index))
 }
 
-export async function getReviews(postId: number, token?: string | null, page = 0, size = 20) {
+export function getReviews(postId: number, token?: string | null, page = 0, size = 20) {
   const params = new URLSearchParams({ postId: String(postId), page: String(page), size: String(size) })
-  const res = await fetch(`/api/post/review?${params}`, { headers: authHeaders(token) })
-  if (!res.ok) await throwApiError(res)
-  return getReviewList(await res.json())
+  return cached(`${REVIEW_KEY}list:${params}`, REVIEW_TTL, async () => {
+    const res = await fetch(`/api/post/review?${params}`, { headers: authHeaders(token) })
+    if (!res.ok) await throwApiError(res)
+    return getReviewList(await res.json())
+  })
 }
 
 // 후기는 게시글이 아니라 계약 단위로 남는다. 서버가 계약에서 글·작성자·대상자를 찾아 채우므로
@@ -95,6 +103,9 @@ export async function createReview(
     body: JSON.stringify(data),
   })
   if (!res.ok) await throwApiError(res)
+  // 리뷰 목록·요약이 바뀌고, 방금 쓴 계약은 더 이상 리뷰를 쓸 수 없다
+  invalidate(REVIEW_KEY)
+  invalidate(REVIEWABLE_KEY)
 
   const json = await res.json()
   const response = asRecord(json)
@@ -111,12 +122,14 @@ export interface ReviewableContract {
 // 이 글에서 내가 지금 후기를 남길 수 있는 계약 목록(최신순). 없으면 빈 배열이다.
 // 서버가 후기 등록과 같은 조건(내가 의뢰인 · 의뢰인 결제가 체인 기록까지 완료 · 아직 후기 없음)으로 거른 결과라,
 // 여기 나온 계약은 등록 검증을 통과한다. 한 글에서 여러 전문가와 계약할 수 있어 배열로 온다
-export async function getReviewableContracts(token: string, postId: number) {
+export function getReviewableContracts(token: string, postId: number) {
   const params = new URLSearchParams({ postId: String(postId) })
-  const res = await fetch(`/api/post/review/reviewable?${params}`, { headers: authHeaders(token) })
-  if (!res.ok) await throwApiError(res)
-  const json = await res.json()
-  return (Array.isArray(json?.data) ? json.data : []) as ReviewableContract[]
+  return cached(`${REVIEWABLE_KEY}${postId}`, REVIEW_TTL, async () => {
+    const res = await fetch(`/api/post/review/reviewable?${params}`, { headers: authHeaders(token) })
+    if (!res.ok) await throwApiError(res)
+    const json = await res.json()
+    return (Array.isArray(json?.data) ? json.data : []) as ReviewableContract[]
+  })
 }
 
 export interface ReviewSummary {
@@ -144,19 +157,24 @@ export interface ReviewAnalysis {
 
 // 전문가(회원)가 받은 리뷰를 AI 가 요약한 결과. 남의 분석도 볼 수 있지만 로그인은 필요해서 토큰 없이 부르면 401 이다.
 // 분석 중(409)·리뷰 부족(400)·분석 실패(502)·미설정(503)은 ApiError 의 code 로 구분한다
-export async function getReviewAnalysis(memberId: number, token: string) {
-  const params = new URLSearchParams({ memberId: String(memberId) })
-  const res = await fetch(`/api/post/review/analysis?${params}`, {
-    headers: { Authorization: `Bearer ${token}` },
+// AI 요약은 서버가 리뷰가 쌓일 때만 다시 만든다. 같은 전문가의 다른 글로 옮겨 다녀도 다시 받지 않게 길게 들고 있는다.
+// 분석 중(REVIEW_ANALYSIS_IN_PROGRESS) 같은 실패 응답은 캐시하지 않아 다음에 다시 확인한다.
+// 결과는 보는 사람과 무관하게 같아서 캐시 키에 토큰을 넣지 않는다
+export function getReviewAnalysis(memberId: number, token: string) {
+  return cached(`${REVIEW_KEY}analysis:${memberId}`, 5 * MINUTE, async () => {
+    const params = new URLSearchParams({ memberId: String(memberId) })
+    const res = await fetch(`/api/post/review/analysis?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) await throwApiError(res)
+    const json = await res.json()
+    const data = json?.data
+    if (!data) return null
+    return {
+      summary: typeof data.summary === 'string' ? data.summary : '',
+      keywords: Array.isArray(data.keywords) ? data.keywords.filter((k: unknown) => typeof k === 'string') : [],
+      analyzedReviewCount: Number(data.analyzedReviewCount) || 0,
+      updatedAt: data.updatedAt ?? null,
+    } as ReviewAnalysis
   })
-  if (!res.ok) await throwApiError(res)
-  const json = await res.json()
-  const data = json?.data
-  if (!data) return null
-  return {
-    summary: typeof data.summary === 'string' ? data.summary : '',
-    keywords: Array.isArray(data.keywords) ? data.keywords.filter((k: unknown) => typeof k === 'string') : [],
-    analyzedReviewCount: Number(data.analyzedReviewCount) || 0,
-    updatedAt: data.updatedAt ?? null,
-  } as ReviewAnalysis
 }

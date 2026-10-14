@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { invalidateChatRooms } from '@/src/lib/chat'
 
 // 서버(ChatRoom.tradeStatus)가 관리하는 거래 상태.
 // 결제가 체인 기록까지 끝나면 COMPLETED, 전액 환불·수동 취소면 CANCELED, 새 계약서가 등록되면 다시 IN_PROGRESS 가 된다
@@ -106,7 +107,9 @@ export const useChatRoomsStore = create<ChatRoomsStore>((set, get) => ({
     get().applyLastMessage(roomId, message, at)
     set((s) => ({ unreadRoomIds: { ...s.unreadRoomIds, [roomId]: true } }))
   },
-  applyLastMessage: (roomId, message, at) =>
+  // 여기서 바뀐 순서·미리보기·거래 상태를 캐시된 옛 방 목록이 덮어쓰지 않도록, 반영할 때마다 목록 캐시를 버린다
+  applyLastMessage: (roomId, message, at) => {
+    invalidateChatRooms()
     set((s) => {
       const target = s.rooms.find((r) => r.roomId === roomId)
       if (!target) return { lastMessageOverride: { ...s.lastMessageOverride, [roomId]: message } }
@@ -116,7 +119,8 @@ export const useChatRoomsStore = create<ChatRoomsStore>((set, get) => ({
         rooms: [updated, ...s.rooms.filter((r) => r.roomId !== roomId)],
         lastMessageOverride: { ...s.lastMessageOverride, [roomId]: message },
       }
-    }),
+    })
+  },
   markRoomRead: (roomId) =>
     set((s) => {
       if (!s.unreadRoomIds[roomId]) return s
@@ -125,8 +129,10 @@ export const useChatRoomsStore = create<ChatRoomsStore>((set, get) => ({
       return { unreadRoomIds: next }
     }),
   setActiveRoomId: (roomId) => set({ activeRoomId: roomId }),
-  setRoomTradeStatus: (roomId, status) =>
+  setRoomTradeStatus: (roomId, status) => {
+    invalidateChatRooms()
     set((s) => ({
       rooms: s.rooms.map((r) => (r.roomId === roomId ? { ...r, tradeStatus: status } : r)),
-    })),
+    }))
+  },
 }))

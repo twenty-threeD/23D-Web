@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { clearCache } from '@/src/lib/cache'
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
@@ -113,7 +114,7 @@ interface AuthStore {
 
 export const useAuthStore = create<AuthStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       accessToken: null,
       username: null,
       role: null,
@@ -123,9 +124,12 @@ export const useAuthStore = create<AuthStore>()(
       setToken: (token) => {
         setSessionCookie(true)
         setWsAuthCookie(token)
+        const username = decodeJwtUsername(token)
+        // 토큰 재발급은 같은 사람이라 캐시를 살리고, 다른 계정으로 들어왔을 때만 이전 사람의 데이터를 비운다
+        if (username !== get().username) clearCache()
         set({
           accessToken: token,
-          username: decodeJwtUsername(token),
+          username,
           role: decodeJwtRole(token),
           hasSession: true,
         })
@@ -133,6 +137,7 @@ export const useAuthStore = create<AuthStore>()(
       clear: () => {
         setSessionCookie(false)
         setWsAuthCookie(null)
+        clearCache()
         set({ accessToken: null, username: null, role: null, hasSession: false })
       },
     }),

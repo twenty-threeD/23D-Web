@@ -1,4 +1,5 @@
 import {isChainSocketEnabled, isChainSocketOpen, subscribeChainEvent} from "@/src/lib/ChainSocket"
+import {pollWhileVisible} from "@/src/lib/poll"
 
 export interface RecentBlock {
     height: number
@@ -74,11 +75,11 @@ function subscribeViaPolling({onActivity, onError}: Handlers): () => void {
     }
 
     tick()
-    const intervalId = window.setInterval(tick, POLL_INTERVAL)
+    const stopPolling = pollWhileVisible(tick, POLL_INTERVAL)
 
     return () => {
         stopped = true
-        window.clearInterval(intervalId)
+        stopPolling()
     }
 }
 
@@ -109,7 +110,7 @@ function subscribeViaWebSocket({onActivity, onError}: Handlers): () => void {
     // 웹소켓 연결을 기다리지 않고 바로 보여준다. 연결이 거부되거나 끊긴 동안에는
     // 폴링으로 대신하고, 구독이 살아 있으면 폴링은 건너뛴다.
     refetch()
-    const intervalId = window.setInterval(() => {
+    const stopPolling = pollWhileVisible(() => {
         if (!isChainSocketOpen()) { refetch() }
     }, POLL_INTERVAL)
 
@@ -122,7 +123,7 @@ function subscribeViaWebSocket({onActivity, onError}: Handlers): () => void {
     return () => {
         stopped = true
         if (timer !== null) { window.clearTimeout(timer) }
-        window.clearInterval(intervalId)
+        stopPolling()
         unsubscribe()
     }
 }

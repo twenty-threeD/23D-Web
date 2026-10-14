@@ -1,5 +1,13 @@
 import { throwApiError } from './apiError'
+import { cached, invalidate, MINUTE } from './cache'
 import type { Post } from './post'
+
+// 내 정보 캐시 키 묶음. 내 정보를 바꾸는 요청 뒤에는 invalidateMe() 로 함께 지운다
+export const ME_KEY = 'me:'
+
+export function invalidateMe() {
+  invalidate(ME_KEY)
+}
 
 function authHeaders(token: string) {
   return {
@@ -54,10 +62,14 @@ export interface Sigungu {
   engName?: string | null
 }
 
-export async function getMyProfile(token: string) {
-  const res = await fetch(`/api/profile`, { headers: authHeaders(token) })
-  if (!res.ok) await throwApiError(res)
-  return res.json() as Promise<{ data: Profile }>
+// 헤더·채팅(내 회원 id·전화 인증 여부)·결제·프로필 화면이 같은 값을 각자 받아 와서 한 번 받은 걸 같이 쓴다.
+// 채팅은 방을 바꿀 때마다 페이지가 새로 떠서 캐시가 없으면 방을 옮길 때마다 다시 받는다
+export function getMyProfile(token: string) {
+  return cached(`${ME_KEY}profile`, MINUTE, async () => {
+    const res = await fetch(`/api/profile`, { headers: authHeaders(token) })
+    if (!res.ok) await throwApiError(res)
+    return res.json() as Promise<{ data: Profile }>
+  })
 }
 
 export async function updateMyProfile(
@@ -79,28 +91,39 @@ export async function updateMyProfile(
     body: JSON.stringify(data),
   })
   if (!res.ok) await throwApiError(res)
+  invalidateMe()
   return res.json() as Promise<{ data: { message: string } }>
 }
 
-export async function getJobCategories() {
-  const res = await fetch(`/api/job-category`)
-  if (!res.ok) await throwApiError(res)
-  const json = await res.json()
-  return (json.data ?? []) as JobCategory[]
+// 운영 중에 거의 바뀌지 않는 값이라 길게 들고 있는다. 메인·검색·더보기·서비스 등록·프로필이 같이 쓴다
+const STATIC_TTL = 30 * MINUTE
+
+export function getJobCategories() {
+  return cached('static:job-category', STATIC_TTL, async () => {
+    const res = await fetch(`/api/job-category`)
+    if (!res.ok) await throwApiError(res)
+    const json = await res.json()
+    return (json.data ?? []) as JobCategory[]
+  })
 }
 
 // 로컬(localhost)에는 accessToken 쿠키가 없어 쿠키 인증에 기대면 401 이 난다. 다른 API 처럼 헤더로 보낸다
-export async function getSidoList(token: string) {
-  const res = await fetch(`/api/location/sido`, { headers: authHeaders(token) })
-  if (!res.ok) await throwApiError(res)
-  const json = await res.json()
-  return (json.data ?? []) as Sido[]
+export function getSidoList(token: string) {
+  return cached('static:sido', STATIC_TTL, async () => {
+    const res = await fetch(`/api/location/sido`, { headers: authHeaders(token) })
+    if (!res.ok) await throwApiError(res)
+    const json = await res.json()
+    return (json.data ?? []) as Sido[]
+  })
 }
 
-export async function getSigunguList(token: string, ctprvnCd: string) {
-  const params = new URLSearchParams({ ctprvnCd })
-  const res = await fetch(`/api/location/sigungu?${params}`, { headers: authHeaders(token) })
-  if (!res.ok) await throwApiError(res)
-  const json = await res.json()
-  return (json.data ?? []) as Sigungu[]
+// 프로필 수정에서 시/도를 바꿨다가 되돌릴 때마다 다시 받지 않게 시/도별로 들고 있는다
+export function getSigunguList(token: string, ctprvnCd: string) {
+  return cached(`static:sigungu:${ctprvnCd}`, STATIC_TTL, async () => {
+    const params = new URLSearchParams({ ctprvnCd })
+    const res = await fetch(`/api/location/sigungu?${params}`, { headers: authHeaders(token) })
+    if (!res.ok) await throwApiError(res)
+    const json = await res.json()
+    return (json.data ?? []) as Sigungu[]
+  })
 }

@@ -1,4 +1,6 @@
 import { throwApiError } from './apiError'
+import { cached, invalidate } from './cache'
+import { ME_KEY } from './profile'
 import {
   cacheMessages,
   clearMessagesBefore,
@@ -41,18 +43,29 @@ function toMessageList(json: unknown): CachedMessage[] {
   return paged?.content ?? []
 }
 
-export async function getChatRooms(token: string) {
-  const res = await fetch(`/api/chat/rooms`, {
-    headers: authHeaders(token),
+// 방 목록 캐시 키. 목록이 바뀌는 일(방 생성·나가기·거래 상태·실시간 메시지)이 생기면 invalidateChatRooms() 로 지운다
+const CHAT_ROOMS_KEY = `${ME_KEY}chat-rooms`
+// 채팅 페이지는 방을 바꿀 때마다 새로 떠서 매번 목록을 다시 받는다. 방을 연달아 옮길 때만 재사용할 만큼 짧게 둔다
+const CHAT_ROOMS_TTL = 10_000
+
+export function invalidateChatRooms() {
+  invalidate(CHAT_ROOMS_KEY)
+}
+
+export function getChatRooms(token: string) {
+  return cached(CHAT_ROOMS_KEY, CHAT_ROOMS_TTL, async () => {
+    const res = await fetch(`/api/chat/rooms`, {
+      headers: authHeaders(token),
+    })
+    if (!res.ok) await throwApiError(res)
+    const json = await res.json()
+
+    // 목록을 받은 김에 나갔던 방들의 로컬 캐시를 한 번에 정리한다
+    const rooms = unwrap<ChatRoom[]>(json)
+    if (Array.isArray(rooms)) await clearRoomsBefore(rooms)
+
+    return json
   })
-  if (!res.ok) await throwApiError(res)
-  const json = await res.json()
-
-  // 목록을 받은 김에 나갔던 방들의 로컬 캐시를 한 번에 정리한다
-  const rooms = unwrap<ChatRoom[]>(json)
-  if (Array.isArray(rooms)) await clearRoomsBefore(rooms)
-
-  return json
 }
 
 export async function createChatRoom(token: string, username: string, postId: number) {
@@ -62,6 +75,7 @@ export async function createChatRoom(token: string, username: string, postId: nu
     body: JSON.stringify({ username, postId }),
   })
   if (!res.ok) await throwApiError(res)
+  invalidateChatRooms()
   const json = await res.json()
 
   // 방 재입장 시점이라 여기서 안 지우면 화면에 옛 대화가 그대로 남는다
@@ -95,6 +109,7 @@ export async function cancelTrade(token: string, roomId: number) {
     body: JSON.stringify({ status: 'CANCELED' }),
   })
   if (!res.ok) await throwApiError(res)
+  invalidateChatRooms()
   const json = await res.json()
   return unwrap<{ roomId: number; tradeStatus: TradeStatus }>(json)
 }
@@ -204,6 +219,7 @@ export async function deleteChatRoom(token: string, roomId: number) {
     headers: authHeaders(token),
   })
   if (!res.ok) await throwApiError(res)
+  invalidateChatRooms()
 
   // 나간 방의 캐시는 통째로 비운다
   await deleteRoomCache(roomId)
