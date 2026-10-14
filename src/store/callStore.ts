@@ -12,6 +12,7 @@ import {
   acceptCall,
   endCall,
   getActiveCall,
+  getCall,
   participantsOf,
   isCallOver,
   renewCallToken,
@@ -231,6 +232,8 @@ export const useCallStore = create<CallStore>()((set, get) => ({
       set({
         phase: 'incoming',
         call,
+        // 통화 응답에 참여자 사진이 들어와서 채팅방 목록을 뒤지지 않는다. 목록을 아직 안 받았을 때도 사진이 나온다
+        peerImageUrl: call.caller.imageUrl ?? null,
         micOn: true,
         camOn: call.callType === 'VIDEO',
         expanded: false,
@@ -274,7 +277,12 @@ export const useCallStore = create<CallStore>()((set, get) => ({
       // 채널에 붙기 전에 먼저 들고 있는다.
       // 이게 없으면 접속하는 몇 초 사이에 끊었을 때 callId 를 몰라 서버에 종료를 못 알리고,
       // 화면만 닫힌 채 상대 전화는 계속 울린다.
-      set({ call: session.call, session })
+      // 건 쪽은 채팅방에서 넘겨준 사진을 먼저 띄우고, 서버가 준 상대 사진이 있으면 그걸로 맞춘다
+      set({
+        call: session.call,
+        session,
+        peerImageUrl: session.call.callee.imageUrl ?? get().peerImageUrl,
+      })
       const joined = await joinChannel(session, callType === 'VIDEO', () => get().phase === 'connecting')
       if (!joined) return
       // 상대가 아주 빨리 받으면 ACCEPTED 가 join 보다 먼저 도착한다.
@@ -323,6 +331,15 @@ export const useCallStore = create<CallStore>()((set, get) => ({
       })
     } catch (e) {
       await callEngine.leave()
+      // 수락과 상대의 취소가 동시에 들어오면 서버는 한쪽만 받아주고 다른 쪽에는 409 를 준다.
+      // 이때는 통화가 이미 끝났을 수 있어, 끊기 요청을 보내기 전에 서버 상태를 다시 받아 화면을 맞춘다
+      if (e instanceof ApiError && e.status === 409) {
+        const latest = await getCall(token, call.callId).catch(() => null)
+        if (latest && isCallOver(latest.status)) {
+          set({ ...initial, devices: get().devices, deviceId: get().deviceId, notice: noticeFor(latest, false, false) })
+          return
+        }
+      }
       // 받지 못했으니 통화를 끊는다. 서버가 건 사람에게 거절/종료 시그널을 보내줘서
       // 상대 화면도 "상대방이 통화를 거절했어요" 로 닫힌다.
       await abandonCall(token, call.callId)

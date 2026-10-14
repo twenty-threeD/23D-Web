@@ -19,6 +19,7 @@ const NOTIFICATION_TYPE_STYLE: Record<
 > = {
   chat: { label: "채팅", className: "text-yellow-700 bg-yellow-100" },
   notice: { label: "공지", className: "text-red-600 bg-red-100" },
+  call: { label: "부재중", className: "text-red-600 bg-red-100" },
 };
 
 export default function Header() {

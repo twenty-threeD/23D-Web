@@ -1,6 +1,7 @@
 import { throwApiError } from './apiError'
 
-export type NotificationKind = 'CHAT' | 'NOTICE'
+// CALL_MISSED: 받지 못한 전화. roomId 로 그 통화가 걸려온 채팅방을 알려준다
+export type NotificationKind = 'CHAT' | 'NOTICE' | 'CALL_MISSED'
 
 export interface NotificationResponse {
   notificationId: number | null
@@ -60,7 +61,8 @@ function dispatch(rawEvent: string, handlers: NotificationHandlers): number | nu
     else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim())
     else if (line.startsWith('id:')) eventId = Number(line.slice(3).trim()) || null
   }
-  if (eventName === 'chat' || eventName === 'notice') {
+  // 부재중 통화 알림이 어떤 SSE 이벤트 이름으로 오는지 스펙에 없어, 대소문자·구분자 차이를 모두 받는다
+  if (eventName === 'chat' || eventName === 'notice' || /^call[_-]?missed$/i.test(eventName)) {
     try {
       handlers.onNotification?.(JSON.parse(dataLines.join('\n')))
     } catch {}
