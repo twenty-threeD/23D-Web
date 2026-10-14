@@ -1,4 +1,5 @@
 import {isChainSocketEnabled, subscribeChainEvent} from "@/src/lib/ChainSocket"
+import {pollWhileVisible} from "@/src/lib/poll"
 
 export interface NetworkInfo {
     /** 이 노드가 인지하는 노드 수(피어 + 자기 자신). RPC 미설정 시 null. */
@@ -73,7 +74,7 @@ export function subscribeNetworkInfo({onInfo, onError}: Handlers): () => void {
     }
 
     tick()
-    const intervalId = window.setInterval(tick, useSocket ? SLOW_POLL_INTERVAL : POLL_INTERVAL)
+    const stopPolling = pollWhileVisible(tick, useSocket ? SLOW_POLL_INTERVAL : POLL_INTERVAL)
 
     const unsubscribe = useSocket
         ? subscribeChainEvent(VALIDATOR_UPDATE_QUERY, {onEvent: tick})
@@ -81,7 +82,7 @@ export function subscribeNetworkInfo({onInfo, onError}: Handlers): () => void {
 
     return () => {
         stopped = true
-        window.clearInterval(intervalId)
+        stopPolling()
         unsubscribe?.()
     }
 }

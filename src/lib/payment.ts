@@ -1,4 +1,5 @@
 import { throwApiError } from './apiError'
+import { invalidateMe } from './profile'
 
 function authHeaders(token: string) {
   return {
@@ -67,6 +68,8 @@ export async function confirmPayment(
     body: JSON.stringify(data),
   })
   if (!res.ok) await throwApiError(res)
+  // 승인과 함께 서버가 방을 거래 완료로 바꾸고, 이 계약은 리뷰를 쓸 수 있게 된다. 들고 있던 내 쪽 데이터를 버린다
+  invalidateMe()
   return res.json()
 }
 
@@ -83,5 +86,7 @@ export async function cancelPayment(
   })
   // 환불 한도 초과·환불할 금액 없음을 구분해 안내해야 해서 서버 에러 코드를 살려 던진다
   if (!res.ok) await throwApiError(res)
+  // 전액 취소면 서버가 방을 거래 취소로 바꾼다
+  invalidateMe()
   return res.json()
 }

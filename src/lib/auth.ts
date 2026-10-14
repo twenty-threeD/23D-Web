@@ -1,4 +1,5 @@
 import { throwApiError } from './apiError'
+import { invalidateMe } from './profile'
 
 // 인증코드 전송
 export async function sendVerifyCode(email: string) {
@@ -53,6 +54,8 @@ export async function checkPhoneVerifyCode(phone: string, code: string) {
     body: JSON.stringify({ recipientNumber: phone, code }),
   })
   if (!res.ok) throw new Error('인증코드 불일치')
+  // 내 정보가 바뀌었으니 들고 있던 프로필을 버린다
+  invalidateMe()
   return res.json()
 }
 

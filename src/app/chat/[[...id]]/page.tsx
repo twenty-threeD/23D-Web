@@ -83,6 +83,10 @@ interface Message {
   call?: ChatCall | null
 }
 
+// 미리보기가 "새 메시지" 로만 남은 옛 방을 이미 원문으로 채웠는지.
+// 이 페이지는 방을 바꿀 때마다 새로 마운트돼서, 컴포넌트 ref 에 두면 방을 옮길 때마다 그 방들의 메시지 전체를 다시 받는다
+const legacyCheckedRooms = new Set<number>()
+
 export default function Page() {
   const params = useParams()
   const router = useRouter()
@@ -350,12 +354,11 @@ export default function Page() {
   // 백엔드가 예전에 미리보기를 전부 "새 메시지"로 저장해서, 그때 끝난 거래 방은 목록만 보고는 완료·취소를 알 수 없다.
   // 끝난 방엔 새 메시지가 오지 않아 저절로 고쳐지지도 않으므로, 그런 방만 마지막 메시지를 한 번 받아 원문으로 채운다.
   // 모든 방의 미리보기가 원문으로 바뀌면 이 보완은 걷어내도 된다.
-  const legacyCheckedRef = useRef<Set<number>>(new Set())
   useEffect(() => {
     if (!token) return
     for (const room of rooms) {
-      if (room.lastMessagePreview !== "새 메시지" || legacyCheckedRef.current.has(room.roomId)) continue
-      legacyCheckedRef.current.add(room.roomId)
+      if (room.lastMessagePreview !== "새 메시지" || legacyCheckedRooms.has(room.roomId)) continue
+      legacyCheckedRooms.add(room.roomId)
       getChatMessages(token, room.roomId)
         .then((json) => {
           const list = unwrap<{ message?: string }[] | { content?: { message?: string }[] }>(json)

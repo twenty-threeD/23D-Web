@@ -1,4 +1,5 @@
 import { throwApiError } from './apiError'
+import { invalidateMe } from './profile'
 
 function authHeaders(token: string) {
   return {
@@ -51,6 +52,8 @@ export async function changePassword(token: string, currentPassword: string, new
     body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
   })
   if (!res.ok) await throwApiError(res)
+  // 내 정보가 바뀌었으니 들고 있던 프로필을 버린다
+  invalidateMe()
   return res.json()
 }
 
@@ -62,6 +65,8 @@ export async function setPassword(token: string, newPassword: string) {
     body: JSON.stringify({ new_password: newPassword }),
   })
   if (!res.ok) await throwApiError(res)
+  // 내 정보가 바뀌었으니 들고 있던 프로필을 버린다
+  invalidateMe()
   return res.json()
 }
 
@@ -80,6 +85,8 @@ export async function changeEmail(
     }),
   })
   if (!res.ok) await throwApiError(res)
+  // 내 정보가 바뀌었으니 들고 있던 프로필을 버린다
+  invalidateMe()
   return res.json()
 }
 
@@ -98,6 +105,8 @@ export async function changePhone(
     }),
   })
   if (!res.ok) await throwApiError(res)
+  // 내 정보가 바뀌었으니 들고 있던 프로필을 버린다
+  invalidateMe()
   return res.json()
 }
 
@@ -108,5 +117,7 @@ export async function deleteAccount(token: string) {
     headers: authHeaders(token),
   })
   if (!res.ok) throw new Error('회원 탈퇴 실패')
+  // 내 정보가 바뀌었으니 들고 있던 프로필을 버린다
+  invalidateMe()
   return res.json()
 }
