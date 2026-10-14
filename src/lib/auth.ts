@@ -74,10 +74,8 @@ export async function signup(
       ...(phone ? { phone } : {}),
     }),
   })
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err?.error?.message ?? '회원가입에 실패했습니다.')
-  }
+  // 이메일 미인증(EMAIL_NOT_VERIFIED)을 화면에서 구분해 인증 단계로 돌려보내야 해서 코드를 살려 던진다
+  if (!res.ok) await throwApiError(res)
   return res.json()
 }
 

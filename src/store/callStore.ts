@@ -23,10 +23,8 @@ import {
   type Call,
   type CallSession,
   type CallSignalEvent,
-  type CallStatus,
   type CallType,
 } from '@/src/lib/call'
-import { formatCallLogMessage } from '@/src/lib/callLog'
 import { ApiError } from '@/src/lib/apiError'
 
 // 서버에서 받은 접속 정보로 채널에 붙는다. 발신·수락·재접속이 같은 순서를 밟아야 해서 한 곳에 둔다.
@@ -72,8 +70,6 @@ interface CallStore {
   error: string | null
   // 통화가 왜 끝났는지 알리는 한 줄 (거절·부재중·상대 종료). 화면이 조용히 닫히면 무슨 일인지 알 수 없다.
   notice: string | null
-  // 채팅방에 남길 통화 기록. CallProvider 가 STOMP 로 보내고 비운다.
-  pendingLog: { roomId: number; message: string } | null
   // 전체화면 여부. 통화는 우하단 도크에서 시작하고, 영상이 붙으면 그때 넓힌다.
   // 벨이 울리는 것만으로 화면을 덮으면 하던 일을 가린다.
   expanded: boolean
@@ -85,7 +81,6 @@ interface CallStore {
   setRemoteVideo: (kind: RemoteVideoKind, track: IRemoteVideoTrack | null) => void
   setError: (message: string | null) => void
   setNotice: (message: string | null) => void
-  clearPendingLog: () => void
   setExpanded: (expanded: boolean) => void
 
   start: (
@@ -127,7 +122,6 @@ const initial = {
   activeSince: null,
   error: null,
   notice: null,
-  pendingLog: null,
   expanded: false,
   peerReconnecting: false,
 }
@@ -135,31 +129,13 @@ const initial = {
 // 상대가 종료 버튼으로 끊으면 서버가 ENDED 신호를 보내 즉시 끝난다. 그 신호 없이 채널에서만 빠졌다면
 // 새로고침이나 일시적인 네트워크 끊김일 수 있어, 다시 들어올 시간을 주고 그래도 없을 때만 끊는다
 const PEER_RECONNECT_TIMEOUT_MS = 15_000
+const TOKEN_RENEW_ATTEMPTS = 3
+const TOKEN_RENEW_RETRY_MS = 5_000
 let peerLeftTimer: ReturnType<typeof setTimeout> | null = null
 
 function clearPeerLeftTimer() {
   if (peerLeftTimer) clearTimeout(peerLeftTimer)
   peerLeftTimer = null
-}
-
-// 통화가 끝나는 길이 여러 개다(내가 끊기 / 서버 종료 시그널 / 무응답 타임아웃).
-// 어느 길로 끝나든 기록은 한 번만 남아야 해서 이미 남긴 통화를 기억해둔다.
-const loggedCalls = new Set<number>()
-
-function buildCallLog(
-  call: Call,
-  myUsername: string | null,
-  status: CallStatus,
-  durationSeconds: number
-): { roomId: number; message: string } | null {
-  // 양쪽이 다 보내면 같은 통화가 두 번 찍힌다. 건 사람만 남긴다.
-  if (call.caller.username !== myUsername) return null
-  if (loggedCalls.has(call.callId)) return null
-  loggedCalls.add(call.callId)
-  return {
-    roomId: call.roomId,
-    message: formatCallLogMessage({ callType: call.callType, status, durationSeconds }),
-  }
 }
 
 // 통화가 끝났을 때 띄울 안내. 내가 한 행동(내가 끊기·거절)에는 아무것도 띄우지 않는다.
@@ -221,7 +197,6 @@ export const useCallStore = create<CallStore>()((set, get) => ({
   setMyUsername: (myUsername) => set({ myUsername }),
   setError: (error) => set({ error }),
   setNotice: (notice) => set({ notice }),
-  clearPendingLog: () => set({ pendingLog: null }),
   setExpanded: (expanded) => set({ expanded }),
 
   setRemoteVideo: (kind, track) =>
@@ -243,13 +218,7 @@ export const useCallStore = create<CallStore>()((set, get) => ({
       if (state.call && state.call.callId !== call.callId) return
 
       const iAmCaller = call.caller.username === state.myUsername
-      // 서버 스냅샷이 최종 status·통화시간을 들고 있어 기록으로는 이쪽이 가장 정확하다
-      set({
-        notice: noticeFor(call, iAmCaller, fromUsername === state.myUsername),
-        pendingLog:
-          buildCallLog(call, state.myUsername, call.status, call.durationSeconds ?? 0) ??
-          state.pendingLog,
-      })
+      set({ notice: noticeFor(call, iAmCaller, fromUsername === state.myUsername) })
       // reset 이 notice 는 남겨두므로 화면을 닫고 나서 안내만 뜬다
       void get().reset()
       return
@@ -451,17 +420,7 @@ export const useCallStore = create<CallStore>()((set, get) => ({
 
   // 끊기는 /end 하나로 통일한다. RINGING 이면 서버가 발신자는 취소, 수신자는 거절로 처리한다.
   hangUp: async (token) => {
-    const { call, screenOn, phase, activeSince, myUsername } = get()
-
-    // 서버 종료 시그널이 오면 그쪽이 더 정확하지만, 안 올 수도 있으니 여기서도 남긴다.
-    // buildCallLog 가 callId 로 중복을 막으므로 둘 중 먼저 도착한 쪽만 기록된다.
-    if (call) {
-      const status: CallStatus =
-        phase === 'active' ? 'ENDED' : phase === 'incoming' ? 'REJECTED' : 'CANCELED'
-      const duration = activeSince ? Math.floor((Date.now() - activeSince) / 1000) : 0
-      const log = buildCallLog(call, myUsername, status, duration)
-      if (log) set({ pendingLog: log })
-    }
+    const { call, screenOn } = get()
 
     await get().reset()
     if (!call) return
@@ -547,14 +506,24 @@ export const useCallStore = create<CallStore>()((set, get) => ({
   },
 
   renew: async (token) => {
-    const { call } = get()
+    const { call, phase } = get()
     if (!call) return
-    try {
-      const session = await renewCallToken(token, call.callId)
-      await callEngine.renewToken(session.rtcToken)
-      set({ session })
-    } catch {
-      // 갱신 실패해도 만료 전까지는 통화가 유지된다. 끊기면 서버가 ENDED 를 쏴준다.
+    // 받기 전(RINGING)인 수신자가 토큰을 요청하면 서버가 409 로 막는다. 수락 응답에 토큰이 같이 오므로 여기서 받을 일이 없다
+    if (phase === 'incoming') return
+    // RTC 토큰 유효 시간이 600초로 짧아져, 갱신이 한 번 실패하고 끝나면 10분 만에 통화가 끊긴다.
+    // 만료 알림(token-privilege-will-expire)은 만료 30초 전에 오므로 그 안에서 몇 번 다시 시도한다
+    for (let attempt = 0; attempt < TOKEN_RENEW_ATTEMPTS; attempt++) {
+      if (get().call?.callId !== call.callId) return
+      try {
+        const session = await renewCallToken(token, call.callId)
+        await callEngine.renewToken(session.rtcToken)
+        set({ session })
+        return
+      } catch (e) {
+        // 이미 끝났거나 받을 수 없는 통화라면 다시 시도해도 같은 답이 온다
+        if (e instanceof ApiError && (e.status === 404 || e.status === 409)) return
+        await new Promise((r) => setTimeout(r, TOKEN_RENEW_RETRY_MS))
+      }
     }
   },
 
@@ -563,9 +532,8 @@ export const useCallStore = create<CallStore>()((set, get) => ({
     clearPeerLeftTimer()
     await callEngine.leave()
     // 고른 출력 장치는 통화마다 다시 고르게 하지 않는다.
-    // notice("왜 끝났는지")와 pendingLog(채팅에 남길 기록)는 통화가 끝난 뒤에 쓰이므로
-    // 여기서 같이 지우면 안 된다.
-    const { devices, deviceId, notice, pendingLog } = get()
-    set({ ...initial, devices, deviceId, notice, pendingLog })
+    // notice("왜 끝났는지")는 통화가 끝난 뒤에 쓰이므로 여기서 같이 지우면 안 된다.
+    const { devices, deviceId, notice } = get()
+    set({ ...initial, devices, deviceId, notice })
   },
 }))

@@ -39,15 +39,11 @@ export default function CallProvider() {
   })
   const setMyUsername = useCallStore((s) => s.setMyUsername)
   const phase = useCallStore((s) => s.phase)
-  const pendingLog = useCallStore((s) => s.pendingLog)
-  const clearPendingLog = useCallStore((s) => s.clearPendingLog)
   const error = useCallStore((s) => s.error)
   const notice = useCallStore((s) => s.notice)
   const setError = useCallStore((s) => s.setError)
   const setNotice = useCallStore((s) => s.setNotice)
   const { addToast } = useToast()
-  // 통화 기록을 보낼 때 재사용한다. 채팅 페이지의 연결은 방을 열었을 때만 살아 있다.
-  const clientRef = useRef<Client | null>(null)
   // 엔진 콜백은 한 번만 등록하므로 최신 토큰을 ref 로 들고 본다
   const tokenRef = useRef(token)
   useEffect(() => {
@@ -225,30 +221,10 @@ export default function CallProvider() {
     })
 
     client.activate()
-    clientRef.current = client
     return () => {
-      clientRef.current = null
       void client.deactivate()
     }
   }, [token])
-
-  // 통화가 끝나면 채팅방에 기록을 남긴다.
-  // 백엔드가 통화 기록 메시지를 만들어주지 않아 계약서·결제와 같은 접두사 규약으로 프론트가 보낸다.
-  useEffect(() => {
-    if (!pendingLog) return
-    const client = clientRef.current
-    const t = tokenRef.current
-    // 통화 직후라 연결은 살아 있는 게 정상이다. 끊겨 있으면 기록은 포기한다
-    // (재전송 큐를 두면 다음 로그인 때 뒤늦게 찍히는 게 더 이상하다).
-    if (client?.connected && t) {
-      client.publish({
-        destination: "/app/chat.send",
-        headers: { Authorization: `Bearer ${t}` },
-        body: JSON.stringify({ roomId: pendingLog.roomId, message: pendingLog.message, fileUrls: [] }),
-      })
-    }
-    clearPendingLog()
-  }, [pendingLog, clearPendingLog])
 
   // 로그아웃하면 통화도 끊는다
   useEffect(() => {
