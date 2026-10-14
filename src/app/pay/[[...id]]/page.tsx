@@ -202,6 +202,8 @@ const PayContent = () => {
                   fee={paymentFee.fee}
                   settlement={paymentFee.settlement}
                 />
+                {/* 전액 환불 요청(cancelAmount 생략) 때 서버가 수수료를 뺀 금액만 돌려주므로 결제 전에 미리 알린다 */}
+                <Notice>전액 환불 시 수수료 {paymentFee.fee.toLocaleString("ko-KR")}원을 제외한 금액이 환불됩니다.</Notice>
               </div>
             </div>
           </div>
@@ -224,7 +226,8 @@ function FeeNotice({ rate, fee, settlement }: { rate: number; fee: number; settl
   return (
     <p className="flex items-center gap-2 text-[12px] font-medium text-ink-hint">
       <HelpTooltip title="플랫폼 수수료" marker={<LuCircleAlert className="size-3" />}>
-        계약 금액의 {rate}% ({fee.toLocaleString("ko-KR")}원)가 수수료로 차감되어 을에게 {settlement.toLocaleString("ko-KR")}원이 정산됩니다.
+        {/* HelpTooltip 은 children 을 문자열로만 받아, JSX 조각으로 나누지 않고 한 문자열로 만든다 */}
+        {`계약 금액의 ${rate}% (${fee.toLocaleString("ko-KR")}원)가 수수료로 차감되어 을에게 ${settlement.toLocaleString("ko-KR")}원이 정산됩니다.`}
       </HelpTooltip>
       <span>수수료는 을의 정산액에서 차감됩니다.</span>
     </p>
