@@ -155,14 +155,17 @@ export interface ReviewAnalysis {
   updatedAt: string | null
 }
 
-// 전문가(회원)가 받은 리뷰를 AI 가 요약한 결과. 로그인 없이 볼 수 있어 토큰을 받지 않는다.
+// 전문가(회원)가 받은 리뷰를 AI 가 요약한 결과. 남의 분석도 볼 수 있지만 로그인은 필요해서 토큰 없이 부르면 401 이다.
 // 분석 중(409)·리뷰 부족(400)·분석 실패(502)·미설정(503)은 ApiError 의 code 로 구분한다
 // AI 요약은 서버가 리뷰가 쌓일 때만 다시 만든다. 같은 전문가의 다른 글로 옮겨 다녀도 다시 받지 않게 길게 들고 있는다.
-// 분석 중(REVIEW_ANALYSIS_IN_PROGRESS) 같은 실패 응답은 캐시하지 않아 다음에 다시 확인한다
-export function getReviewAnalysis(memberId: number) {
+// 분석 중(REVIEW_ANALYSIS_IN_PROGRESS) 같은 실패 응답은 캐시하지 않아 다음에 다시 확인한다.
+// 결과는 보는 사람과 무관하게 같아서 캐시 키에 토큰을 넣지 않는다
+export function getReviewAnalysis(memberId: number, token: string) {
   return cached(`${REVIEW_KEY}analysis:${memberId}`, 5 * MINUTE, async () => {
     const params = new URLSearchParams({ memberId: String(memberId) })
-    const res = await fetch(`/api/post/review/analysis?${params}`)
+    const res = await fetch(`/api/post/review/analysis?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
     if (!res.ok) await throwApiError(res)
     const json = await res.json()
     const data = json?.data
