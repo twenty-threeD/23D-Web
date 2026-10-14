@@ -142,11 +142,13 @@ export interface ReviewAnalysis {
   updatedAt: string | null
 }
 
-// 전문가(회원)가 받은 리뷰를 AI 가 요약한 결과. 로그인 없이 볼 수 있어 토큰을 받지 않는다.
+// 전문가(회원)가 받은 리뷰를 AI 가 요약한 결과. 남의 분석도 볼 수 있지만 로그인은 필요해서 토큰 없이 부르면 401 이다.
 // 분석 중(409)·리뷰 부족(400)·분석 실패(502)·미설정(503)은 ApiError 의 code 로 구분한다
-export async function getReviewAnalysis(memberId: number) {
+export async function getReviewAnalysis(memberId: number, token: string) {
   const params = new URLSearchParams({ memberId: String(memberId) })
-  const res = await fetch(`/api/post/review/analysis?${params}`)
+  const res = await fetch(`/api/post/review/analysis?${params}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
   if (!res.ok) await throwApiError(res)
   const json = await res.json()
   const data = json?.data
