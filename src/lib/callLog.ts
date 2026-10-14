@@ -1,11 +1,10 @@
 import type { CallStatus, CallType } from './call'
 
-// 통화 기록을 채팅에 남기기 위한 규약.
+// 통화 기록 말풍선.
 //
-// 백엔드에 통화 기록 메시지 타입이 없어서, 계약서·결제와 똑같이
-// "대괄호 접두사 + JSON" 으로 실어 보내고 받는 쪽에서 말풍선으로 그린다.
-//
-// 양쪽이 다 보내면 같은 통화가 두 번 찍히므로 발신자(caller)만 남긴다.
+// 통화가 끝나면 서버가 type: 'CALL' 메시지를 직접 남기고 message.call 에 내용을 실어준다.
+// 예전에는 프론트(발신자)가 "[통화]\n{JSON}" 메시지를 보냈는데, 지금도 보내면 기록이 두 번 남으므로 보내지 않는다.
+// 다만 그 시절 대화 기록에는 접두사 메시지가 남아 있어 읽기(parseCallLog)는 유지한다.
 
 export interface CallLog {
   callType: CallType
@@ -13,11 +12,12 @@ export interface CallLog {
   durationSeconds: number
 }
 
-export const CALL_LOG_PREFIX = '[통화]\n'
-
-export function formatCallLogMessage(log: CallLog): string {
-  return `${CALL_LOG_PREFIX}${JSON.stringify(log)}`
+// 서버가 CALL 메시지에 실어주는 통화 정보
+export interface ChatCall extends CallLog {
+  callerUsername: string
 }
+
+const CALL_LOG_PREFIX = '[통화]\n'
 
 export function parseCallLog(text: string): CallLog | null {
   if (!text?.startsWith(CALL_LOG_PREFIX)) return null
@@ -51,8 +51,8 @@ export interface CallLogText {
 }
 
 // 같은 통화라도 건 쪽과 받은 쪽의 문구가 다르다.
-// 메시지는 발신자만 보내므로 isSent 가 곧 "내가 건 전화"라는 뜻이다.
-export function describeCallLog(log: CallLog, isSent: boolean): CallLogText {
+// 서버 CALL 메시지는 보낸 사람이 아니라 callerUsername 으로 건 쪽을 알려주므로 그걸로 판단한다.
+export function describeCallLog(log: CallLog, iAmCaller: boolean): CallLogText {
   const kind = log.callType === 'VIDEO' ? '영상 통화' : '음성 통화'
 
   switch (log.status) {
@@ -61,15 +61,15 @@ export function describeCallLog(log: CallLog, isSent: boolean): CallLogText {
         ? { title: kind, detail: formatCallDuration(log.durationSeconds), missed: false }
         : { title: `${kind} 종료`, detail: null, missed: false }
     case 'MISSED':
-      return isSent
+      return iAmCaller
         ? { title: `${kind} 응답 없음`, detail: null, missed: false }
         : { title: '부재중 전화', detail: kind, missed: true }
     case 'REJECTED':
-      return isSent
+      return iAmCaller
         ? { title: `${kind} 거절됨`, detail: null, missed: false }
         : { title: `${kind} 거절함`, detail: null, missed: false }
     case 'CANCELED':
-      return isSent
+      return iAmCaller
         ? { title: `${kind} 취소함`, detail: null, missed: false }
         : { title: '부재중 전화', detail: kind, missed: true }
     default:

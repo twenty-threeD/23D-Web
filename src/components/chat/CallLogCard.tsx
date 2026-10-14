@@ -5,8 +5,9 @@ import { describeCallLog, type CallLog } from "@/src/lib/callLog"
 
 // 통화가 끝나면 채팅에 남는 기록. 별도 카드가 아니라 말풍선 자리에 들어가므로
 // 라운드·최대폭·보낸쪽 색을 일반 말풍선과 똑같이 맞춘다.
-export default function CallLogCard({ log, isSent }: { log: CallLog; isSent: boolean }) {
-  const { title, detail, missed } = describeCallLog(log, isSent)
+// 말풍선 위치(isSent)와 문구 기준(iAmCaller)이 다를 수 있어 따로 받는다.
+export default function CallLogCard({ log, isSent, iAmCaller }: { log: CallLog; isSent: boolean; iAmCaller: boolean }) {
+  const { title, detail, missed } = describeCallLog(log, iAmCaller)
   const Icon = missed ? MdCallEnd : log.callType === "VIDEO" ? MdVideocam : MdCall
 
   return (

@@ -70,27 +70,6 @@ export async function confirmPayment(
   return res.json()
 }
 
-// 가상계좌 발급
-export async function createVirtualAccount(
-  token: string,
-  data: {
-    orderId: string
-    orderName: string
-    amount: number
-    customerName: string
-    bank: string
-    dueDate?: string
-  }
-) {
-  const res = await fetch(`/api/payment/virtual-accounts`, {
-    method: 'POST',
-    headers: authHeaders(token),
-    body: JSON.stringify(data),
-  })
-  if (!res.ok) throw new Error('가상계좌 발급 실패')
-  return res.json()
-}
-
 // 결제 취소
 export async function cancelPayment(
   token: string,

@@ -37,7 +37,7 @@ import ContractCard from "@/src/components/chat/ContractCard"
 import PaymentCard, { type ChatPayment } from "@/src/components/chat/PaymentCard"
 import CallLogCard from "@/src/components/chat/CallLogCard"
 import CallSessionBubble from "@/src/components/chat/CallSessionBubble"
-import { parseCallLog, previewCallLog } from "@/src/lib/callLog"
+import { parseCallLog, previewCallLog, type ChatCall } from "@/src/lib/callLog"
 import { pdfBlobToFile } from "@/src/lib/contractPdf"
 import ImageLightbox from "@/src/components/ImageLightbox"
 import { parseChatStart } from "@/src/lib/chatPreview"
@@ -77,9 +77,10 @@ interface Message {
   message: string
   createdAt: string
   attachedFileUrls: string[]
-  // 백엔드가 결제 승인 시 PAYMENT 타입 메시지를 직접 만들어 넣어준다
-  type?: "TEXT" | "PAYMENT"
+  // 백엔드가 결제 승인 시 PAYMENT, 통화 종료 시 CALL 타입 메시지를 직접 만들어 넣어준다
+  type?: "TEXT" | "PAYMENT" | "CALL"
   payment?: ChatPayment | null
+  call?: ChatCall | null
 }
 
 export default function Page() {
@@ -996,10 +997,14 @@ export default function Page() {
 
                   const contractMsg = parseContractMessage(msg.message)
                   const chatStart = parseChatStart(msg.message)
-                  const callLog = parseCallLog(msg.message)
+                  // 서버 CALL 메시지가 기준이다. 접두사 메시지는 프론트가 직접 보내던 시절의 기록이라 읽기만 하며,
+                  // 그때는 발신자만 보냈으므로 isSent 가 곧 "내가 건 전화"였다
+                  const serverCall = msg.type === "CALL" ? msg.call : null
+                  const callLog = serverCall ?? parseCallLog(msg.message)
+                  const iAmCaller = serverCall ? serverCall.callerUsername === myUsername : isSent
                   const displayText = msg.message
 
-                  const callCard = callLog ? <CallLogCard log={callLog} isSent={isSent} /> : null
+                  const callCard = callLog ? <CallLogCard log={callLog} isSent={isSent} iAmCaller={iAmCaller} /> : null
 
                   const dealReq = parseDealRequest(msg.message)
                   const dealEnd = parseDealEnd(msg.message)

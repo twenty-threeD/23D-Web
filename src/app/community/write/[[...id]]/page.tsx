@@ -6,7 +6,7 @@ import dynamic from "next/dynamic"
 import CommunityMenu from "@/src/components/CommunitySideBar"
 import { IoImageOutline, IoChevronDown } from "react-icons/io5"
 import { getPost, createPost, updatePost, COMMUNITY_CATEGORIES, isCommunityCategory, parseRegion, tagRegion, type CommunityCategory } from "@/src/lib/community"
-import { uploadFile } from "@/src/lib/file"
+import { uploadFile, toUploadPath } from "@/src/lib/file"
 import { useAuthStore } from "@/src/store/authStore"
 import { useHandleError } from "@/src/hooks/useHandleError"
 import { signinPath } from "@/src/lib/navigation"
@@ -92,9 +92,14 @@ export default function Page() {
     e.target.value = ""
   }
 
-  // 본문 마크다운에서 첫 번째 이미지를 대표 이미지(fileUrl)로 사용한다
+  // 본문 마크다운에서 첫 번째 이미지를 대표 이미지(fileUrl)로 사용한다.
+  // 서버가 업로드 경로(/files/<파일명>)만 받아, 본문에 붙여넣은 외부 이미지는 건너뛰고 업로드한 이미지 중 첫 번째를 쓴다
   function extractFileUrl(md: string) {
-    return md.match(/!\[[^\]]*\]\(([^)\s]+)/)?.[1] ?? null
+    for (const m of md.matchAll(/!\[[^\]]*\]\(([^)\s]+)/g)) {
+      const path = toUploadPath(m[1])
+      if (path) return path
+    }
+    return null
   }
 
   async function handleSubmit() {

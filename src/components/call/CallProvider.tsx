@@ -39,15 +39,11 @@ export default function CallProvider() {
   })
   const setMyUsername = useCallStore((s) => s.setMyUsername)
   const phase = useCallStore((s) => s.phase)
-  const pendingLog = useCallStore((s) => s.pendingLog)
-  const clearPendingLog = useCallStore((s) => s.clearPendingLog)
   const error = useCallStore((s) => s.error)
   const notice = useCallStore((s) => s.notice)
   const setError = useCallStore((s) => s.setError)
   const setNotice = useCallStore((s) => s.setNotice)
   const { addToast } = useToast()
-  // 통화 기록을 보낼 때 재사용한다. 채팅 페이지의 연결은 방을 열었을 때만 살아 있다.
-  const clientRef = useRef<Client | null>(null)
   // 엔진 콜백은 한 번만 등록하므로 최신 토큰을 ref 로 들고 본다
   const tokenRef = useRef(token)
   useEffect(() => {
@@ -57,6 +53,15 @@ export default function CallProvider() {
   useEffect(() => {
     setMyUsername(username)
   }, [username, setMyUsername])
+
+  // 새로고침하면 채널에서 빠지지만 서버의 통화는 남아 있다. 들어오자마자 한 번만 되살린다.
+  // 내 이름을 알아야 건 쪽·받는 쪽을 가를 수 있어 username 이 채워진 뒤에 부른다
+  const resumedRef = useRef(false)
+  useEffect(() => {
+    if (!token || !username || resumedRef.current) return
+    resumedRef.current = true
+    void useCallStore.getState().resume(token)
+  }, [token, username])
 
   useEffect(() => {
     callEngine.setHandlers({
@@ -71,16 +76,10 @@ export default function CallProvider() {
         const t = tokenRef.current
         if (t && useCallStore.getState().screenOn) void useCallStore.getState().toggleScreen(t)
       },
-      onPeerLeft: () => {
-        // 상대가 탭을 닫으면 서버 종료 신호 없이 채널에서만 사라질 수 있다.
-        // 그대로 두면 아무도 없는 통화 화면이 남으므로 여기서 끊는다.
-        const store = useCallStore.getState()
-        if (store.phase === 'idle' || store.phase === 'incoming') return
-        store.setNotice('상대방과의 연결이 끊어졌어요.')
-        const t = tokenRef.current
-        if (t) void store.hangUp(t)
-        else void store.reset()
-      },
+      // 상대가 탭을 닫거나 새로고침하면 서버 종료 신호 없이 채널에서만 사라진다.
+      // 새로고침이면 곧 돌아오므로 바로 끊지 않고 기다린다(callStore.handlePeerLeft)
+      onPeerLeft: () => useCallStore.getState().handlePeerLeft(() => tokenRef.current),
+      onPeerJoined: () => useCallStore.getState().handlePeerJoined(),
       onError: (message) => useCallStore.getState().setError(message),
     })
   }, [])
@@ -222,30 +221,10 @@ export default function CallProvider() {
     })
 
     client.activate()
-    clientRef.current = client
     return () => {
-      clientRef.current = null
       void client.deactivate()
     }
   }, [token])
-
-  // 통화가 끝나면 채팅방에 기록을 남긴다.
-  // 백엔드가 통화 기록 메시지를 만들어주지 않아 계약서·결제와 같은 접두사 규약으로 프론트가 보낸다.
-  useEffect(() => {
-    if (!pendingLog) return
-    const client = clientRef.current
-    const t = tokenRef.current
-    // 통화 직후라 연결은 살아 있는 게 정상이다. 끊겨 있으면 기록은 포기한다
-    // (재전송 큐를 두면 다음 로그인 때 뒤늦게 찍히는 게 더 이상하다).
-    if (client?.connected && t) {
-      client.publish({
-        destination: "/app/chat.send",
-        headers: { Authorization: `Bearer ${t}` },
-        body: JSON.stringify({ roomId: pendingLog.roomId, message: pendingLog.message, fileUrls: [] }),
-      })
-    }
-    clearPendingLog()
-  }, [pendingLog, clearPendingLog])
 
   // 로그아웃하면 통화도 끊는다
   useEffect(() => {

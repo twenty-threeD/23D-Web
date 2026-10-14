@@ -9,7 +9,7 @@ import { useAuthStore } from "@/src/store/authStore";
 import { useProfileStore } from "@/src/store/profileStore";
 import { useToast } from "@/src/hooks/useToast";
 import { useHandleError } from "@/src/hooks/useHandleError";
-import { uploadFile, toRelativeUrl } from "@/src/lib/file";
+import { uploadFile, toRelativeUrl, toUploadPath } from "@/src/lib/file";
 import { isPayloadTooLarge } from "@/src/lib/apiError";
 import {
   getMyProfile,
@@ -185,7 +185,9 @@ export default function Page() {
     try {
       await updateMyProfile(token, {
         username: usernameChanged ? nextUsername : undefined,
-        imageUrl: imageUrl || undefined,
+        // 이 값을 빼면 서버가 사진을 기본 이미지로 초기화하므로 다른 항목만 고칠 때도 현재 사진을 함께 보낸다.
+        // 업로드 경로가 아닌 값(소셜 로그인 프로필 사진 등)은 서버가 400 으로 막아 보낼 수 없다
+        imageUrl: toUploadPath(imageUrl) ?? undefined,
         sigCd: sigCd || undefined,
         movableDistance: movableDistance || undefined,
         shortDescription: shortDescription || undefined,

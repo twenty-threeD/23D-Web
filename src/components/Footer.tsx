@@ -7,9 +7,9 @@ const FOOTER_LINK_GROUPS = [
     links: [
       { label: "프로젝트 소개", href: "/about" },
       { label: "커뮤니티", href: "/community" },
-      { label: "팀원소개", href: "/team" },
+      { label: "팀원 소개", href: "/team" },
       // 블록체인 설명 전용 페이지가 아직 없어 문서 페이지로 보낸다
-      { label: "블록체인이란?", href: "/docs" },
+      { label: "블록체인", href: "/docs" },
     ],
   },
   {
