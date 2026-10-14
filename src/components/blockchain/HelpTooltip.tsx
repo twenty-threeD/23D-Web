@@ -1,5 +1,5 @@
 "use client"
-import {useEffect, useId, useRef, useState} from "react";
+import {useEffect, useId, useRef, useState, type ReactNode} from "react";
 
 /**
  * 카드 제목 옆 '?' 도움말.
@@ -10,7 +10,7 @@ import {useEffect, useId, useRef, useState} from "react";
  * 마우스는 호버, 키보드는 포커스, 터치는 탭으로 열린다.
  * (터치 기기에는 호버가 없어 클릭 토글이 유일한 진입점이다)
  */
-export default function HelpTooltip({title, children}: {title: string; children: string}) {
+export default function HelpTooltip({title, children, marker}: {title: string; children: string; marker?: ReactNode}) {
     const [open, setOpen] = useState(false)
     const wrapperRef = useRef<HTMLSpanElement>(null)
     const id = useId()
@@ -50,13 +50,15 @@ export default function HelpTooltip({title, children}: {title: string; children:
                 onClick={() => setOpen((previous) => !previous)}
                 onFocus={() => setOpen(true)}
                 onBlur={() => setOpen(false)}
-                className={`flex size-[18px] cursor-help items-center justify-center rounded-full border text-[11px] font-semibold leading-none transition-colors ${
-                    open
-                        ? "border-main bg-main text-white"
-                        : "border-[#aaa] bg-white text-[#aaa]"
-                }`}
+                className={marker
+                    ? "flex size-[18px] cursor-help items-center justify-center text-ink-hint transition-colors hover:text-main focus-visible:rounded-full focus-visible:outline-2 focus-visible:outline-main"
+                    : `flex size-[18px] cursor-help items-center justify-center rounded-full border text-[11px] font-semibold leading-none transition-colors ${
+                        open
+                            ? "border-main bg-main text-white"
+                            : "border-[#aaa] bg-white text-[#aaa]"
+                    }`}
             >
-                ?
+                {marker ?? "?"}
             </button>
 
             {open && (

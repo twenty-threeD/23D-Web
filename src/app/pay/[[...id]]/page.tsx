@@ -5,6 +5,7 @@ import { LuChevronLeft, LuCircleAlert } from "react-icons/lu";
 
 import { OnClickPay } from "@/src/components/pay/OnClickPay";
 import { ContractPreview } from "@/src/components/pay/ContractPreview";
+import HelpTooltip from "@/src/components/blockchain/HelpTooltip";
 
 import { getPost, type Post } from "@/src/lib/post";
 import { useAuthStore } from "@/src/store/authStore";
@@ -15,7 +16,7 @@ import { getChatRooms, unwrap } from "@/src/lib/chat";
 import { getMyProfile } from "@/src/lib/profile";
 import { signinPath } from "@/src/lib/navigation";
 import type { ChatRoom } from "@/src/store/chatRoomsStore";
-import { calculatePaymentFee, PAYMENT_FEE_TIERS } from "@/src/lib/paymentFee";
+import { calculatePaymentFee } from "@/src/lib/paymentFee";
 
 type Contract = Awaited<ReturnType<typeof getContract>>;
 
@@ -42,7 +43,6 @@ const PayContent = () => {
 
   const [post, setPost] = useState<Post | null>(null);
   const [contract, setContract] = useState<Contract | null>(null);
-  const [paymentTab, setPaymentTab] = useState<"amount" | "fee">("amount");
 
   // URL 의 postId·contractId·roomId·plan 은 누구나 고쳐 칠 수 있다.
   // 서버 prepare 도 계약 금액을 검증하지만 그건 결제하기를 눌러야 드러나므로,
@@ -185,73 +185,6 @@ const PayContent = () => {
                     <p className="text-[28px] font-semibold text-ink">{price.toLocaleString("ko-KR")}원</p>
                   </div>
 
-                  <section className="overflow-hidden rounded-[10px] border border-line" aria-label="결제 금액 안내">
-                    <div className="grid grid-cols-2 border-b border-line" role="tablist" aria-label="결제 안내">
-                      <button
-                        id="payment-amount-tab"
-                        type="button"
-                        role="tab"
-                        aria-selected={paymentTab === "amount"}
-                        aria-controls="payment-details-panel"
-                        onClick={() => setPaymentTab("amount")}
-                        className={`h-10 cursor-pointer border-b-2 px-3 text-[13px] font-semibold ${paymentTab === "amount" ? "border-main text-main" : "border-transparent text-ink-hint"}`}
-                      >
-                        결제 금액
-                      </button>
-                      <button
-                        id="payment-fee-tab"
-                        type="button"
-                        role="tab"
-                        aria-selected={paymentTab === "fee"}
-                        aria-controls="payment-details-panel"
-                        onClick={() => setPaymentTab("fee")}
-                        className={`h-10 cursor-pointer border-b-2 px-3 text-[13px] font-semibold ${paymentTab === "fee" ? "border-main text-main" : "border-transparent text-ink-hint"}`}
-                      >
-                        수수료
-                      </button>
-                    </div>
-
-                    <div
-                      id="payment-details-panel"
-                      role="tabpanel"
-                      aria-labelledby={paymentTab === "amount" ? "payment-amount-tab" : "payment-fee-tab"}
-                      className="flex flex-col gap-3 px-3.5 py-3.5"
-                    >
-                      {paymentTab === "amount" ? (
-                        <div className="flex flex-col gap-3">
-                          <div className="flex items-center justify-between gap-2 text-[13px]">
-                            <span className="text-ink-hint">계약 금액</span>
-                            <span className="font-medium text-ink">{price.toLocaleString("ko-KR")}원</span>
-                          </div>
-                          <p className="text-[12px] text-ink-hint">의뢰인은 계약 금액을 결제합니다.</p>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col gap-3">
-                          <div className="flex items-center justify-between gap-2 text-[13px]">
-                            <span className="text-ink-hint">플랫폼 수수료 ({paymentFee.rate}%)</span>
-                            <span className="font-medium text-ink">{paymentFee.fee.toLocaleString("ko-KR")}원</span>
-                          </div>
-                          <div className="flex items-center justify-between gap-2 text-[13px]">
-                            <span className="text-ink-hint">을 정산액</span>
-                            <span className="font-medium text-ink">{paymentFee.settlement.toLocaleString("ko-KR")}원</span>
-                          </div>
-                          <div className="flex flex-col gap-2 border-t border-line pt-3">
-                            <p className="text-[12px] font-medium text-ink-hint">계약 금액별 수수료율</p>
-                            {PAYMENT_FEE_TIERS.map((tier) => (
-                              <div
-                                key={tier.label}
-                                className={`flex items-center justify-between gap-2 rounded-md px-2.5 py-2 text-[12px] ${paymentFee.rate === tier.rate ? "bg-main/10 font-semibold text-main" : "text-ink-hint"}`}
-                              >
-                                <span>{tier.label}</span>
-                                <span>{tier.rate}%</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </section>
-
                   <OnClickPay
                     amount={price}
                     feeAmount={paymentFee.fee}
@@ -264,7 +197,11 @@ const PayContent = () => {
                     contractId={contractId}
                   />
                 </div>
-                <Notice>수수료는 결제 금액에서 차감되어 을에게 정산됩니다.</Notice>
+                <FeeNotice
+                  rate={paymentFee.rate}
+                  fee={paymentFee.fee}
+                  settlement={paymentFee.settlement}
+                />
               </div>
             </div>
           </div>
@@ -279,6 +216,17 @@ function Notice({ children }: { children: ReactNode }) {
     <p className="flex items-center gap-2 text-[12px] font-medium text-ink-hint">
       <LuCircleAlert className="size-3 shrink-0" />
       {children}
+    </p>
+  );
+}
+
+function FeeNotice({ rate, fee, settlement }: { rate: number; fee: number; settlement: number }) {
+  return (
+    <p className="flex items-center gap-2 text-[12px] font-medium text-ink-hint">
+      <HelpTooltip title="플랫폼 수수료" marker={<LuCircleAlert className="size-3" />}>
+        계약 금액의 {rate}% ({fee.toLocaleString("ko-KR")}원)가 수수료로 차감되어 을에게 {settlement.toLocaleString("ko-KR")}원이 정산됩니다.
+      </HelpTooltip>
+      <span>수수료는 을의 정산액에서 차감됩니다.</span>
     </p>
   );
 }
