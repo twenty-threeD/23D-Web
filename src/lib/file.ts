@@ -9,6 +9,13 @@ export function toRelativeUrl(url: string | null | undefined): string {
   return url
 }
 
+// 프로필 imageUrl, 커뮤니티 글 fileUrl 은 서버가 우리 업로드 경로(/files/<파일명>)만 받고 외부 URL 은 400 으로 막는다.
+// 서버가 절대 URL 로 내려준 값도 있어 상대 경로로 바꾼 뒤 확인하고, 형식이 아니면 null 을 돌려 보내지 않게 한다
+export function toUploadPath(url: string | null | undefined): string | null {
+  const path = toRelativeUrl(url)
+  return /^\/files\/[^/?#]+$/.test(path) ? path : null
+}
+
 interface UploadOptions {
   /**
    * 이미지를 줄이지 않고 원본 그대로 올린다.
