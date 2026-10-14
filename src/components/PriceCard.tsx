@@ -1,22 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { IoChevronDownOutline } from "react-icons/io5"
-import { useAuthStore } from "@/src/store/authStore"
-import { useChatRoomsStore } from "@/src/store/chatRoomsStore"
-import { openChatRoomForPost } from "@/src/lib/chat"
-import { useHandleError } from "@/src/hooks/useHandleError"
-import { type PriceCardPlan } from "@/src/types/priceCard"
-import ServicePickerModal from "@/src/components/item/ServicePickerModal"
-import { signinPath } from "@/src/lib/navigation"
-
-const DEFAULT_PLAN: PriceCardPlan = {
-  planName: "기본 플랜",
-  price: "",
-  description: "",
-  items: [],
-}
+import { type PriceCardPlan, FALLBACK_PLAN } from "@/src/types/priceCard"
+import InquiryButton from "@/src/components/item/InquiryButton"
 
 interface PriceCardProps {
   username?: string
@@ -26,18 +13,14 @@ interface PriceCardProps {
   showInquiry?: boolean
   /** 지정하면 탭 없이 이 플랜만 보여준다. 결제 화면처럼 선택이 이미 끝난 경우에 쓴다 */
   selectedPlanName?: string | null
+  /** 문의하기 버튼에 붙일 클래스. 휴대폰처럼 다른 자리에 버튼을 따로 두는 화면에서 숨길 때 쓴다 */
+  inquiryClassName?: string
 }
 
-export default function PriceCard({ username, plans, postId, showInquiry = true, selectedPlanName }: PriceCardProps) {
-  const router = useRouter()
-  const token = useAuthStore((s) => s.accessToken)
-  const handleError = useHandleError()
-  const [loading, setLoading] = useState(false)
+export default function PriceCard({ username, plans, postId, showInquiry = true, selectedPlanName, inquiryClassName }: PriceCardProps) {
   const [activeIndex, setActiveIndex] = useState(0)
-  const [showPicker, setShowPicker] = useState(false)
-  const setSelectedService = useChatRoomsStore((s) => s.setSelectedService)
 
-  const allPlans = plans && plans.length > 0 ? plans : [DEFAULT_PLAN]
+  const allPlans = plans && plans.length > 0 ? plans : [FALLBACK_PLAN]
   // 선택이 끝난 화면에서는 고른 플랜만 남긴다. 이름이 안 맞으면 전체를 그대로 둔다.
   const picked = selectedPlanName
     ? allPlans.filter((p) => p.planName === selectedPlanName)
@@ -46,25 +29,6 @@ export default function PriceCard({ username, plans, postId, showInquiry = true,
   const showTabs = safePlans.length > 1
   const active = Math.min(activeIndex, safePlans.length - 1)
   const plan = safePlans[active]
-
-  async function handleSelectService(service: { planName: string; price: string }) {
-    if (!token) { router.push(signinPath()); return }
-    if (!username || !postId) return
-    setLoading(true)
-    try {
-      const res = await openChatRoomForPost(token, username, postId)
-      const roomId = res.data?.roomId
-      if (roomId) {
-        setSelectedService(roomId, service, !res.data?.existingRoom)
-        router.push(`/chat/${roomId}`)
-      }
-    } catch (e) {
-      handleError(e)
-    } finally {
-      setLoading(false)
-      setShowPicker(false)
-    }
-  }
 
   const displayPrice = plan.price
     ? `${Number(plan.price.replace(/,/g, '')).toLocaleString()}원`
@@ -115,22 +79,7 @@ export default function PriceCard({ username, plans, postId, showInquiry = true,
       </div>
 
       {showInquiry && (
-        <button
-          onClick={() => setShowPicker(true)}
-          disabled={loading || !username}
-          className="w-full h-[38px] text-center bg-main text-white font-semibold rounded-lg transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
-        >
-          {loading ? "연결 중..." : "문의하기"}
-        </button>
-      )}
-
-      {showPicker && (
-        <ServicePickerModal
-          plans={safePlans}
-          busy={loading}
-          onClose={() => setShowPicker(false)}
-          onSelect={handleSelectService}
-        />
+        <InquiryButton username={username} postId={postId} plans={safePlans} className={inquiryClassName} />
       )}
     </div>
   )

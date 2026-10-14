@@ -75,7 +75,7 @@ export const ContractPreview = ({ contractUrl, token }: ContractPreviewProps) =>
   // A4 비율 박스로 두면 PDF 페이지 크기와 미세하게 달라 아래에 빈 띠가 생겼고,
   // 스크롤바가 폭을 차지해 오른쪽에도 여백이 생겨서 스크롤바는 숨기고 스크롤만 살린다.
   return (
-    <div className="relative w-full h-250 overflow-y-auto bg-[#faf9f8] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="relative w-full h-[70vh] md:h-250 overflow-y-auto bg-[#faf9f8] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <div ref={containerRef} className="flex flex-col" />
       {status !== "done" && (
         <div className="absolute inset-0 flex items-center justify-center text-[14px] font-medium text-ink-hint">

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Image from "next/image"
-import { IoClose, IoSend, IoAdd } from "react-icons/io5"
+import { IoClose, IoSend, IoAdd, IoChevronBack } from "react-icons/io5"
 import Search from "@/src/components/Search"
 import { HiDotsHorizontal } from "react-icons/hi"
 import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment, MdCall, MdVideocam, MdOutlineCancel } from "react-icons/md"
@@ -752,7 +752,8 @@ export default function Page() {
   }, [])
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">  
+    // 휴대폰은 주소창이 접혔다 펴져도 맞도록 dvh 를 쓰고, 목록 화면에서는 하단 메뉴(4rem)만큼 더 뺀다
+    <div className={`flex flex-col ${selectedId ? "h-[calc(100dvh-4rem)]" : "h-[calc(100dvh-8rem)]"} md:h-[calc(100vh-4rem)]`}>  
       {contractModalState && selectedRoom && myPartyRole && (
         <ContractWizardModal
           myRole={myPartyRole}
@@ -765,16 +766,17 @@ export default function Page() {
         />
       )}
 
-      <div className="flex flex-1 px-20 pt-8 overflow-hidden">
+      {/* 휴대폰 폭에서는 목록과 대화방을 나란히 둘 수 없어, 방을 고르기 전엔 목록만 · 고른 뒤엔 대화방만 보여준다 */}
+      <div className="flex flex-1 px-5 md:px-10 xl:px-20 pt-4 md:pt-8 overflow-hidden">
         {/* 왼쪽 채팅 목록 */}
-        <div className="flex flex-col w-80 pr-4 shrink-0 border-r border-zinc-200">
+        <div className={`${selectedId ? "hidden md:flex" : "flex"} flex-col w-full md:w-64 lg:w-80 md:pr-4 shrink-0 md:border-r border-zinc-200`}>
           {/* 탭 */}
           <div className="flex border-b border-zinc-200">
             {tabs.map((t) => (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`flex-1 py-4 text-lg font-semibold border-b-2 transition-colors cursor-pointer ${
+                className={`flex-1 whitespace-nowrap py-4 text-sm lg:text-lg font-semibold border-b-2 transition-colors cursor-pointer ${
                   tab === t.key
                     ? "border-zinc-800 text-zinc-800 font-bold"
                     : "border-transparent text-zinc-400"
@@ -834,9 +836,9 @@ export default function Page() {
                   <div className="flex flex-col flex-1 min-w-0">
                     {/* 거래가 끝나도 대화는 이어지므로 마지막 메시지는 그대로 보여주고, 결과는 이름 옆에 붙인다 */}
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-semibold">{room.participantName}</span>
+                      <span className="text-sm font-semibold truncate">{room.participantName}</span>
                       {roomStatus !== "IN_PROGRESS" && (
-                        <span className={`text-xs font-semibold ${roomStatus === "COMPLETED" ? "text-emerald-700" : "text-red-500"}`}>
+                        <span className={`shrink-0 whitespace-nowrap text-xs font-semibold ${roomStatus === "COMPLETED" ? "text-emerald-700" : "text-red-500"}`}>
                           {roomStatus === "COMPLETED" ? "완료된 거래" : "취소된 거래"}
                         </span>
                       )}
@@ -863,11 +865,20 @@ export default function Page() {
         </div>
 
         {/* 오른쪽 채팅창 */}
-        <div className="flex flex-col flex-1 w-1/2 overflow-hidden">
+        <div className={`${selectedId ? "flex" : "hidden md:flex"} flex-col flex-1 min-w-0 overflow-hidden`}>
           {selectedRoom ? (
             <>
               {/* 채팅 헤더 */}
-              <div className="flex items-center gap-3 px-6 py-4 border-b border-zinc-200 shrink-0">
+              <div className="flex items-center gap-3 px-2 md:px-6 py-4 border-b border-zinc-200 shrink-0">
+                {/* 휴대폰에서는 목록이 가려져 있어 목록으로 돌아갈 길이 필요하다 */}
+                <button
+                  type="button"
+                  aria-label="채팅 목록으로"
+                  onClick={() => router.push("/chat")}
+                  className="md:hidden flex size-8 shrink-0 items-center justify-center rounded-full text-xl text-zinc-600 hover:bg-zinc-100 cursor-pointer"
+                >
+                  <IoChevronBack />
+                </button>
                 <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-zinc-200">
                   <Image
                     src={selectedRoom.participantImageUrl ? toRelativeUrl(selectedRoom.participantImageUrl) : "/profile.webp"}
@@ -921,7 +932,7 @@ export default function Page() {
                 onScroll={(e) => {
                   if (e.currentTarget.scrollTop < 80) void loadOlder()
                 }}
-                className="flex flex-col flex-1 overflow-y-auto px-6 py-6 gap-4"
+                className="flex flex-col flex-1 overflow-y-auto px-2 md:px-6 py-6 gap-4"
               >
                 {loadingMessages ? (
                   <p className="text-center text-zinc-400 text-sm">불러오는 중...</p>
@@ -1094,11 +1105,11 @@ export default function Page() {
                             {callCard}
                             {dealCard}
                           </div>
-                          {showTime && <span className="text-xs text-zinc-400 shrink-0">{formatTime(msg.createdAt)}</span>}
+                          {showTime && <span className="text-xs text-zinc-400 shrink-0 whitespace-nowrap">{formatTime(msg.createdAt)}</span>}
                         </div>
                       ) : (
                         <div className="flex justify-end items-end gap-3">
-                          {showTime && <span className="text-xs text-zinc-400">{formatTime(msg.createdAt)}</span>}
+                          {showTime && <span className="text-xs text-zinc-400 shrink-0 whitespace-nowrap">{formatTime(msg.createdAt)}</span>}
                           <div className="flex flex-col gap-1 items-end">
                             {attachment}
                             {textBubble}
@@ -1162,7 +1173,7 @@ export default function Page() {
 
           {/* 입력 영역. 거래가 끝나도 대화는 막지 않는다 */}
           {selectedRoom && (
-            <div className="shrink-0 border-t border-zinc-200 px-6 py-4 flex flex-col gap-3">
+            <div className="shrink-0 border-t border-zinc-200 px-2 md:px-6 py-4 flex flex-col gap-3">
               {showAttach && (
                 <div className="flex gap-6">
                   <div className="flex flex-col items-center gap-1">

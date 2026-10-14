@@ -32,7 +32,8 @@ const TermsAgreement = ({ onNext }: TermsAgreementProps) => {
     const isEssentialAgreed = terms.service && terms.privacy && terms.thirdParty;
 
     return (
-        <div className="w-full ml-30 mt-5 flex flex-col">
+        // 데스크톱 카드에서는 시안대로 오른쪽으로 밀어 두고, 좁은 화면에서는 입력칸 폭(300px)에 맞춰 가운데 둔다
+        <div className="w-full max-w-75 md:max-w-none md:ml-30 mt-5 flex flex-col">
             {/* 전체 동의 */}
             <label className="text-[12px] text-slate-800 ml-4.75 flex items-center cursor-pointer font-bold">
                 <input 

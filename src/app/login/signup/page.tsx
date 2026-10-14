@@ -71,14 +71,14 @@ export default function Page() {
     }
 
     return (
-        <div className="flex justify-center items-center bg-zinc-100 flex-1">
+        <div className="flex justify-center items-center bg-zinc-100 flex-1 px-4">
             <div className="flex fixed left-4 top-4 px-4 py-4">
                 <BackButton />
             </div>
             <main 
                 style={{ height: getHeight() }}
                 className={`
-                    w-106 py-16 rounded-3xl border border-zinc-300 bg-white 
+                    w-full max-w-106 py-16 rounded-3xl border border-zinc-300 bg-white 
                     flex flex-col items-center justify-center
                     transition-[height] duration-500 ease-in-out overflow-hidden
                 `}

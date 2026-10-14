@@ -106,7 +106,7 @@ export default function CallOverlay() {
 
       <div className="relative flex flex-col flex-1 min-h-0">
         {/* 상단 바 */}
-        <div className="flex items-start justify-between gap-4 px-8 pt-6 shrink-0">
+        <div className="flex items-start justify-between gap-4 px-5 md:px-8 pt-6 shrink-0">
           <div className="flex flex-col gap-1">
             {mainTrack && (
               <>
@@ -142,7 +142,7 @@ export default function CallOverlay() {
         </div>
 
         {/* 스테이지 */}
-        <div className="relative flex flex-1 min-h-0 items-center justify-center px-8 py-6">
+        <div className="relative flex flex-1 min-h-0 items-center justify-center px-4 md:px-8 py-6">
           {mainTrack ? (
             <div className="relative w-full h-full">
               <VideoTile
@@ -193,7 +193,7 @@ export default function CallOverlay() {
         </div>
 
         {/* 컨트롤 */}
-        <div className="flex items-end justify-center gap-4 px-8 pb-10 shrink-0">
+        <div className="flex items-end justify-center gap-3 md:gap-4 px-4 md:px-8 pb-8 md:pb-10 shrink-0">
           {phase === "incoming" ? (
             <>
               <CallButton label="거절" tone="danger" onClick={() => token && hangUp(token)}>

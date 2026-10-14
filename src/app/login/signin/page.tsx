@@ -61,15 +61,16 @@ export default function Page() {
   };
 
   return (
-    <div className="flex justify-center items-center bg-zinc-100 flex-1">
+    <div className="flex justify-center items-center bg-zinc-100 flex-1 px-4 py-18.25">
       <div className="flex fixed left-4 top-4 px-4 py-4">
         <BackButton />
       </div>
-      <div className="w-200 h-150 rounded-3xl flex items-center mt-18.25 mb-18.25 shadow-lg">
-        <div className="w-100 h-150 rounded-l-3xl flex items-center justify-center overflow-hidden">
+      {/* 휴대폰·패드에서는 그림 패널을 빼고 입력 패널만 화면 폭에 맞춰 띄운다 */}
+      <div className="w-full max-w-100 lg:max-w-none lg:w-200 h-150 rounded-3xl flex items-center shadow-lg">
+        <div className="hidden lg:flex w-100 h-150 rounded-l-3xl items-center justify-center overflow-hidden">
           <Image src="/login1.webp" alt="" width={800} height={1200} priority className="h-auto w-full" />
         </div>
-        <div className="w-100 h-150 bg-white rounded-r-3xl flex flex-col gap-3 items-center justify-center">
+        <div className="w-full lg:w-100 h-150 bg-white rounded-3xl lg:rounded-l-none lg:rounded-r-3xl flex flex-col gap-3 items-center justify-center">
           <Link href="/main">
             <Image
               src="/icon.png"
