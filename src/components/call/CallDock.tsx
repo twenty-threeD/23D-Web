@@ -91,7 +91,7 @@ export default function CallDock() {
     <div
       ref={ref}
       style={style}
-      className="fixed right-6 bottom-6 z-[110] flex flex-col gap-4 w-80 p-5 rounded-2xl bg-[#17161c] text-white shadow-2xl ring-1 ring-white/10"
+      className="fixed right-4 bottom-20 md:right-6 md:bottom-6 z-[110] flex flex-col gap-4 w-[min(20rem,calc(100vw-2rem))] p-5 rounded-2xl bg-[#17161c] text-white shadow-2xl ring-1 ring-white/10"
     >
       {/* 프로필·이름 줄이 드래그 손잡이다. 버튼 위에서 끌면 클릭과 헷갈리므로 여기만 잡는다.
           touch-none 이 없으면 터치로 끌 때 브라우저 스크롤이 먼저 먹는다. */}

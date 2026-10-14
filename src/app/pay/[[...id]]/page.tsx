@@ -143,7 +143,7 @@ const PayContent = () => {
 
   return (
     // 넓은 화면에서도 시안의 1280px 콘텐츠 폭을 유지한 채 가운데에 둔다 (마진 대신 부모 정렬로)
-    <main className="flex flex-col items-center px-20 pt-12 pb-27.5">
+    <main className="flex flex-col items-center px-5 md:px-10 xl:px-20 pt-8 md:pt-12 pb-16 md:pb-27.5">
       <div className="flex w-full max-w-320 flex-col gap-9">
         <button
           type="button"
@@ -157,12 +157,13 @@ const PayContent = () => {
         <div className="flex flex-col gap-12">
           <h1 className="text-[20px] font-semibold text-black">계약서 확인</h1>
 
-          <div className="flex items-start gap-12">
-            <div className="w-198.75 shrink-0">
+          {/* 계약서 미리보기(795px)와 결제 칸이 나란히 들어가는 건 넓은 화면뿐이라, 그보다 좁으면 결제 칸을 아래로 내린다 */}
+          <div className="flex flex-col xl:flex-row xl:items-start gap-8 xl:gap-12">
+            <div className="w-full xl:w-198.75 shrink-0">
               <ContractPreview contractUrl={contractUrl} token={token} />
             </div>
 
-            <div className="flex w-109.25 flex-col gap-14 pt-5">
+            <div className="flex w-full xl:w-109.25 flex-col gap-14 xl:pt-5">
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-6">
                   {fields.map((field) => (

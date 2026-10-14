@@ -122,7 +122,7 @@ function SearchContent() {
   return (
     <div>
       {/* 메인 검색 영역과 같은 시안이라 라운드·보더·간격을 메인 페이지와 맞췄다 */}
-      <main className="flex flex-col items-center gap-[120px] px-5 pt-[120px] pb-[120px]">
+      <main className="flex flex-col items-center gap-16 md:gap-[120px] px-5 pt-12 md:pt-[120px] pb-16 md:pb-[120px]">
         <section className="flex flex-col items-center gap-6 w-full max-w-[920px]">
           <div className="flex items-center gap-3 w-full h-[52px] px-6 rounded-xl border border-[#b8b8b8] focus-within:border-main transition-colors">
             <input

@@ -80,7 +80,7 @@ function formatDateTime(value?: string | null) {
   return `${formatDate(value)} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
 }
 
-const cardClass = "animate-chat-card w-72 overflow-hidden rounded-2xl bg-white"
+const cardClass = "animate-chat-card w-[min(16rem,68vw)] lg:w-72 overflow-hidden rounded-2xl bg-white"
 
 // 금액 라벨 + 큰 숫자. 제안 카드는 왼쪽, 체결 카드는 가운데 정렬.
 function PriceBlock({ value, center }: { value: string; center?: boolean }) {

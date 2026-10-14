@@ -31,7 +31,7 @@ export default function DealCard(props: DealCardProps) {
   if (props.kind === "request") {
     const amount = props.amount != null ? `${Number(props.amount).toLocaleString()}원` : null
     return (
-      <div className="animate-chat-card w-72 overflow-hidden rounded-2xl border border-orange-200 bg-white shadow-[0_2px_10px_rgba(254,106,76,.12)]">
+      <div className="animate-chat-card w-[min(16rem,68vw)] lg:w-72 overflow-hidden rounded-2xl border border-orange-200 bg-white shadow-[0_2px_10px_rgba(254,106,76,.12)]">
         <div className="flex flex-col items-center gap-2 bg-main px-3.5 pt-5 pb-4.5">
           <div className="flex size-10 items-center justify-center rounded-full border border-white/25 bg-white/12">
             <IoBagCheckOutline className="text-xl text-white" />
@@ -74,7 +74,7 @@ export default function DealCard(props: DealCardProps) {
 
   return (
     <div
-      className={`animate-chat-card w-72 overflow-hidden rounded-2xl border bg-white ${
+      className={`animate-chat-card w-[min(16rem,68vw)] lg:w-72 overflow-hidden rounded-2xl border bg-white ${
         completed ? "border-emerald-200 shadow-[0_2px_10px_rgba(6,95,70,.10)]" : "border-zinc-200 shadow-[0_2px_10px_rgba(0,0,0,.06)]"
       }`}
     >

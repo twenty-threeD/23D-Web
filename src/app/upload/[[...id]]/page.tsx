@@ -132,7 +132,7 @@ export default function Page() {
   }
 
   return (
-    <div className="flex flex-col gap-9 px-20 pt-12 pb-12">
+    <div className="flex flex-col gap-9 px-5 md:px-10 xl:px-20 pt-8 md:pt-12 pb-12">
       <button
         type="button"
         onClick={() => router.back()}
@@ -141,10 +141,11 @@ export default function Page() {
         <LuChevronLeft className="size-6" />
         뒤로가기
       </button>
-      <main className="flex gap-16 items-start">
+      {/* 미리보기까지 세 칸이 나란히 들어가는 건 넓은 화면뿐이다. 그보다 좁으면 미리보기를 입력란 아래로 내린다 */}
+      <main className="flex flex-col xl:flex-row gap-12 xl:gap-16 xl:items-start">
         <div className="flex-1 flex flex-col gap-6 min-w-0">
           <div className="flex flex-col gap-12">
-            <div className="flex gap-9">
+            <div className="flex flex-col md:flex-row gap-9">
               <UploadFile initialImages={imageUrls} onUpload={setImageUrls} />
               <WriteSection
                 title={title}

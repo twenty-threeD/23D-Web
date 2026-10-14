@@ -41,7 +41,7 @@ export default function PaymentCard({ payment, isSent, paidAt }: PaymentCardProp
   const txHash = payment.txHash ?? payment.blockchainTxHash
 
   return (
-    <div className="animate-chat-card w-72 overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-[0_2px_10px_rgba(6,95,70,.10)]">
+    <div className="animate-chat-card w-[min(16rem,68vw)] lg:w-72 overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-[0_2px_10px_rgba(6,95,70,.10)]">
       <div className="flex flex-col items-center gap-2 bg-emerald-700 px-3.5 pt-5 pb-4.5">
         <div className="flex size-10 items-center justify-center rounded-full border border-white/25 bg-white/12">
           <IoCheckmark className="text-xl text-white" />

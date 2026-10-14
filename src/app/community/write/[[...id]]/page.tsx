@@ -139,7 +139,7 @@ export default function Page() {
 
   return (
     <div>
-      <div className="flex items-start justify-between px-20 py-8 gap-8">
+      <div className="flex flex-col md:flex-row md:items-start justify-between px-5 md:px-10 xl:px-20 py-8 gap-6 md:gap-8">
         <CommunityMenu />
 
         <main className="flex flex-col gap-4 w-full">

@@ -28,7 +28,7 @@ export default function CallButton({
     accept: "bg-emerald-500 text-white hover:bg-emerald-600",
   }
   const sizes = {
-    md: "w-14 h-14 text-2xl",
+    md: "w-12 h-12 text-xl md:w-14 md:h-14 md:text-2xl",
     sm: "w-10 h-10 text-lg",
   }
 

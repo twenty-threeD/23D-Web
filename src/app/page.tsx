@@ -45,19 +45,20 @@ export default function Home() {
     <div>
       <LandingHeader/>
 
-      <div className="h-[calc(100vh-64px)] px-20 flex relative items-center" ref={container1}>
-        <div className="w-full flex justify-between">
-          <div className="flex flex-col gap-16">
+      <div className="min-h-[calc(100vh-64px)] px-5 md:px-10 xl:px-20 py-12 xl:py-0 flex relative items-center" ref={container1}>
+        {/* 넓은 화면에서만 글과 그림을 나란히 둔다. 그보다 좁으면 그림을 글 아래로 내린다 */}
+        <div className="w-full flex flex-col xl:flex-row gap-12 justify-between">
+          <div className="flex flex-col gap-10 md:gap-16">
             <div className="flex flex-col gap-8">
               {/* Main Title */}
-              <div className="flex flex-col gap-2 text-5xl font-extrabold">
+              <div className="flex flex-col gap-2 text-3xl md:text-5xl font-extrabold">
                 <h1>프리랜서 거래,</h1>
                 <h1>이제 믿고
                 <span className='text-main'> 잇다</span>
                 </h1>
               </div>
               {/* Sub Title */}
-              <div className="text-lg font-medium text-zinc-500">
+              <div className="text-base md:text-lg font-medium text-zinc-500">
                 <p>블록체인에 영구 저장되는 계약서로</p>
                 <p>안전한 거래를 시작하세요</p>
               </div>
@@ -70,22 +71,22 @@ export default function Home() {
             </div>
             <div className="w-full h-0.5 bg-zinc-300 rounded-full"></div>
             {/* Info */}
-            <div className="flex gap-8">
+            <div className="flex flex-wrap gap-x-8 gap-y-5">
               <div className="flex flex-col gap-1">
-                <h3 className='text-2xl font-bold'>위변조 불가</h3>
+                <h3 className='text-xl md:text-2xl font-bold'>위변조 불가</h3>
                 <p className='text-zinc-500'>블록체인 기반</p>
               </div>
               <div className="flex flex-col gap-2">
-                <h3 className='text-2xl font-bold'>에스크로</h3>
+                <h3 className='text-xl md:text-2xl font-bold'>에스크로</h3>
                 <p className='text-zinc-500'>대금 선예치 결제</p>
               </div>
               <div className="flex flex-col gap-2">
-                <h3 className='text-2xl font-bold'>실시간</h3>
+                <h3 className='text-xl md:text-2xl font-bold'>실시간</h3>
                 <p className='text-zinc-500'>채팅·작업 공유</p>
               </div>
             </div>
           </div>
-          <div className="w-1/2 h-full">
+          <div className="w-full xl:w-1/2 h-full">
             <Image
               src="/landing1.webp"
               alt="Main Image"
@@ -98,35 +99,36 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="h-screen px-20 flex flex-col relative justify-center bg-[#13110F] text-white gap-32" ref={container2}>
-        <div className="flex flex-col gap-2 text-5xl font-extrabold">
-          <p className='text-main text-base font-medium pb-8'>PROBLEM</p>
+      <div className="h-screen px-5 md:px-10 xl:px-20 flex flex-col relative justify-center bg-[#13110F] text-white gap-8 md:gap-32" ref={container2}>
+        <div className="flex flex-col gap-2 text-3xl md:text-5xl font-extrabold">
+          <p className='text-main text-base font-medium pb-4 md:pb-8'>PROBLEM</p>
           <h1>프리랜서 거래를 막는 것은</h1>
           <h1>실력이 아니라 불신입니다</h1>
         </div>
-        <div className="w-full flex justify-between gap-10">
-          <div className="p-10 rounded-2xl flex flex-col gap-4 border border-zinc-700 problem-card" ref={box1}>
+        {/* 섹션이 화면 높이에 고정(pin)되므로 휴대폰에서 세 카드가 한 화면에 들어오도록 세로로 쌓고 여백을 줄인다 */}
+        <div className="w-full flex flex-col md:flex-row justify-between gap-4 md:gap-10">
+          <div className="p-5 md:p-10 rounded-2xl flex flex-col gap-2 md:gap-4 border border-zinc-700 problem-card" ref={box1}>
             <p className='text-main font-semibold'>01</p>
-            <h2 className='text-2xl font-bold'>대금 미지급</h2>
+            <h2 className='text-xl md:text-2xl font-bold'>대금 미지급</h2>
             <p className='text-zinc-400'>작업을 마쳐도 대금이 들어오지 않습니다. 받을 방법을 증명할 수단도 마땅치 않습니다.</p>
           </div>
-          <div className="p-10 rounded-2xl flex flex-col gap-4 border border-zinc-700 problem-card" ref={box2}>
+          <div className="p-5 md:p-10 rounded-2xl flex flex-col gap-2 md:gap-4 border border-zinc-700 problem-card" ref={box2}>
             <p className='text-main font-semibold'>02</p>
-            <h2 className='text-2xl font-bold'>계약서 분쟁</h2>
+            <h2 className='text-xl md:text-2xl font-bold'>계약서 분쟁</h2>
             <p className='text-zinc-400'>구두 합의와 수정된 문서가 섞이면서, 무엇이 원본인지 아무도 확인할 수 없게 됩니다.</p>
           </div>
-          <div className="p-10 rounded-2xl flex flex-col gap-4 border border-zinc-700 problem-card" ref={box3}>
+          <div className="p-5 md:p-10 rounded-2xl flex flex-col gap-2 md:gap-4 border border-zinc-700 problem-card" ref={box3}>
             <p className='text-main font-semibold'>03</p>
-            <h2 className='text-2xl font-bold'>검증 안 된 상대</h2>
+            <h2 className='text-xl md:text-2xl font-bold'>검증 안 된 상대</h2>
             <p className='text-zinc-400'>이력도 평판도 확인하기 어려운 상태에서, 매번 처음부터 상대를 믿어야 합니다.</p>
           </div>
         </div>
       </div>
 
-      <div className="h-screen px-20 flex justify-between items-center gap-32" ref={container3}>
-        <div className="flex flex-col gap-16">
-          <div className="flex flex-col gap-2 text-5xl font-extrabold">
-            <p className='text-main text-base font-medium pb-8'>SOLUTION</p>
+      <div className="min-h-screen px-5 md:px-10 xl:px-20 py-16 xl:py-0 flex flex-col xl:flex-row justify-between xl:items-center gap-12 xl:gap-32" ref={container3}>
+        <div className="flex flex-col gap-10 md:gap-16">
+          <div className="flex flex-col gap-2 text-3xl md:text-5xl font-extrabold">
+            <p className='text-main text-base font-medium pb-4 md:pb-8'>SOLUTION</p>
             <h1>계약서는 한번 기록되면</h1>
             <h1>누구도 바꿀 수 없습니다</h1>
           </div>
@@ -157,7 +159,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="w-1/2 h-1/2 shrink-0">
+        <div className="w-full xl:w-1/2 xl:h-1/2 shrink-0">
           {/* TODO: /main.png 이 public 에 없어 깨져 있다. 경로를 정하면 next/image 로 바꾼다 */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/main.png" alt="Image" className="w-full h-full object-cover rounded-lg shadow-lg"/>

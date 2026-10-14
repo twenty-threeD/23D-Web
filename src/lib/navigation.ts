@@ -13,3 +13,12 @@ export function signinPath(from?: string): string {
 
   return `${SIGNIN_PATH}?redirect=${encodeURIComponent(target)}`
 }
+
+// 서비스 주요 메뉴. 데스크톱은 헤더 가로 메뉴, 휴대폰은 하단 바(BottomNav)가 같은 목록을 쓴다
+export const NAV_ITEMS = [
+  { href: '/search', label: '능력자 찾기' },
+  { href: '/chat', label: '채팅' },
+  { href: '/community', label: '커뮤니티' },
+  { href: '/upload', label: '서비스 등록' },
+  { href: '/blockchain/verify', label: '블록체인 검증' },
+] as const

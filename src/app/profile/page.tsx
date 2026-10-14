@@ -260,10 +260,10 @@ export default function Page() {
 
   return (
     <div>
-      <main className="flex flex-col gap-10 px-20 py-10 mx-auto">
+      <main className="flex flex-col gap-10 px-5 md:px-10 xl:px-20 py-10">
         <h1 className="text-2xl font-bold">프로필</h1>
 
-        <div className="flex flex-col gap-6 border border-zinc-200 rounded-lg p-8">
+        <div className="flex flex-col gap-6 border border-zinc-200 rounded-lg p-5 md:p-8">
           <div className="flex items-center gap-6">
             <div className="flex flex-col items-center gap-2 shrink-0">
               <div className="relative w-24 h-24 rounded-full overflow-hidden border border-zinc-300 bg-zinc-100 shrink-0">
@@ -426,21 +426,21 @@ export default function Page() {
         <div className="flex flex-col gap-4">
           <h2 className="text-xl font-bold">계정 정보</h2>
           <div className="border border-zinc-200 rounded-lg divide-y divide-zinc-200">
-            <div className="flex items-center justify-between px-4 py-3">
-              <span className="text-sm text-zinc-500">이메일</span>
-              <div className="flex items-center gap-3">
-                <span className="text-sm">
+            <div className="flex items-center justify-between gap-4 px-4 py-3">
+              <span className="text-sm text-zinc-500 shrink-0">이메일</span>
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-sm break-all">
                   {profile?.email ?? <span className="text-zinc-400">등록된 정보가 없습니다</span>}
                 </span>
                 <button
                   onClick={() => setEditingField("email")}
-                  className="text-xs text-zinc-500 underline underline-offset-2 hover:text-main transition-colors cursor-pointer"
+                  className="shrink-0 whitespace-nowrap text-xs text-zinc-500 underline underline-offset-2 hover:text-main transition-colors cursor-pointer"
                 >
                   변경
                 </button>
               </div>
             </div>
-            <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center justify-between gap-4 px-4 py-3">
               <span className="text-sm text-zinc-500">전화번호</span>
               <div className="flex items-center gap-3">
                 {profile?.phone && (
@@ -460,7 +460,7 @@ export default function Page() {
                 </span>
                 <button
                   onClick={() => setEditingField("phone")}
-                  className="text-xs text-zinc-500 underline underline-offset-2 hover:text-main transition-colors cursor-pointer"
+                  className="shrink-0 whitespace-nowrap text-xs text-zinc-500 underline underline-offset-2 hover:text-main transition-colors cursor-pointer"
                 >
                   변경
                 </button>
@@ -487,13 +487,13 @@ export default function Page() {
             </div>
           ) : (
             <div className="border border-zinc-200 rounded-lg">
-              <div className="flex items-center justify-between px-4 py-3">
+              <div className="flex items-center justify-between gap-4 px-4 py-3">
                 <span className="text-sm text-zinc-500">비밀번호</span>
                 <div className="flex items-center gap-3">
                   <span className="text-sm tracking-widest">••••••••</span>
                   <button
                     onClick={() => setPasswordMode("change")}
-                    className="text-xs text-zinc-500 underline underline-offset-2 hover:text-main transition-colors cursor-pointer"
+                    className="shrink-0 whitespace-nowrap text-xs text-zinc-500 underline underline-offset-2 hover:text-main transition-colors cursor-pointer"
                   >
                     재설정
                   </button>

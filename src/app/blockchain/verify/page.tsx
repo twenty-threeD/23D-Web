@@ -75,12 +75,16 @@ function Stat({
 
 type Cells = [ReactNode, ReactNode, ReactNode]
 
-function TableRow({cells, header = false}: {cells: Cells; header?: boolean}) {
+/**
+ * hideMiddleOnMobile: 휴대폰 폭에서는 세 칸이 서로 겹쳐 가운데 칸을 뺀다.
+ * 트랜잭션 표의 서명자는 해시·결제 ID 보다 덜 찾는 값이라 이 칸을 숨긴다.
+ */
+function TableRow({cells, header = false, hideMiddleOnMobile = false}: {cells: Cells; header?: boolean; hideMiddleOnMobile?: boolean}) {
     return (
-        <div className={`grid grid-cols-3 gap-[22px] ${header ? "text-sm text-[#aaa]" : "text-black"}`}>
-            <span className={header ? "" : "text-base"}>{cells[0]}</span>
-            <span className={`text-right ${header ? "" : "text-sm"}`}>{cells[1]}</span>
-            <span className={`text-right ${header ? "" : "text-sm"}`}>{cells[2]}</span>
+        <div className={`grid ${hideMiddleOnMobile ? "grid-cols-2 md:grid-cols-3" : "grid-cols-3"} gap-3 md:gap-[22px] ${header ? "text-sm text-[#aaa]" : "text-black"}`}>
+            <span className={`min-w-0 truncate ${header ? "" : "text-base"}`}>{cells[0]}</span>
+            <span className={`${hideMiddleOnMobile ? "hidden md:block" : ""} min-w-0 truncate text-right ${header ? "" : "text-sm"}`}>{cells[1]}</span>
+            <span className={`min-w-0 truncate text-right ${header ? "" : "text-sm"}`}>{cells[2]}</span>
         </div>
     )
 }
@@ -163,8 +167,8 @@ export default function Page() {
 
     return (
         <div className="flex justify-center bg-white">
-            <main className="flex w-full max-w-[1312px] flex-col gap-12 px-6 pb-28 pt-24 lg:pt-40">
-                <h1 className="text-center text-4xl leading-normal text-black">
+            <main className="flex w-full max-w-[1312px] flex-col gap-8 md:gap-12 px-5 md:px-6 pb-16 md:pb-28 pt-12 md:pt-24 lg:pt-40">
+                <h1 className="text-center text-2xl md:text-4xl leading-normal text-black">
                     <span className="font-bold text-main">블록체인</span>
                     <span className="font-medium">에 기록된</span>
                     <br/>
@@ -176,7 +180,7 @@ export default function Page() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-x-8 gap-y-4 lg:grid-cols-2">
-                    <div className="min-h-[188px] rounded-xl bg-[#fbfbfb] p-7">
+                    <div className="min-h-[188px] rounded-xl bg-[#fbfbfb] p-5 md:p-7">
                         <div className="flex flex-col gap-9">
                             <CardTitle
                                 icon={<LuBlocks {...CARD_ICON}/>}
@@ -188,13 +192,14 @@ export default function Page() {
                         </div>
                     </div>
 
-                    <div className="min-h-[188px] rounded-xl bg-[#fbfbfb] p-7">
+                    <div className="min-h-[188px] rounded-xl bg-[#fbfbfb] p-5 md:p-7">
                         <div className="flex flex-col gap-[34px]">
                             <CardTitle
                                 icon={<LuNetwork {...CARD_ICON}/>}
                                 help="잇다의 결제 기록을 보관하고 검증하는 블록체인 네트워크의 현재 상태예요. 자세한 건 각 항목별 도움말을 참고해주세요."
                             >네트워크 정보</CardTitle>
-                            <div className="flex items-start gap-9">
+                            {/* 휴대폰 폭에는 세 항목이 한 줄에 들어가지 않아 줄을 바꾼다 */}
+                            <div className="flex flex-wrap items-start gap-x-9 gap-y-5">
                                 <Stat
                                     label="운용 노드"
                                     value={networkInfo?.nodes ?? null}
@@ -214,7 +219,7 @@ export default function Page() {
                         </div>
                     </div>
 
-                    <div className="flex flex-col gap-7 rounded-xl bg-[#fbfbfb] p-7 font-medium">
+                    <div className="flex flex-col gap-7 rounded-xl bg-[#fbfbfb] p-5 md:p-7 font-medium">
                         <CardTitle
                             icon={<LuBlocks {...CARD_ICON}/>}
                             help="최근 거래를 담아 만들어진 블록들이에요. 각 블록이 언제 만들어졌는지와 몇 건의 거래가 담겨 있는지를 확인할 수 있어요."
@@ -238,14 +243,14 @@ export default function Page() {
                         </div>
                     </div>
 
-                    <div className="flex flex-col gap-7 rounded-xl bg-[#fbfbfb] p-7 font-medium">
+                    <div className="flex flex-col gap-7 rounded-xl bg-[#fbfbfb] p-5 md:p-7 font-medium">
                         <CardTitle
                             icon={<TbCashBanknotePlus {...CARD_ICON}/>}
                             help="최근 블록체인에 기록된 거래들이에요. 거래를 하면 각 거래마다 세부 내용을 조회할 수 있는 고유한 트랜잭션 해시가 생겨나요."
                             link="/blockchain/more?type=transactions"
                         >최근 트랜잭션</CardTitle>
                         <div className="flex flex-col gap-4">
-                            <TableRow header cells={["트랜잭션 해시", "서명자", "결제 ID"]}/>
+                            <TableRow header hideMiddleOnMobile cells={["트랜잭션 해시", "서명자", "결제 ID"]}/>
                             {padRows(transactions.map((transaction): Cells => [
                                 <Link
                                     key={transaction.hash}
@@ -258,7 +263,7 @@ export default function Page() {
                                 display(truncateAddress(transaction.signer)),
                                 display(truncatePaymentId(transaction.paymentId)),
                             ])).map((cells, index) => (
-                                <TableRow key={transactions[index]?.hash ?? `empty-${index}`} cells={cells}/>
+                                <TableRow key={transactions[index]?.hash ?? `empty-${index}`} hideMiddleOnMobile cells={cells}/>
                             ))}
                         </div>
                     </div>

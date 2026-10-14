@@ -177,7 +177,7 @@ export default function UploadFile({ initialImages, onUpload }: UploadFileProps)
   }
 
   return (
-    <div className="w-82 shrink-0 flex flex-col gap-12">
+    <div className="w-full md:w-82 shrink-0 flex flex-col gap-12">
       <div className="flex flex-col gap-3.5">
         <FieldLabel isEssential>헤더 이미지</FieldLabel>
         <div className="relative">
@@ -231,7 +231,7 @@ export default function UploadFile({ initialImages, onUpload }: UploadFileProps)
           <button
             type="button"
             onClick={() => (bigImage ? setLightboxSrc(bigImage) : openContentPicker())}
-            className="relative size-82 flex flex-col items-center justify-center gap-4 bg-zinc-50 border border-line rounded-xl cursor-pointer transition-colors hover:border-ink-hint overflow-hidden"
+            className="relative w-full aspect-square md:size-82 flex flex-col items-center justify-center gap-4 bg-zinc-50 border border-line rounded-xl cursor-pointer transition-colors hover:border-ink-hint overflow-hidden"
             aria-label={bigImage ? "메인 이미지 크게 보기" : "메인 이미지 업로드"}
           >
             {bigImage ? (

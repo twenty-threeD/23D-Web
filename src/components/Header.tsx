@@ -11,7 +11,7 @@ import { logout } from "@/src/lib/auth";
 import { getMyProfile } from "@/src/lib/profile";
 import { toRelativeUrl } from "@/src/lib/file";
 import { useChatNotifications, type NotificationType } from "@/src/hooks/useChatNotifications";
-import { SIGNIN_PATH } from "@/src/lib/navigation";
+import { NAV_ITEMS, SIGNIN_PATH } from "@/src/lib/navigation";
 
 const NOTIFICATION_TYPE_STYLE: Record<
   NotificationType,
@@ -115,7 +115,8 @@ export default function Header() {
   const isTop = scrollY === 0;
 
   return (
-    // 시안은 1440px 기준 좌우 120px 여백이다. 좁은 화면에서는 여백을 줄이고 메뉴를 가로 스크롤로 넘겨 줄바꿈으로 높이가 깨지지 않게 한다
+    // 시안은 1440px 기준 좌우 120px 여백이다. 좁은 화면에서는 여백을 줄이고,
+    // 휴대폰 폭에서는 메뉴 다섯 개가 로고·로그인과 한 줄에 들어가지 않아 하단 바(BottomNav)로 옮긴다
     <div className={`sticky top-0 z-10 shrink-0 bg-white flex items-center justify-between gap-6 h-[60px] px-5 md:px-10 xl:px-[120px] ${!isTop ? "border-b border-zinc-200" : ""}`}>
 
       {/* 로고 / 리스트 */}
@@ -124,12 +125,10 @@ export default function Header() {
             글자 영역이 파일의 92x46 이므로 시안의 40x20 에 맞추려면 파일 전체를 42x28 로 키운다 */}
         <Link href="/main" className="shrink-0"><Image src="/logo.svg" alt="잇다" width={42} height={28} className="block w-[42px] h-7 bg-[#363636] mix-blend-multiply" /></Link>
 
-        <ul className="flex min-w-0 items-center gap-5 lg:gap-7 overflow-x-auto whitespace-nowrap text-sm font-medium leading-none text-neutral-400 [scrollbar-width:none]">
-          <li><Link href="/search" className="transition-colors hover:text-main">능력자 찾기</Link></li>
-          <li><Link href="/chat" className="transition-colors hover:text-main">채팅</Link></li>
-          <li><Link href="/community" className="transition-colors hover:text-main">커뮤니티</Link></li>
-          <li><Link href="/upload" className="transition-colors hover:text-main">서비스 등록</Link></li>
-          <li><Link href="/blockchain/verify" className="transition-colors hover:text-main">블록체인 검증</Link></li>
+        <ul className="hidden md:flex min-w-0 items-center gap-5 lg:gap-7 overflow-x-auto whitespace-nowrap text-sm font-medium leading-none text-neutral-400 [scrollbar-width:none]">
+          {NAV_ITEMS.map((item) => (
+            <li key={item.href}><Link href={item.href} className="transition-colors hover:text-main">{item.label}</Link></li>
+          ))}
         </ul>
       </div>
 
@@ -144,7 +143,8 @@ export default function Header() {
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 top-11 w-80 bg-white border border-zinc-200 rounded-lg shadow-lg overflow-hidden z-50">
+              // 휴대폰에서는 알림 버튼이 오른쪽 끝이 아니라 320px 창이 화면 왼쪽 밖으로 나간다. 화면 폭에 맞춰 띄운다
+              <div className="fixed inset-x-4 top-16 md:absolute md:inset-x-auto md:right-0 md:top-11 md:w-80 bg-white border border-zinc-200 rounded-lg shadow-lg overflow-hidden z-50">
 
                 <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100">
                   <span className="text-sm font-bold">알림</span>
