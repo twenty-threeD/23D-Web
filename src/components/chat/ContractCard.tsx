@@ -10,6 +10,7 @@ import {
   IoLockClosedOutline,
 } from "react-icons/io5"
 import { toRelativeUrl } from "@/src/lib/file"
+import { calculatePaymentFee } from "@/src/lib/paymentFee"
 
 // 계약 카드 전용 브라운 팔레트(#452B24 계열). 전역 --color-contract(계약서 본문 남색)와는 별개로 시안을 따른다.
 
@@ -52,6 +53,15 @@ function formatPrice(price?: string | number | null) {
   return `${Number(digits).toLocaleString()}원`
 }
 
+function getPaymentFee(price?: string | number | null) {
+  if (price === null || price === undefined) return null
+  const digits = String(price).replace(/[^0-9]/g, "")
+  if (!digits) return null
+  const amount = Number(digits)
+  if (!Number.isSafeInteger(amount) || amount <= 0) return null
+  return calculatePaymentFee(amount)
+}
+
 function toDate(value?: string | null) {
   if (!value) return null
   const d = new Date(value)
@@ -89,6 +99,7 @@ function PriceBlock({ value, center }: { value: string; center?: boolean }) {
 // 계약서 제안 / 체결 완료 메시지를 말풍선 대신 카드로 보여준다.
 export default function ContractCard(props: ContractCardProps) {
   const formattedPrice = formatPrice(props.price)
+  const paymentFee = getPaymentFee(props.price)
 
   if (props.kind === "completed") {
     const signedDate = formatDate(props.signedAt)
@@ -109,6 +120,21 @@ export default function ContractCard(props: ContractCardProps) {
 
         <div className="flex flex-col gap-3 px-3.5 pt-4 pb-3.5">
           {formattedPrice && <PriceBlock value={formattedPrice} center />}
+
+          {/* 체결 완료 메시지는 갑이 보내므로 수신자인 을에게만 결제 전 정산액을 안내한다. */}
+          {!props.isSent && !props.paid && paymentFee && (
+            <div className="flex flex-col gap-1 rounded-[10px] border border-[#EADCD6] bg-[#FAF3F0] px-2.5 py-2.5">
+              <span className="text-[10.5px] font-semibold text-[#6E4A40]">
+                을 정산 예정 금액
+              </span>
+              <span className="text-[18px] font-bold leading-tight text-[#452B24]">
+                {paymentFee.settlement.toLocaleString()}원
+              </span>
+              <span className="text-[10.5px] leading-snug text-[#6E4A40]">
+                결제 완료 후 플랫폼 수수료 {paymentFee.rate}% ({paymentFee.fee.toLocaleString()}원)를 차감한 금액이 정산됩니다.
+              </span>
+            </div>
+          )}
 
           <div className="flex items-center gap-2 rounded-[10px] bg-[#FAF3F0] px-2.5 py-2.5">
             <IoLockClosedOutline className="shrink-0 text-sm text-[#9A7A70]" />
