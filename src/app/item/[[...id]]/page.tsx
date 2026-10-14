@@ -18,6 +18,7 @@ import { useToast } from "@/src/hooks/useToast";
 import { ApiError } from "@/src/lib/apiError";
 import { toRelativeUrl } from "@/src/lib/file"
 import ImageLightbox from "@/src/components/ImageLightbox"
+import ReviewAnalysis from "@/src/components/item/ReviewAnalysis"
 import { createReview, getReviews, getReviewableContracts, type Review as ReviewData, type ReviewableContract } from "@/src/lib/review"
 import { signinPath } from "@/src/lib/navigation"
 
@@ -290,6 +291,9 @@ export default function Page() {
                   </p>
                 </div>
               </div>
+
+              {/* 리뷰 요약은 글이 아니라 전문가(회원) 단위라 작성자 id 로 조회한다 */}
+              {post?.member?.id != null && <ReviewAnalysis memberId={post.member.id} />}
 
               {/* 후기는 이 글에서 내가 의뢰인으로 결제까지 마친 계약에만, 계약당 한 번 남길 수 있다 */}
               {canReview && (

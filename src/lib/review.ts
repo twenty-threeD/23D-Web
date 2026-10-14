@@ -134,3 +134,27 @@ export async function getReviewSummary(memberId: number, token?: string | null) 
   const json = await res.json()
   return (json.data ?? null) as ReviewSummary | null
 }
+
+export interface ReviewAnalysis {
+  summary: string
+  keywords: string[]
+  analyzedReviewCount: number
+  updatedAt: string | null
+}
+
+// 전문가(회원)가 받은 리뷰를 AI 가 요약한 결과. 로그인 없이 볼 수 있어 토큰을 받지 않는다.
+// 분석 중(409)·리뷰 부족(400)·분석 실패(502)·미설정(503)은 ApiError 의 code 로 구분한다
+export async function getReviewAnalysis(memberId: number) {
+  const params = new URLSearchParams({ memberId: String(memberId) })
+  const res = await fetch(`/api/post/review/analysis?${params}`)
+  if (!res.ok) await throwApiError(res)
+  const json = await res.json()
+  const data = json?.data
+  if (!data) return null
+  return {
+    summary: typeof data.summary === 'string' ? data.summary : '',
+    keywords: Array.isArray(data.keywords) ? data.keywords.filter((k: unknown) => typeof k === 'string') : [],
+    analyzedReviewCount: Number(data.analyzedReviewCount) || 0,
+    updatedAt: data.updatedAt ?? null,
+  } as ReviewAnalysis
+}
