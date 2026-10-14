@@ -5,6 +5,7 @@ import { LuChevronLeft, LuCircleAlert } from "react-icons/lu";
 
 import { OnClickPay } from "@/src/components/pay/OnClickPay";
 import { ContractPreview } from "@/src/components/pay/ContractPreview";
+import HelpTooltip from "@/src/components/blockchain/HelpTooltip";
 
 import { getPost, type Post } from "@/src/lib/post";
 import { useAuthStore } from "@/src/store/authStore";
@@ -15,6 +16,7 @@ import { getChatRooms, unwrap } from "@/src/lib/chat";
 import { getMyProfile } from "@/src/lib/profile";
 import { signinPath } from "@/src/lib/navigation";
 import type { ChatRoom } from "@/src/store/chatRoomsStore";
+import { calculatePaymentFee } from "@/src/lib/paymentFee";
 
 type Contract = Awaited<ReturnType<typeof getContract>>;
 
@@ -43,7 +45,7 @@ const PayContent = () => {
   const [contract, setContract] = useState<Contract | null>(null);
 
   // URL 의 postId·contractId·roomId·plan 은 누구나 고쳐 칠 수 있다.
-  // 서버 prepare 도 금액을 검증하지만 그건 결제하기를 눌러야 드러나므로,
+  // 서버 prepare 도 계약 금액을 검증하지만 그건 결제하기를 눌러야 드러나므로,
   // 진입 시점에 서로가 한 건으로 맞물리는지 확인하고 하나라도 어긋나면 화면을 보여주지 않고 돌려보낸다.
   useEffect(() => {
     if (!hydrated) return;
@@ -123,8 +125,9 @@ const PayContent = () => {
     );
   }
 
-  // 금액은 URL 이 아니라 서버의 계약서 금액만 쓴다 (게시글 플랜 가격은 결제에 절대 쓰지 않는다)
+  // 수수료 구간과 비율은 안내용이며, 최종 금액·수수료·정산액은 서버 prepare 응답과 대조한다.
   const price = contract.price;
+  const paymentFee = calculatePaymentFee(price);
   const contractUrl = contract.contractUrl;
 
   // 오른쪽 항목은 계약서 PDF 의 내용을 서버에 저장된 값으로 다시 보여주는 것이다.
@@ -178,11 +181,14 @@ const PayContent = () => {
               <div className="flex flex-col gap-2.5">
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-2">
-                    <p className="text-[14px] font-medium text-ink-hint">총 결제 금액</p>
-                    <p className="text-[28px] font-semibold text-ink">{price.toLocaleString()}원</p>
+                    <p className="text-[14px] font-medium text-ink-hint">최종 결제 금액</p>
+                    <p className="text-[28px] font-semibold text-ink">{price.toLocaleString("ko-KR")}원</p>
                   </div>
+
                   <OnClickPay
-                    price={price}
+                    amount={price}
+                    feeAmount={paymentFee.fee}
+                    settlementAmount={paymentFee.settlement}
                     orderName={post.title ?? "잇다 서비스"}
                     orderCustomerName={username ?? ""}
                     postId={post.id}
@@ -191,7 +197,11 @@ const PayContent = () => {
                     contractId={contractId}
                   />
                 </div>
-                <Notice>수수료 포함</Notice>
+                <FeeNotice
+                  rate={paymentFee.rate}
+                  fee={paymentFee.fee}
+                  settlement={paymentFee.settlement}
+                />
               </div>
             </div>
           </div>
@@ -206,6 +216,17 @@ function Notice({ children }: { children: ReactNode }) {
     <p className="flex items-center gap-2 text-[12px] font-medium text-ink-hint">
       <LuCircleAlert className="size-3 shrink-0" />
       {children}
+    </p>
+  );
+}
+
+function FeeNotice({ rate, fee, settlement }: { rate: number; fee: number; settlement: number }) {
+  return (
+    <p className="flex items-center gap-2 text-[12px] font-medium text-ink-hint">
+      <HelpTooltip title="플랫폼 수수료" marker={<LuCircleAlert className="size-3" />}>
+        계약 금액의 {rate}% ({fee.toLocaleString("ko-KR")}원)가 수수료로 차감되어 을에게 {settlement.toLocaleString("ko-KR")}원이 정산됩니다.
+      </HelpTooltip>
+      <span>수수료는 을의 정산액에서 차감됩니다.</span>
     </p>
   );
 }
