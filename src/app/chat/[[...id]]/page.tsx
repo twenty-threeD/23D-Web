@@ -562,7 +562,9 @@ export default function Page() {
   // 서명은 PDF 안에 그림으로 이미 들어가므로 서버에 따로 서명하는 단계는 없다
   // (백엔드에서 /api/contract/sign 이 제거됨).
   //
-  // 등록하는 사람은 항상 갑이므로 clientId는 내 회원 ID, professionalId는 채팅 상대(을)의 ID다.
+  // 갑·을은 등록하는 사람이 아니라 게시글 작성자로 정한다. 작성자가 을(professionalId)이고 채팅의 다른 쪽이 갑(clientId)이다.
+  // 서버가 게시글 작성자와 professionalId 가 같은지 검사하므로, "등록자 = 갑"으로 두면 을이 등록할 때 400 이 나고
+  // postId 를 빼면 계약이 게시글에 묶이지 않아 리뷰를 쓸 수 없다.
   async function handleContractSubmit(data: ContractData, pdfBlob?: Blob) {
     if (!token || !selectedId || !contractModalState || !selectedRoom) return
     const client = stompClientRef.current
@@ -573,8 +575,19 @@ export default function Page() {
       if (contractModalState.mode === "review") {
         if (!pdfBlob) return
 
-        const professionalId = selectedRoom.participantId
-        if (!myMemberId || !professionalId) {
+        const postId = selectedRoom.postId ?? null
+        let clientId: number | null | undefined = myMemberId
+        let professionalId: number | null | undefined = selectedRoom.participantId
+        if (postId) {
+          // 방에 들어올 때 이미 받아둔 글이 있으면 다시 조회하지 않는다
+          const authorId =
+            selectedPost?.id === postId
+              ? selectedPost.member?.id
+              : (await getPost(postId, token)).data?.member?.id
+          professionalId = authorId
+          clientId = authorId != null && authorId === myMemberId ? selectedRoom.participantId : myMemberId
+        }
+        if (!clientId || !professionalId) {
           addToast({ message: "계약 당사자 정보를 확인하지 못했습니다.", type: "error" })
           return
         }
@@ -585,8 +598,9 @@ export default function Page() {
 
         const contract = await createContract(token, {
           contractUrl,
-          clientId: myMemberId,
+          clientId,
           professionalId,
+          postId,
           startedAt: toContractDateTime(data.startDate),
           endedAt: toContractDateTime(data.endDate, true),
           inspectionPeriod: Number(data.inspectionDays),
@@ -1029,8 +1043,9 @@ export default function Page() {
                     </div>
                   ) : null
 
-                  // 계약서는 을(파는 사람)이 갑(사는 사람)에게만 제안하므로 받은 사람(=갑)만 검토·서명할 수 있고,
-                  // 체결 메시지는 갑이 서명하면서 보낸 것이라 보낸 사람(=갑)에게만 결제 버튼이 붙는다.
+                  // 계약서는 제안을 받은 쪽이 검토·서명한다.
+                  // 결제는 누가 체결 메시지를 보냈는지와 상관없이 갑(의뢰인 = 게시글 작성자가 아닌 쪽)만 한다.
+                  // 글 작성자를 아직 못 불러왔으면(myPartyRole 이 null) 결제 버튼을 띄우지 않는다
                   const contractCard = contractMsg ? (
                     contractMsg.kind === "propose" ? (
                       <ContractCard
@@ -1052,7 +1067,7 @@ export default function Page() {
                         contractUrl={contractMsg.data.contractUrl}
                         signedAt={msg.createdAt}
                         paid={idx < lastPaymentIdx}
-                        onPay={isSent && selectedRoom.postId ? () => handlePayNavigate(contractMsg.data) : undefined}
+                        onPay={myPartyRole === "client" && selectedRoom.postId ? () => handlePayNavigate(contractMsg.data) : undefined}
                       />
                     )
                   ) : null
