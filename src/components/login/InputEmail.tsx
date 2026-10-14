@@ -82,7 +82,7 @@ const InputEmail = ({ formData, setFormData, onNext }: InputEmailProps) => {
             {showVerification && (
                 <div className="flex items-center justify-center">
                     <button
-                        onClick={() => { handleSendCode(); alert("인증번호가 재발송되었습니다."); }}
+                        onClick={handleSendCode}
                         className="w-auto h-3 text-xs mt-2.5 font-normal
                         text-zinc-500 underline underline-offset-2 hover:text-main transition-colors"
                     >

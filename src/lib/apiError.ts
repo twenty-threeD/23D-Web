@@ -17,6 +17,18 @@ const MESSAGE_BY_CODE: Record<string, string> = {
   EMAIL_NOT_VERIFIED: '이메일 인증이 만료되었습니다. 이메일 인증을 다시 진행해주세요.',
   // 게시글 작성자가 빠진 채로 만들어진 예전 방은 거래 상태 변경·결제 준비가 막힌다
   NOT_POST_AUTHOR_ROOM: '서비스 작성자와의 채팅방에서만 거래를 진행할 수 있어요. 서비스 페이지에서 다시 문의해주세요.',
+  // 같은 주소 하루 10통, 같은 IP 시간당 20통 제한이다
+  EMAIL_SEND_LIMIT_EXCEEDED: '인증 메일 발송 한도를 초과했어요. 잠시 후 다시 시도해주세요.',
+  // 메일 서버 장애. 예전에는 500 으로 와서 원인을 알 수 없었다
+  EMAIL_CANNOT_SEND: '지금은 인증 메일을 보낼 수 없어요. 잠시 후 다시 시도해주세요.',
+  TRADE_STATUS_NOT_ALLOWED: '지금 상태에서는 거래 상태를 바꿀 수 없어요.',
+  TRADE_NOT_CANCELABLE: '이미 끝난 거래라 취소할 수 없어요.',
+  PAYMENT_REFUNDABLE_AMOUNT_EXCEEDED: '환불 가능한 금액을 초과했어요.',
+  PAYMENT_NOTHING_TO_REFUND: '환불할 금액이 남아 있지 않아요.',
+  REVIEW_ANALYSIS_IN_PROGRESS: '리뷰를 분석하고 있어요. 잠시 후 다시 확인해주세요.',
+  NOT_ENOUGH_REVIEWS_TO_ANALYZE: '분석할 리뷰가 아직 충분하지 않아요.',
+  REVIEW_ANALYSIS_FAILED: '리뷰 분석에 실패했어요. 잠시 후 다시 시도해주세요.',
+  REVIEW_ANALYSIS_NOT_CONFIGURED: '지금은 리뷰 분석을 사용할 수 없어요.',
 }
 
 export async function throwApiError(res: Response): Promise<never> {
