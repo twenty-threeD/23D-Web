@@ -10,7 +10,7 @@ import {useEffect, useId, useRef, useState, type ReactNode} from "react";
  * 마우스는 호버, 키보드는 포커스, 터치는 탭으로 열린다.
  * (터치 기기에는 호버가 없어 클릭 토글이 유일한 진입점이다)
  */
-export default function HelpTooltip({title, children, marker}: {title: string; children: string; marker?: ReactNode}) {
+export default function HelpTooltip({title, children, marker}: {title: string; children: ReactNode; marker?: ReactNode}) {
     const [open, setOpen] = useState(false)
     const wrapperRef = useRef<HTMLSpanElement>(null)
     const id = useId()
