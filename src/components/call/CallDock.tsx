@@ -12,6 +12,7 @@ import {
   MdCallEnd,
   MdCall,
   MdOpenInFull,
+  MdCameraswitch,
 } from "react-icons/md"
 import { useAuthStore } from "@/src/store/authStore"
 import { useCallStore } from "@/src/store/callStore"
@@ -21,6 +22,8 @@ import { toRelativeUrl } from "@/src/lib/file"
 import CallButton from "./CallButton"
 import { useDraggable } from "@/src/hooks/useDraggable"
 import SpeakerButton from "./SpeakerButton"
+import { canSelectPlaybackDevice, canShareScreen } from "@/src/lib/agoraEngine"
+import { useSpeaking } from "@/src/hooks/useSpeaking"
 
 function formatDuration(seconds: number) {
   const m = Math.floor(seconds / 60)
@@ -52,7 +55,10 @@ export default function CallDock() {
     toggleMic,
     toggleCam,
     toggleScreen,
+    canFlipCamera,
+    flipCamera,
   } = useCallStore()
+  const speaking = useSpeaking(phase === "active")
   const [now, setNow] = useState(() => Date.now())
   // 그 방을 열어두고 있으면 대화 흐름 안의 카드가 대신 맡는다
   const activeRoomId = useChatRoomsStore((s) => s.activeRoomId)
@@ -105,7 +111,7 @@ export default function CallDock() {
             alt={peerName}
             width={48}
             height={48}
-            className="relative size-12 rounded-full object-cover ring-2 ring-white/15"
+            className={`relative size-12 rounded-full object-cover transition-shadow ${speaking.peer ? "ring-[3px] ring-main" : "ring-2 ring-white/15"}`}
           />
         </div>
         <div className="flex flex-col gap-0.5 min-w-0 flex-1">
@@ -156,6 +162,7 @@ export default function CallDock() {
               tone={micOn ? "normal" : "off"}
               size="sm"
               showLabel={false}
+              highlight={micOn && speaking.me}
               disabled={!call}
               onClick={() => token && toggleMic(token)}
             >
@@ -171,6 +178,13 @@ export default function CallDock() {
             >
               {camOn ? <MdVideocam /> : <MdVideocamOff />}
             </CallButton>
+            {camOn && canFlipCamera && (
+              <CallButton label="카메라 전환" size="sm" showLabel={false} disabled={busy} onClick={() => void flipCamera()}>
+                <MdCameraswitch />
+              </CallButton>
+            )}
+            {/* 휴대폰은 화면공유·출력 장치 선택을 지원하지 않아 버튼을 숨긴다 (CallOverlay 와 같은 기준) */}
+            {canShareScreen() && (
             <CallButton
               label="화면 공유"
               tone={screenOn ? "on" : "normal"}
@@ -181,7 +195,8 @@ export default function CallDock() {
             >
               {screenOn ? <MdStopScreenShare /> : <MdScreenShare />}
             </CallButton>
-            <SpeakerButton size="sm" />
+            )}
+            {canSelectPlaybackDevice() && <SpeakerButton size="sm" />}
             <CallButton
               label="종료"
               tone="danger"
