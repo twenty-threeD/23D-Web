@@ -43,7 +43,7 @@ import ImageLightbox from "@/src/components/ImageLightbox"
 import { parseChatStart } from "@/src/lib/chatPreview"
 import DealCard from "@/src/components/chat/DealCard"
 import { formatDealCancel, parseDealEnd, parseDealRequest } from "@/src/lib/deal"
-import { ApiError } from "@/src/lib/apiError"
+import { ApiError, isPayloadTooLarge } from "@/src/lib/apiError"
 import { PAGE_TOP, PAGE_X } from "@/src/lib/layout";
 
 function isImageUrl(url: string) {
@@ -523,8 +523,13 @@ export default function Page() {
     try {
       const { url } = await uploadFile(token, file)
       setPendingDocUrl(url)
-    } catch {
+    } catch (e) {
       setPendingDocName(null)
+      // 실패해도 첨부 표시만 사라져서 사용자는 왜 안 붙는지 알 수 없었다
+      addToast({
+        message: isPayloadTooLarge(e) ? `${file.name}: 파일이 너무 커요.` : `${file.name}: 문서를 올리지 못했어요. PDF 파일만 보낼 수 있어요.`,
+        type: "error",
+      })
     } finally {
       setUploading(false)
       e.target.value = ""
@@ -1330,7 +1335,8 @@ export default function Page() {
               <input
                 ref={docInputRef}
                 type="file"
-                accept=".pdf,.doc,.docx,.hwp,.hwpx,.xls,.xlsx,.ppt,.pptx,.zip,.txt"
+                // 백엔드가 이미지와 PDF 만 받아(Tika 로 MIME 검사) 다른 문서는 골라도 업로드가 거부된다
+                accept=".pdf,application/pdf"
                 className="hidden"
                 onChange={handleDocChange}
               />
