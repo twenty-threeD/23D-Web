@@ -1311,7 +1311,7 @@ export default function Page() {
                     <div key={preview} className="relative w-24 h-24 rounded-lg overflow-hidden shrink-0">
                       {/* blob: URL 이라 next/image 최적화 대상이 아니다. 보내기 전 로컬 미리보기일 뿐이다 */}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={preview} alt="첨부 이미지" className="w-full h-full object-cover" />
+                      <img src={url ? toRelativeUrl(url) : preview} alt="첨부 이미지" className="w-full h-full object-cover" />
                       {!url ? (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                           <span className="text-white text-xs">업로드 중</span>
