@@ -9,6 +9,7 @@ export default function CallButton({
   tone = "normal",
   size = "md",
   showLabel = true,
+  highlight = false,
   children,
 }: {
   onClick: () => void
@@ -18,6 +19,8 @@ export default function CallButton({
   tone?: "normal" | "off" | "on" | "danger" | "accept"
   size?: "md" | "sm"
   showLabel?: boolean
+  /** 내가 말하는 중일 때 마이크 버튼에 주황 링을 두른다 */
+  highlight?: boolean
   children: React.ReactNode
 }) {
   const tones: Record<string, string> = {
@@ -40,7 +43,7 @@ export default function CallButton({
         disabled={disabled}
         aria-label={label}
         title={label}
-        className={`flex items-center justify-center rounded-full transition disabled:opacity-40 disabled:cursor-not-allowed ${sizes[size]} ${tones[tone]}`}
+        className={`flex items-center justify-center rounded-full transition disabled:opacity-40 disabled:cursor-not-allowed ${sizes[size]} ${tones[tone]} ${highlight ? "ring-[3px] ring-main" : ""}`}
       >
         {children}
       </button>

@@ -5,6 +5,7 @@ import {
   ensureMediaPermission,
   MediaPermissionError,
   toPermissionError,
+  type CameraFacing,
   type PlaybackDevice,
   type RemoteVideoKind,
 } from '@/src/lib/agoraEngine'
@@ -33,6 +34,8 @@ import { ApiError } from '@/src/lib/apiError'
 async function joinChannel(session: CallSession, video: boolean, stillConnecting: () => boolean) {
   callEngine.setScreenUids([session.call.caller.screenUid, session.call.callee.screenUid])
   await callEngine.join(session, { video })
+  // 영상으로 시작하면 toggleCam 을 거치지 않고 카메라가 켜지므로 전·후면 전환 가능 여부를 여기서도 확인한다
+  if (video) void callEngine.hasMultipleCameras().then((canFlipCamera) => useCallStore.setState({ canFlipCamera }))
   if (stillConnecting()) return true
   await callEngine.leave()
   return false
@@ -76,6 +79,10 @@ interface CallStore {
   expanded: boolean
   // 상대가 채널에서 빠져 다시 들어오길 기다리는 중. 그동안 통화 시간 대신 대기 문구를 보여준다
   peerReconnecting: boolean
+  // 내 카메라가 앞(user)·뒤(environment) 중 어디를 보는지. 앞일 때만 내 화면을 거울처럼 뒤집어 보여준다
+  cameraFacing: CameraFacing
+  // 전·후면을 고를 수 있는 기기인지. 카메라를 켤 때 한 번 확인한다
+  canFlipCamera: boolean
 
   setMyUsername: (username: string | null) => void
   applySignal: (event: CallSignalEvent) => void
@@ -99,6 +106,7 @@ interface CallStore {
   hangUp: (token: string) => Promise<void>
   toggleMic: (token: string) => Promise<void>
   toggleCam: (token: string) => Promise<void>
+  flipCamera: () => Promise<void>
   toggleScreen: (token: string) => Promise<void>
   refreshDevices: () => Promise<void>
   selectDevice: (deviceId: string) => Promise<void>
@@ -125,6 +133,8 @@ const initial = {
   notice: null,
   expanded: false,
   peerReconnecting: false,
+  cameraFacing: 'user' as CameraFacing,
+  canFlipCamera: false,
 }
 
 // 상대가 종료 버튼으로 끊으면 서버가 ENDED 신호를 보내 즉시 끝난다. 그 신호 없이 채널에서만 빠졌다면
@@ -490,10 +500,24 @@ export const useCallStore = create<CallStore>()((set, get) => ({
     set({ busy: true })
     try {
       await callEngine.setCamera(next)
-      set({ camOn: next, expanded: next ? true : get().expanded })
+      set({ camOn: next, expanded: next ? true : get().expanded, cameraFacing: callEngine.cameraFacing })
+      if (next) void callEngine.hasMultipleCameras().then((canFlipCamera) => set({ canFlipCamera }))
       if (call) {
         await updateCallMedia(token, call.callId, { audioEnabled: micOn, videoEnabled: next }).catch(() => {})
       }
+    } catch (e) {
+      set({ error: messageOf(e) })
+    } finally {
+      set({ busy: false })
+    }
+  },
+
+  flipCamera: async () => {
+    const { camOn, busy } = get()
+    if (!camOn || busy) return
+    set({ busy: true })
+    try {
+      set({ cameraFacing: await callEngine.flipCamera() })
     } catch (e) {
       set({ error: messageOf(e) })
     } finally {

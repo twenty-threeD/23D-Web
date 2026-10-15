@@ -102,6 +102,22 @@ export interface PlaybackDevice {
   label: string
 }
 
+export type CameraFacing = 'user' | 'environment'
+
+// 화면공유는 getDisplayMedia 가 있어야 한다. 휴대폰 브라우저(iOS 사파리·안드로이드 크롬)에는 이 API 가 없어
+// 버튼을 눌러도 실패만 하므로, 지원하는 환경에서만 버튼을 보여준다
+export function canShareScreen() {
+  return typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getDisplayMedia === 'function'
+}
+
+// 소리 나는 곳 고르기는 setSinkId 로만 할 수 있다. 휴대폰 웹은 스피커폰·수화부 전환을 OS 가 맡아
+// 웹에서 바꿀 방법이 없고(안드로이드 크롬도 목록이 기본 장치 하나뿐이다), 사파리는 API 자체가 없다
+export function canSelectPlaybackDevice() {
+  if (typeof window === 'undefined') return false
+  const isTouchPhone = window.matchMedia('(pointer: coarse)').matches && window.matchMedia('(max-width: 1024px)').matches
+  return !isTouchPhone && 'setSinkId' in HTMLMediaElement.prototype
+}
+
 class CallEngine {
   private sdk: AgoraSdk | null = null
   private client: IAgoraRTCClient | null = null
@@ -115,6 +131,8 @@ class CallEngine {
   private myScreenUid: number | null = null
   private playbackDeviceId: string | null = null
   private remoteAudioPlaying = new Set<IAgoraRTCRemoteUser>()
+  // 휴대폰 카메라를 앞·뒤로 바꿀 때 지금 방향을 알아야 반대로 돌릴 수 있다. 카메라를 끄면 앞쪽부터 다시 켠다
+  private facing: CameraFacing = 'user'
   // join 은 채널 접속·마이크 획득·publish 로 이어지는 긴 비동기라, 그 사이에 사용자가
   // 끊으면 이미 정리된 클라이언트에 publish 해서 터진다.
   // leave 가 이 번호를 올려 진행 중이던 join 을 스스로 접게 만든다.
@@ -135,6 +153,40 @@ class CallEngine {
 
   get localScreenTrack(): ILocalVideoTrack | null {
     return this.screenTrack
+  }
+
+  get cameraFacing(): CameraFacing {
+    return this.facing
+  }
+
+  // 말하는 중인지 보려고 지금 음량(0~1)을 읽는다.
+  // volume-indicator 이벤트는 2초마다라 말이 끝난 뒤에도 링이 한참 남아 있어, 화면에서 짧은 주기로 직접 읽는다
+  getVolumeLevels(): { me: number; peer: number } {
+    const me = this.micTrack?.enabled ? this.micTrack.getVolumeLevel() : 0
+    let peer = 0
+    for (const user of this.remoteAudioPlaying) {
+      peer = Math.max(peer, user.audioTrack?.getVolumeLevel() ?? 0)
+    }
+    return { me, peer }
+  }
+
+  // 전·후면을 고를 수 있는 기기인지. 카메라가 하나뿐인 노트북에서는 전환 버튼을 숨긴다
+  async hasMultipleCameras(): Promise<boolean> {
+    try {
+      const sdk = await this.ensureSdk()
+      return (await sdk.getCameras()).length > 1
+    } catch {
+      return false
+    }
+  }
+
+  // 휴대폰 앞·뒤 카메라 전환. 트랙을 새로 만들지 않고 장치만 바꿔서 상대 화면이 끊기지 않는다
+  async flipCamera(): Promise<CameraFacing> {
+    if (!this.camTrack) return this.facing
+    const next: CameraFacing = this.facing === 'user' ? 'environment' : 'user'
+    await this.camTrack.setDevice({ facingMode: next })
+    this.facing = next
+    return next
   }
 
   private async ensureSdk() {
@@ -247,7 +299,8 @@ class CallEngine {
 
     if (on) {
       if (!this.camTrack) {
-        this.camTrack = await sdk.createCameraVideoTrack()
+        this.facing = 'user'
+        this.camTrack = await sdk.createCameraVideoTrack({ facingMode: 'user' })
         await this.client.publish(this.camTrack)
       } else {
         await this.camTrack.setEnabled(true)
