@@ -59,7 +59,10 @@ export default function CallProvider() {
   useEffect(() => {
     if (!token || !username || resumedRef.current) return
     resumedRef.current = true
-    void useCallStore.getState().resume(token)
+    // 이 effect 는 복구를 기다리지 않으므로, 예외가 브라우저 unhandledRejection 으로 번지지 않게 받는다.
+    void useCallStore.getState().resume(token).catch((error) => {
+      if (CALL_DEBUG) console.error("[call] 통화 복구 실패", error)
+    })
   }, [token, username])
 
   useEffect(() => {

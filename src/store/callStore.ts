@@ -351,9 +351,18 @@ export const useCallStore = create<CallStore>()((set, get) => ({
     if (get().phase !== 'idle') return
     // 조회 자체가 실패하면 되살릴 통화가 있는지도 모르는 상태라, 아무것도 건드리지 않는다
     const active = await getActiveCall(token).catch(() => null)
-    if (!active || isCallOver(active.call.status) || get().phase !== 'idle') return
+    if (!active) return
+    const call = active.call
+    // 배포 버전이 다른 서버가 빈 객체를 돌려줄 수 있어, 복구에 필요한 상태와 참여자가 없으면 조용히 건너뛴다.
+    if (
+      !call ||
+      (call.status !== 'RINGING' && call.status !== 'ACCEPTED') ||
+      !call.caller?.username ||
+      !call.callee?.username ||
+      get().phase !== 'idle'
+    ) return
 
-    const { call, connection } = active
+    const { connection } = active
     const { me, peer } = participantsOf(call, get().myUsername)
     const base = {
       ...initial,
