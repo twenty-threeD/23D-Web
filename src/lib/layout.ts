@@ -8,5 +8,3 @@
 export const PAGE_X = 'px-5 md:px-10 xl:px-40'
 export const PAGE_Y = 'py-8 xl:py-16'
 export const PAGE_PADDING = 'px-5 md:px-10 xl:px-40 py-8 xl:py-16'
-// 채팅처럼 화면 높이를 꽉 채우는 페이지는 아래 여백 없이 위만 띄운다
-export const PAGE_TOP = 'pt-8 xl:pt-16'

@@ -44,7 +44,7 @@ import { parseChatStart } from "@/src/lib/chatPreview"
 import DealCard from "@/src/components/chat/DealCard"
 import { formatDealCancel, parseDealEnd, parseDealRequest } from "@/src/lib/deal"
 import { ApiError, isPayloadTooLarge } from "@/src/lib/apiError"
-import { PAGE_TOP, PAGE_X } from "@/src/lib/layout";
+import { PAGE_X } from "@/src/lib/layout";
 
 function isImageUrl(url: string) {
   return /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(url)
@@ -801,7 +801,8 @@ export default function Page() {
       )}
 
       {/* 휴대폰 폭에서는 목록과 대화방을 나란히 둘 수 없어, 방을 고르기 전엔 목록만 · 고른 뒤엔 대화방만 보여준다 */}
-      <div className={`flex flex-1 ${PAGE_X} ${PAGE_TOP} overflow-hidden`}>
+      {/* 채팅은 화면을 꽉 채우는 앱 화면이라 휴대폰에서는 위 여백을 거의 두지 않는다. 대화방 머리줄이 자체 여백을 갖는다 */}
+      <div className={`flex flex-1 ${PAGE_X} pt-2 md:pt-8 xl:pt-16 overflow-hidden`}>
         {/* 왼쪽 채팅 목록 */}
         <div className={`${selectedId ? "hidden md:flex" : "flex"} flex-col w-full md:w-64 lg:w-80 md:pr-4 shrink-0 md:border-r border-line`}>
           {/* 탭 */}
@@ -1326,7 +1327,8 @@ export default function Page() {
                 </button>
                 <input
                   ref={chatInputRef}
-                  className="flex-1 h-full text-sm focus:outline-none"
+                  // input 은 기본 최소 폭(약 20자)이 있어 min-w-0 이 없으면 좁은 화면에서 줄지 못하고 보내기 버튼을 밖으로 밀어낸다
+                  className="flex-1 min-w-0 h-full text-sm focus:outline-none"
                   placeholder="메시지 입력"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}

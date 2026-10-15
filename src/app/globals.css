@@ -20,6 +20,17 @@ html { height: 100%; }
 body { min-height: 100%; }
 body { margin: 0; }
 
+/* iPhone 사파리는 글자가 16px 보다 작은 입력칸을 누르면 화면을 확대하고, 다 쓰고 나서도 되돌리지 않아
+   채팅 입력줄 같은 화면이 옆으로 밀린 채로 남는다. 휴대폰 폭에서만 작은 글자 입력칸을 16px 로 올린다.
+   레이어 밖 규칙이라 Tailwind 의 text-sm/xs 보다 우선한다 */
+@media (max-width: 767px) {
+	input.text-sm, input.text-xs,
+	textarea.text-sm, textarea.text-xs,
+	select.text-sm, select.text-xs {
+		font-size: 16px;
+	}
+}
+
 @keyframes bell-ring {
 	0%, 100% { transform: rotate(0deg); }
 	15% { transform: rotate(15deg); }
