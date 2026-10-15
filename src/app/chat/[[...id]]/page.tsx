@@ -444,7 +444,8 @@ export default function Page() {
   // 거래가 끝난 방은 더 챙길 일이 없어 목록 맨 아래로 보낸다. 나머지 순서(최근 메시지 순)는 그대로 둔다
   const filteredRooms = rooms
     .filter((r) => r.participantName.includes(search) && (tab === "all" || roomTab(r) === tab))
-    .sort((a, b) => Number(tradeStatusOf(a) === "COMPLETED") - Number(tradeStatusOf(b) === "COMPLETED"))
+    // 취소도 끝난 거래라 완료와 함께 아래로 보낸다
+    .sort((a, b) => Number(tradeStatusOf(a) !== "IN_PROGRESS") - Number(tradeStatusOf(b) !== "IN_PROGRESS"))
 
   const [dealBusy, setDealBusy] = useState(false)
   // 상태는 서버에서 바꾸고, 상대도 알 수 있게 대화에 취소 카드를 남긴다
