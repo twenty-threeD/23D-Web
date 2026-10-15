@@ -37,6 +37,25 @@ const DISTANCE_OPTIONS: { value: "TEN_KM" | "TWENTY_FIVE_KM" | "FIFTY_KM" | "OVE
   { value: "OVER_HUNDRED_KM", label: "100km 이상" },
 ];
 
+async function uploadExternalProfileImage(token: string, imageUrl: string) {
+  const response = await fetch(toRelativeUrl(imageUrl));
+  if (!response.ok) throw new Error("프로필 사진을 불러오지 못했습니다.");
+
+  const blob = await response.blob();
+  const mimeType = blob.type.toLowerCase().split(";")[0] ?? "";
+  if (blob.size > 25 * 1024 * 1024) throw new Error("프로필 사진 파일이 너무 큽니다.");
+  const extensionByType: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+  };
+  const extension = extensionByType[mimeType] ?? (mimeType.startsWith("image/") ? "img" : null);
+  if (!extension) throw new Error("지원하지 않는 프로필 사진 형식입니다.");
+
+  const file = new File([blob], `profile-${Date.now()}.${extension}`, { type: mimeType });
+  return uploadFile(token, file);
+}
+
 export default function Page() {
   const router = useRouter();
   const token = useAuthStore((s) => s.accessToken);
@@ -188,11 +207,26 @@ export default function Page() {
     const nextUsername = usernameInput.trim();
     const usernameChanged = !!nextUsername && nextUsername !== profile?.username;
     try {
+      let nextImageUrl = toUploadPath(imageUrl);
+      if (imageUrl && !nextImageUrl) {
+        try {
+          // 서버는 외부 소셜 사진 주소를 거부하고 사진 생략 시 기본 이미지로 바꾸므로 먼저 업로드 경로로 옮긴다.
+          const { url } = await uploadExternalProfileImage(token, imageUrl);
+          nextImageUrl = toUploadPath(url);
+          if (!nextImageUrl) throw new Error("업로드된 프로필 사진 경로가 올바르지 않습니다.");
+        } catch {
+          addToast({
+            message: "현재 프로필 사진을 보관하지 못했습니다. 사진을 새로 선택한 뒤 다시 저장해주세요.",
+            type: "error",
+          });
+          return;
+        }
+      }
+
       await updateMyProfile(token, {
         username: usernameChanged ? nextUsername : undefined,
         // 이 값을 빼면 서버가 사진을 기본 이미지로 초기화하므로 다른 항목만 고칠 때도 현재 사진을 함께 보낸다.
-        // 업로드 경로가 아닌 값(소셜 로그인 프로필 사진 등)은 서버가 400 으로 막아 보낼 수 없다
-        imageUrl: toUploadPath(imageUrl) ?? undefined,
+        imageUrl: nextImageUrl ?? undefined,
         sigCd: sigCd || undefined,
         movableDistance: movableDistance || undefined,
         // 비운 값도 보내야 지워진다. undefined 로 빼면 서버가 '변경 없음'으로 보고 기존 소개를 남긴다
