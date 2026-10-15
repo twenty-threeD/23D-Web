@@ -51,7 +51,9 @@ export default function Page() {
     const provider = ["google", "kakao", "naver"][index];
     if (!provider) return;
     const redirectUri = encodeURIComponent(`${window.location.origin}/oauth/success`);
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/${provider}?redirect_uri=${redirectUri}`;
+    // 다른 API 호출과 같은 기본값을 둔다. 환경 변수가 없는 빌드에서 'undefined/oauth2/...' 로 이동하던 문제를 막는다
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "https://api.idta.store";
+    window.location.href = `${apiUrl}/oauth2/authorization/${provider}?redirect_uri=${redirectUri}`;
   };
 
   const enterLogin = (e: React.KeyboardEvent<HTMLInputElement>) => {
