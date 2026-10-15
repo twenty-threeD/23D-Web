@@ -86,6 +86,7 @@ export default function Page() {
             <InputField
               label="이메일 입력"
               placeholder="이메일을 입력해주세요"
+              type="email"
               isEssential={true}
               value={formData.email}
               onChange={(e) => handleChange("email", e.target.value)}
