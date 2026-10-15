@@ -19,11 +19,11 @@ export const Estimate = ({ imgPath, title, avgRating, reviewCount,
     serviceCategory, expertName, deliveryTime }: PageProps) => {
     return (
         <div className="w-full">
-            <div className="border p-5 gap-5 border-zinc-300 rounded-lg">
+            <div className="border p-5 gap-5 border-line rounded-lg">
                 
                 <div className="flex items-center gap-2.5">
                     {/* 이미지 */}
-                    <div className="w-20 h-20 border border-zinc-300 rounded-full overflow-hidden relative"> 
+                    <div className="w-20 h-20 border border-line rounded-full overflow-hidden relative"> 
                         <Image
                             src={imgPath}
                             alt="견적서 이미지"

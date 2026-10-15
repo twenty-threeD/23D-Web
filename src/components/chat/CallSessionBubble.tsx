@@ -108,7 +108,7 @@ export default function CallSessionBubble({
             <button
               type="button"
               onClick={() => token && hangUp(token)}
-              className="flex items-center justify-center gap-1.5 flex-1 rounded-xl bg-white px-3 py-2 text-[13px] font-semibold text-zinc-600 ring-1 ring-zinc-200 transition hover:bg-zinc-50"
+              className="flex items-center justify-center gap-1.5 flex-1 rounded-xl bg-white px-3 py-2 text-[13px] font-semibold text-zinc-600 ring-1 ring-line transition hover:bg-zinc-50"
             >
               <MdCallEnd className="text-base" />
               거절
@@ -123,7 +123,7 @@ export default function CallSessionBubble({
                 aria-label={micOn ? "마이크 끄기" : "마이크 켜기"}
                 className={`flex items-center justify-center size-9 shrink-0 rounded-xl text-base transition ${
                   micOn
-                    ? "bg-white text-zinc-600 ring-1 ring-zinc-200 hover:bg-zinc-50"
+                    ? "bg-white text-zinc-600 ring-1 ring-line hover:bg-zinc-50"
                     : "bg-zinc-800 text-white hover:bg-zinc-700"
                 }`}
               >

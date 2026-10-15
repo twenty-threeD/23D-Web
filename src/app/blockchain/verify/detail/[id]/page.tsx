@@ -8,6 +8,7 @@ import {toRelativeUrl} from "@/src/lib/file";
 import {useAuthStore} from "@/src/store/authStore";
 import {useToast} from "@/src/hooks/useToast";
 import {LuBadgeCheck, LuBadgeX, LuChevronLeft, LuCopy} from "react-icons/lu";
+import { PAGE_PADDING } from "@/src/lib/layout";
 
 /** 개요 화면 경로. 뒤로가기와 검색이 모두 이 경로를 기준으로 움직인다. */
 const VERIFY_PATH = "/blockchain/verify"
@@ -131,7 +132,7 @@ export default function Page() {
     return (
         <div className="bg-white">
             {/* 시안대로 헤더에서 64px 아래에 검색창을 둔다. */}
-            <main className="mx-auto flex w-full max-w-[1312px] flex-col gap-8 md:gap-12 px-5 md:px-6 pb-16 md:pb-28 pt-8 md:pt-16">
+            <main className={`flex w-full flex-col gap-8 md:gap-12 ${PAGE_PADDING}`}>
                 <div className="mx-auto w-full max-w-[1000px]">
                     <SearchInput onSearch={handleSearch}/>
                 </div>

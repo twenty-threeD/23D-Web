@@ -139,7 +139,7 @@ export default function Page() {
             ].map((social, index) => (
               <button
                 key={index}
-                className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-zinc-300 hover:border-main transition-colors"
+                className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-line hover:border-main transition-colors"
                 onClick={OAuth(index)}
               >
                 <Image src={social.src} alt={social.alt} width={20} height={20} />

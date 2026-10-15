@@ -22,6 +22,7 @@ import ImageLightbox from "@/src/components/ImageLightbox"
 import ReviewAnalysis from "@/src/components/item/ReviewAnalysis"
 import { createReview, getReviews, getReviewableContracts, type Review as ReviewData, type ReviewableContract } from "@/src/lib/review"
 import { signinPath } from "@/src/lib/navigation"
+import { PAGE_Y } from "@/src/lib/layout";
 
 export default function Page() {
   const params = useParams();
@@ -182,7 +183,7 @@ export default function Page() {
   }
 
   return (
-    <div className="flex flex-col gap-20 lg:gap-40 pt-8 lg:pt-[52px] pb-24 overflow-x-clip">
+    <div className={`flex flex-col gap-20 lg:gap-40 ${PAGE_Y} overflow-x-clip`}>
       {/* 휴대폰 하단 문의 바는 이 묶음 안에서만 화면 아래에 붙는다.
           본문을 다 보고 아래 '비슷한 서비스' 로 넘어가면 묶음이 끝나 바가 본문 끝 제자리에 멈춘다 */}
       <div className="flex flex-col gap-10">
@@ -221,7 +222,7 @@ export default function Page() {
                   {isOwner ? (
                     <button
                       onClick={() => router.push(`/upload/${postId}`)}
-                      className="shrink-0 px-3 py-1 text-sm text-ink-sub border border-[#d8d8d8] rounded-lg hover:bg-zinc-50 cursor-pointer"
+                      className="shrink-0 px-3 py-1 text-sm text-ink-sub border border-line rounded-lg hover:bg-zinc-50 cursor-pointer"
                     >
                       수정
                     </button>
@@ -298,7 +299,7 @@ export default function Page() {
                 </div>
 
                 {/* 리뷰 요약은 글이 아니라 전문가(회원) 단위라 작성자 id 로 조회한다 */}
-                {post?.member?.id != null && <ReviewAnalysis memberId={post.member.id} />}
+                {postId != null && <ReviewAnalysis postId={postId} />}
 
                 {/* 후기는 이 글에서 내가 의뢰인으로 결제까지 마친 계약에만, 계약당 한 번 남길 수 있다 */}
                 {canReview && (
@@ -312,7 +313,7 @@ export default function Page() {
                     </div>
                     {/* 계약이 하나면 고를 게 없어 감춘다. 같은 전문가와 여러 번 계약했을 수 있어 계약일을 같이 보여준다 */}
                     {myReviewableContracts.length > 1 && (
-                      <div className="relative h-[38px] rounded-lg border border-[#d8d8d8] bg-white text-sm">
+                      <div className="relative h-[38px] rounded-lg border border-line bg-white text-sm">
                         <select
                           value={activeContractId ?? ""}
                           onChange={(e) => setSelectedContractId(Number(e.target.value))}
@@ -335,7 +336,7 @@ export default function Page() {
                       placeholder="서비스는 어떠셨나요? 후기를 남겨주세요."
                       maxLength={500}
                       rows={4}
-                      className="w-full resize-none rounded-lg border border-[#d8d8d8] bg-white px-3 py-2 text-sm focus:outline-none focus:border-main"
+                      className="w-full resize-none rounded-lg border border-line bg-white px-3 py-2 text-sm focus:outline-none focus:border-main"
                     />
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-ink-muted">{reviewContent.length} / 500</span>
@@ -375,13 +376,13 @@ export default function Page() {
         </div>
 
         {!isOwner && (
-          <div className="lg:hidden sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 flex items-center gap-3 border-t border-zinc-200 bg-white px-5 md:px-10 py-3">
+          <div className="lg:hidden sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 flex items-center gap-3 border-t border-line bg-white px-5 md:px-10 py-3">
             <button
               type="button"
               onClick={handleToggleFavorite}
               disabled={favoriteBusy}
               aria-label="찜하기"
-              className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-[#d8d8d8] disabled:opacity-50 cursor-pointer"
+              className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-line disabled:opacity-50 cursor-pointer"
             >
               {isFavorited ? <IoMdHeart className="text-2xl text-main" /> : <IoMdHeartEmpty className="text-2xl text-main" />}
             </button>

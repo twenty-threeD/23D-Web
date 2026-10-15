@@ -28,6 +28,7 @@ import AccountEditModal from "@/src/components/profile/AccountEditModal";
 import PasswordModal from "@/src/components/profile/PasswordModal";
 import { getFavoritePosts, getMyPosts, deletePost, getPostMainImage, type Post } from "@/src/lib/post";
 import { signinPath } from "@/src/lib/navigation"
+import { PAGE_PADDING } from "@/src/lib/layout";
 
 const DISTANCE_OPTIONS: { value: "TEN_KM" | "TWENTY_FIVE_KM" | "FIFTY_KM" | "OVER_HUNDRED_KM"; label: string }[] = [
   { value: "TEN_KM", label: "10km 이내" },
@@ -260,13 +261,13 @@ export default function Page() {
 
   return (
     <div>
-      <main className="flex flex-col gap-10 px-5 md:px-10 xl:px-20 py-10">
+      <main className={`flex flex-col gap-10 ${PAGE_PADDING}`}>
         <h1 className="text-2xl font-bold">프로필</h1>
 
-        <div className="flex flex-col gap-6 border border-zinc-200 rounded-lg p-5 md:p-8">
+        <div className="flex flex-col gap-6 border border-line rounded-lg p-5 md:p-8">
           <div className="flex items-center gap-6">
             <div className="flex flex-col items-center gap-2 shrink-0">
-              <div className="relative w-24 h-24 rounded-full overflow-hidden border border-zinc-300 bg-zinc-100 shrink-0">
+              <div className="relative w-24 h-24 rounded-full overflow-hidden border border-line bg-zinc-100 shrink-0">
                 <Image
                   src={imagePreview ?? (imageUrl ? toRelativeUrl(imageUrl) : "/profile.webp")}
                   alt="프로필 이미지"
@@ -293,7 +294,7 @@ export default function Page() {
                   type="button"
                   onClick={handleResetImage}
                   disabled={resettingImage || uploadingImage}
-                  className="px-3 py-1.5 rounded-lg border border-zinc-300 text-xs font-semibold text-zinc-600 hover:bg-zinc-100 disabled:opacity-50 cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg border border-line text-xs font-semibold text-zinc-600 hover:bg-zinc-100 disabled:opacity-50 cursor-pointer"
                 >
                   {resettingImage ? "변경 중..." : "기본 프로필 사용하기"}
                 </button>
@@ -316,7 +317,7 @@ export default function Page() {
               <div className="flex justify-end">
                 <button
                   onClick={() => setEditing(true)}
-                  className="px-4 py-2 rounded-lg border border-zinc-300 text-sm font-semibold hover:bg-zinc-100 cursor-pointer"
+                  className="px-4 py-2 rounded-lg border border-line text-sm font-semibold hover:bg-zinc-100 cursor-pointer"
                 >
                   프로필 수정
                 </button>
@@ -329,7 +330,7 @@ export default function Page() {
                 <input
                   value={usernameInput}
                   onChange={(e) => setUsernameInput(e.target.value)}
-                  className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
+                  className="border border-line rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
                 />
               </div>
 
@@ -340,7 +341,7 @@ export default function Page() {
                   onChange={(e) => setShortDescription(e.target.value.slice(0, 100))}
                   maxLength={100}
                   rows={3}
-                  className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500 resize-none"
+                  className="border border-line rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500 resize-none"
                 />
                 <span className="text-xs text-zinc-400 self-end">{shortDescription.length} / 100</span>
               </div>
@@ -350,7 +351,7 @@ export default function Page() {
                 <select
                   value={jobCategoryId}
                   onChange={(e) => setJobCategoryId(e.target.value ? Number(e.target.value) : "")}
-                  className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
+                  className="border border-line rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
                 >
                   <option value="">선택 안 함</option>
                   {jobCategories.map((c) => (
@@ -365,7 +366,7 @@ export default function Page() {
                   <select
                     value={ctprvnCd}
                     onChange={(e) => { setCtprvnCd(e.target.value); setSigCd(""); }}
-                    className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
+                    className="border border-line rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
                   >
                     <option value="">선택</option>
                     {sidoList.map((s) => (
@@ -379,7 +380,7 @@ export default function Page() {
                     value={sigCd}
                     onChange={(e) => setSigCd(e.target.value)}
                     disabled={!ctprvnCd}
-                    className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
+                    className="border border-line rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
                   >
                     <option value="">선택</option>
                     {sigunguList.map((s) => (
@@ -394,7 +395,7 @@ export default function Page() {
                 <select
                   value={movableDistance}
                   onChange={(e) => setMovableDistance(e.target.value as typeof movableDistance)}
-                  className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
+                  className="border border-line rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
                 >
                   <option value="">선택 안 함</option>
                   {DISTANCE_OPTIONS.map((o) => (
@@ -406,7 +407,7 @@ export default function Page() {
               <div className="flex justify-end gap-2">
                 <button
                   onClick={() => { setEditing(false); fetchProfile(); }}
-                  className="px-4 py-2 rounded-lg border border-zinc-300 text-sm font-semibold hover:bg-zinc-100 cursor-pointer"
+                  className="px-4 py-2 rounded-lg border border-line text-sm font-semibold hover:bg-zinc-100 cursor-pointer"
                 >
                   취소
                 </button>
@@ -425,7 +426,7 @@ export default function Page() {
         {/* 계정 정보 */}
         <div className="flex flex-col gap-4">
           <h2 className="text-xl font-bold">계정 정보</h2>
-          <div className="border border-zinc-200 rounded-lg divide-y divide-zinc-200">
+          <div className="border border-line rounded-lg divide-y divide-line">
             <div className="flex items-center justify-between gap-4 px-4 py-3">
               <span className="text-sm text-zinc-500 shrink-0">이메일</span>
               <div className="flex items-center gap-3 min-w-0">
@@ -486,7 +487,7 @@ export default function Page() {
               </button>
             </div>
           ) : (
-            <div className="border border-zinc-200 rounded-lg">
+            <div className="border border-line rounded-lg">
               <div className="flex items-center justify-between gap-4 px-4 py-3">
                 <span className="text-sm text-zinc-500">비밀번호</span>
                 <div className="flex items-center gap-3">
@@ -511,21 +512,21 @@ export default function Page() {
           ) : myPosts.length === 0 ? (
             <p className="text-zinc-400 text-sm">등록한 게시글이 없습니다.</p>
           ) : (
-            <div className="flex flex-wrap gap-4">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:flex sm:flex-wrap sm:gap-4">
               {myPosts.map((p) => (
                 <div key={p.id} className="flex flex-col">
-                  <NormalCard id={p.id} title={p.title} content={p.content} fileUrl={getPostMainImage(p.fileUrls)} />
+                  <NormalCard id={p.id} title={p.title} content={p.content} fileUrl={getPostMainImage(p.fileUrls)} inGrid />
                   <div className="flex gap-2 px-3">
                     <button
                       onClick={() => router.push(`/upload/${p.id}`)}
-                      className="flex-1 py-1.5 rounded-lg border border-zinc-300 text-xs font-semibold text-zinc-600 hover:border-main hover:text-main transition-colors cursor-pointer"
+                      className="flex-1 py-1.5 rounded-lg border border-line text-xs font-semibold text-zinc-600 hover:border-main hover:text-main transition-colors cursor-pointer"
                     >
                       수정
                     </button>
                     <button
                       onClick={() => handleDeletePost(p.id)}
                       disabled={deletingId === p.id}
-                      className="flex-1 py-1.5 rounded-lg border border-zinc-300 text-xs font-semibold text-red-500 hover:border-red-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      className="flex-1 py-1.5 rounded-lg border border-line text-xs font-semibold text-red-500 hover:border-red-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                     >
                       {deletingId === p.id ? "삭제 중..." : "삭제"}
                     </button>
@@ -543,9 +544,9 @@ export default function Page() {
           ) : favorites.length === 0 ? (
             <p className="text-zinc-400 text-sm">찜한 항목이 없습니다.</p>
           ) : (
-            <div className="flex flex-wrap gap-4">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:flex sm:flex-wrap sm:gap-4">
               {favorites.map((p) => (
-                  <NormalCard key={p.id} title={p.title} content={p.content} fileUrl={getPostMainImage(p.fileUrls)} id={p.id} category={p.category} />
+                  <NormalCard key={p.id} title={p.title} content={p.content} fileUrl={getPostMainImage(p.fileUrls)} id={p.id} category={p.category} inGrid />
               ))}
             </div>
           )}

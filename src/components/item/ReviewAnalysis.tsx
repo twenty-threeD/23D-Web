@@ -23,8 +23,8 @@ const MAX_RETRIES = 12
 const SLOW_HINT_DELAY_MS = 3000
 
 // 시안(Service-info) 의 AI 리뷰 요약 카드. 일반 리뷰와 구분되도록 브랜드 오렌지 그라데이션 보더와 스파클 아이콘을 쓴다.
-// 없는 회원(404)·서버 미설정(503)처럼 사용자가 할 수 있는 게 없는 경우엔 카드를 통째로 숨긴다
-export default function ReviewAnalysis({ memberId }: { memberId: number }) {
+// 없는 게시글(404)·서버 미설정(503)처럼 사용자가 할 수 있는 게 없는 경우엔 카드를 통째로 숨긴다
+export default function ReviewAnalysis({ postId }: { postId: number }) {
   const token = useAuthStore((s) => s.accessToken)
   const [fetched, setState] = useState<State>({ kind: "loading" })
   const [attempt, setAttempt] = useState(0)
@@ -36,7 +36,7 @@ export default function ReviewAnalysis({ memberId }: { memberId: number }) {
     if (!token) return
     let cancelled = false
     const slowTimer = setTimeout(() => !cancelled && setSlow(true), SLOW_HINT_DELAY_MS)
-    getReviewAnalysis(memberId, token)
+    getReviewAnalysis(postId, token)
       .then((data) => {
         if (cancelled) return
         setState(data && data.summary ? { kind: "ready", data } : { kind: "hidden" })
@@ -50,7 +50,7 @@ export default function ReviewAnalysis({ memberId }: { memberId: number }) {
       cancelled = true
       clearTimeout(slowTimer)
     }
-  }, [memberId, token, attempt, reloadKey])
+  }, [postId, token, attempt, reloadKey])
 
   // 비로그인이면 어차피 401 이라 요청 없이 로그인 안내를 띄운다. effect 에서 setState 하지 않으려고 렌더 때 계산한다
   const state: State = token ? fetched : { kind: "login" }

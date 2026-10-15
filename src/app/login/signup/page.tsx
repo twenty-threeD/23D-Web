@@ -78,7 +78,7 @@ export default function Page() {
             <main 
                 style={{ height: getHeight() }}
                 className={`
-                    w-full max-w-106 py-16 rounded-3xl border border-zinc-300 bg-white 
+                    w-full max-w-106 py-16 rounded-3xl border border-line bg-white 
                     flex flex-col items-center justify-center
                     transition-[height] duration-500 ease-in-out overflow-hidden
                 `}

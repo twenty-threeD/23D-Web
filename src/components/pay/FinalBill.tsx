@@ -7,7 +7,7 @@ interface PageProps {
 
 export const FinalBill = ({ defaultAmount, additionalAmount, travelCost, pointUsage }: PageProps) => {
     return (
-        <div className="w-87.5 border p-5 gap-5 border-zinc-300 rounded-lg">
+        <div className="w-87.5 border p-5 gap-5 border-line rounded-lg">
             <h1 className="text-5">최종 결제 금액</h1>
             <hr className="mt-3 mb-4 text-zinc-300"/>
 

@@ -56,7 +56,7 @@ export default function DealCard(props: DealCardProps) {
             </div>
           )}
 
-          <div className="flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.75">
+          <div className="flex items-center justify-center gap-1.5 rounded-xl border border-line bg-zinc-50 px-3 py-2.75">
             <span className="text-xs font-semibold tracking-tight text-zinc-500">
               {props.ended === "completed" ? "완료된 거래예요" : "취소된 거래예요"}
             </span>
@@ -75,7 +75,7 @@ export default function DealCard(props: DealCardProps) {
   return (
     <div
       className={`animate-chat-card w-[min(16rem,68vw)] lg:w-72 overflow-hidden rounded-2xl border bg-white ${
-        completed ? "border-emerald-200 shadow-[0_2px_10px_rgba(6,95,70,.10)]" : "border-zinc-200 shadow-[0_2px_10px_rgba(0,0,0,.06)]"
+        completed ? "border-emerald-200 shadow-[0_2px_10px_rgba(6,95,70,.10)]" : "border-line shadow-[0_2px_10px_rgba(0,0,0,.06)]"
       }`}
     >
       <div className={`flex flex-col items-center gap-2 px-3.5 pt-5 pb-4.5 ${completed ? "bg-emerald-700" : "bg-zinc-700"}`}>

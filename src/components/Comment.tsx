@@ -30,7 +30,7 @@ export default function Comment({ authorName, content, createdAt, profileImage, 
 
   return (
     <div className="flex gap-2 py-2">
-      <div className="w-12 h-12 bg-zinc-400 rounded-full overflow-hidden border border-zinc-300 shrink-0">
+      <div className="w-12 h-12 bg-zinc-400 rounded-full overflow-hidden border border-line shrink-0">
         <Image
           src={profileImage ?? "/profile.webp"}
           alt="프로필사진"
@@ -61,7 +61,7 @@ export default function Comment({ authorName, content, createdAt, profileImage, 
                   handleSave()
                 }
               }}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500 resize-none"
+              className="w-full border border-line rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500 resize-none"
               rows={2}
             />
             <div className="flex gap-2 self-end">

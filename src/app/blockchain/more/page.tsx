@@ -13,6 +13,7 @@ import {
 import {formatAbsoluteTime, formatRelativeTime, useNow} from "@/src/lib/RelativeTime";
 import {display, EMPTY} from "@/src/lib/display";
 import CommunityPagination from "@/src/components/CommunityPagination";
+import { PAGE_PADDING } from "@/src/lib/layout";
 
 /** 개요 화면 경로. 뒤로가기는 히스토리 대신 이 경로로 보내 직접 진입해도 갈 곳이 있게 한다. */
 const VERIFY_PATH = "/blockchain/verify"
@@ -163,7 +164,7 @@ function MoreContent() {
 export default function Page() {
     return (
         <div className="flex justify-center bg-white">
-            <main className="flex w-full max-w-[1312px] flex-col px-6 pb-12 pt-12">
+            <main className={`flex w-full flex-col ${PAGE_PADDING}`}>
                 {/* useSearchParams는 정적 렌더 시 Suspense 경계가 없으면 빌드가 실패한다 */}
                 <Suspense>
                     <MoreContent/>

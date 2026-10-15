@@ -151,7 +151,7 @@ export default function ContractCard(props: ContractCardProps) {
                   href={toRelativeUrl(props.contractUrl)}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex h-11 basis-2/5 items-center justify-center rounded-xl border border-zinc-300 text-[13px] font-semibold text-zinc-700 transition-colors hover:border-zinc-400 hover:bg-zinc-50"
+                  className="flex h-11 basis-2/5 items-center justify-center rounded-xl border border-line text-[13px] font-semibold text-zinc-700 transition-colors hover:border-zinc-400 hover:bg-zinc-50"
                 >
                   계약서 보기
                 </a>
@@ -169,7 +169,7 @@ export default function ContractCard(props: ContractCardProps) {
                   href={toRelativeUrl(props.contractUrl)}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex h-11 basis-2/5 items-center justify-center rounded-xl border border-zinc-300 text-[13px] font-semibold text-zinc-700 transition-colors hover:border-zinc-400 hover:bg-zinc-50"
+                  className="flex h-11 basis-2/5 items-center justify-center rounded-xl border border-line text-[13px] font-semibold text-zinc-700 transition-colors hover:border-zinc-400 hover:bg-zinc-50"
                 >
                   계약서 보기
                 </a>
@@ -210,7 +210,7 @@ export default function ContractCard(props: ContractCardProps) {
   const sentAt = formatDateTime(props.sentAt)
 
   return (
-    <div className={`${cardClass} border border-zinc-200 shadow-[0_1px_3px_rgba(69,43,36,.08)]`}>
+    <div className={`${cardClass} border border-line shadow-[0_1px_3px_rgba(69,43,36,.08)]`}>
       {props.isSent || props.settled ? (
         // 을(보낸 쪽), 또는 이미 체결돼서 더 할 일이 없는 카드: 톤을 낮춘 헤더
         <div className="flex items-center gap-2.5 border-b border-[#EADCD6] bg-[#F8F0ED] px-3.5 py-3">
@@ -255,7 +255,7 @@ export default function ContractCard(props: ContractCardProps) {
                 </div>
               )}
               {props.serviceContent && (
-                <div className="flex gap-2 rounded-[10px] border border-zinc-100 bg-zinc-50 px-2.5 py-2.5">
+                <div className="flex gap-2 rounded-[10px] border border-line bg-zinc-50 px-2.5 py-2.5">
                   <IoListOutline className="mt-0.5 shrink-0 text-sm text-zinc-400" />
                   <span className="line-clamp-2 text-xs leading-relaxed text-zinc-600">
                     {props.serviceContent}
@@ -282,7 +282,7 @@ export default function ContractCard(props: ContractCardProps) {
             <IoChevronForward className="text-[15px] text-white" />
           </button>
         ) : (
-          <div className="flex flex-col gap-2 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2.75">
+          <div className="flex flex-col gap-2 rounded-xl border border-dashed border-line bg-zinc-50 px-3 py-2.75">
             <div className="flex items-center gap-2">
               <span className="flex items-center gap-[3px]">
                 <span className="animate-contract-dot size-[5px] rounded-full bg-[#452B24]" />

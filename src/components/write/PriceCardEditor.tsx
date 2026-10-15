@@ -97,7 +97,7 @@ function SinglePlanEditor({ plan, onChange }: SinglePlanEditorProps) {
                 <button
                   type="button"
                   onClick={() => removeItem(i)}
-                  className="size-6.5 flex items-center justify-center text-line hover:text-ink-hint cursor-pointer"
+                  className="size-6.5 flex items-center justify-center text-ink-muted hover:text-ink-hint cursor-pointer"
                   aria-label={`항목 ${i + 1} 삭제`}
                 >
                   <LuX className="size-3.5" />
@@ -143,7 +143,7 @@ export default function PriceCardEditor({ plans, onChange }: PriceCardEditorProp
             type="button"
             onClick={addPlan}
             disabled={safePlans.length >= MAX_PLANS}
-            className="text-xs font-medium text-main cursor-pointer disabled:text-line disabled:cursor-not-allowed"
+            className="text-xs font-medium text-main cursor-pointer disabled:text-ink-muted disabled:cursor-not-allowed"
           >
             + 플랜 추가 ({safePlans.length}/{MAX_PLANS})
           </button>
@@ -156,7 +156,7 @@ export default function PriceCardEditor({ plans, onChange }: PriceCardEditorProp
             <div
               key={i}
               className={`group relative flex items-center justify-center min-w-18 h-[22px] border-b ${
-                i === active ? "border-main text-main" : "border-line text-line hover:text-ink-hint"
+                i === active ? "border-main text-main" : "border-line text-ink-muted hover:text-ink-hint"
               }`}
             >
               <button
@@ -171,7 +171,7 @@ export default function PriceCardEditor({ plans, onChange }: PriceCardEditorProp
                 <button
                   type="button"
                   onClick={() => removePlan(i)}
-                  className="absolute -top-2 right-0 hidden group-hover:flex group-focus-within:flex size-4 items-center justify-center rounded-full bg-white text-line hover:text-ink-hint cursor-pointer"
+                  className="absolute -top-2 right-0 hidden group-hover:flex group-focus-within:flex size-4 items-center justify-center rounded-full bg-white text-ink-muted hover:text-ink-hint cursor-pointer"
                   aria-label={`플랜 ${i + 1} 삭제`}
                 >
                   <LuX className="size-3" />

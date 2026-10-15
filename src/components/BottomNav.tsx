@@ -42,7 +42,7 @@ export default function BottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="md:hidden fixed inset-x-0 bottom-0 z-30 border-t border-zinc-200 bg-white pb-[env(safe-area-inset-bottom)]">
+    <nav className="md:hidden fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white pb-[env(safe-area-inset-bottom)]">
       <ul className="grid h-16 grid-cols-5">
         {NAV_ITEMS.map((item) => {
           // 상세 화면(/chat/12, /blockchain/verify/detail/…)에서도 그 메뉴가 켜져 있어야 위치를 알 수 있다
