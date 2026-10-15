@@ -67,7 +67,8 @@ export function normalizeReview(value: unknown, index = 0): Review {
   }
 }
 
-function getReviewList(json: ReviewResponse | unknown) {
+// offset: 여러 페이지를 이어 받을 때 id 없는 리뷰의 임시 키가 페이지마다 겹치지 않게 한다
+function getReviewList(json: ReviewResponse | unknown, offset = 0) {
   const root = asRecord(json)
   const data = root.data ?? json
   const dataRecord = asRecord(data)
@@ -79,15 +80,27 @@ function getReviewList(json: ReviewResponse | unknown) {
         ? dataRecord.reviews
         : []
 
-  return list.map((review, index) => normalizeReview(review, index))
+  return list.map((review, index) => normalizeReview(review, offset + index))
 }
 
-export function getReviews(postId: number, token?: string | null, page = 0, size = 20) {
-  const params = new URLSearchParams({ postId: String(postId), page: String(page), size: String(size) })
-  return cached(`${REVIEW_KEY}list:${params}`, REVIEW_TTL, async () => {
-    const res = await fetch(`/api/post/review?${params}`, { headers: authHeaders(token) })
-    if (!res.ok) await throwApiError(res)
-    return getReviewList(await res.json())
+const REVIEW_PAGE_SIZE = 50
+
+// 글의 리뷰를 전부 받는다. 서버에 글 단위 평점 요약이 없어 화면이 평균·개수를 직접 계산하는데,
+// 첫 페이지만 받으면 리뷰가 많은 글의 평점·개수가 틀려서 마지막 페이지까지 이어 받는다
+export function getReviews(postId: number, token?: string | null) {
+  return cached(`${REVIEW_KEY}list:${postId}`, REVIEW_TTL, async () => {
+    const all: Review[] = []
+    for (let page = 0; ; page++) {
+      const params = new URLSearchParams({ postId: String(postId), page: String(page), size: String(REVIEW_PAGE_SIZE) })
+      const res = await fetch(`/api/post/review?${params}`, { headers: authHeaders(token) })
+      if (!res.ok) await throwApiError(res)
+      const json = await res.json()
+      const list = getReviewList(json, all.length)
+      all.push(...list)
+      const totalPages = asNumber(asRecord(asRecord(json).data).totalPages, 1)
+      if (list.length < REVIEW_PAGE_SIZE || page + 1 >= totalPages) break
+    }
+    return all
   })
 }
 

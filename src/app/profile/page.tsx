@@ -40,6 +40,9 @@ const DISTANCE_OPTIONS: { value: "TEN_KM" | "TWENTY_FIVE_KM" | "FIFTY_KM" | "OVE
 export default function Page() {
   const router = useRouter();
   const token = useAuthStore((s) => s.accessToken);
+  // 토큰은 만료 직전·탭 복귀 때 재발급된다. 토큰 값에 의존하면 재발급마다 다시 불러와 편집 중인 내용을 덮어써서,
+  // 로그인 여부에만 의존하고 요청에는 그 시점의 최신 토큰을 쓴다
+  const hasToken = !!token;
   const clear = useAuthStore((s) => s.clear);
   const myUsername = useAuthStore((s) => s.username);
   const { addToast } = useToast();
@@ -74,6 +77,7 @@ export default function Page() {
   const [passwordMode, setPasswordMode] = useState<"set" | "change" | null>(null);
 
   const fetchProfile = useCallback(async () => {
+    const token = useAuthStore.getState().accessToken;
     if (!token) return;
     setLoading(true);
     try {
@@ -110,14 +114,14 @@ export default function Page() {
     } finally {
       setLoading(false);
     }
-  }, [token, myUsername]);
+  }, [myUsername]);
 
   useEffect(() => {
     if (!token) { router.push(signinPath()); return; }
     fetchProfile();
     getJobCategories().then(setJobCategories).catch(() => {});
     getSidoList(token).then(setSidoList).catch(() => {});
-  }, [token]);
+  }, [hasToken]);
 
   useEffect(() => {
     if (!token) return;
@@ -191,7 +195,8 @@ export default function Page() {
         imageUrl: toUploadPath(imageUrl) ?? undefined,
         sigCd: sigCd || undefined,
         movableDistance: movableDistance || undefined,
-        shortDescription: shortDescription || undefined,
+        // 비운 값도 보내야 지워진다. undefined 로 빼면 서버가 '변경 없음'으로 보고 기존 소개를 남긴다
+        shortDescription: shortDescription.trim(),
         jobCategoryId: jobCategoryId === "" ? undefined : Number(jobCategoryId),
       });
       // 아이디가 바뀌면 서버가 응답 직전에 토큰을 지운다. 응답은 200 이고 문구만 달라서 상태 코드로는 구분할 수 없다.

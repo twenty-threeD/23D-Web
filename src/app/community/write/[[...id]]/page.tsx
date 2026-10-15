@@ -7,7 +7,7 @@ import CommunityMenu from "@/src/components/CommunitySideBar"
 import { IoImageOutline, IoChevronDown } from "react-icons/io5"
 import { getPost, createPost, updatePost, COMMUNITY_CATEGORIES, isCommunityCategory, parseRegion, tagRegion, type CommunityCategory } from "@/src/lib/community"
 import { uploadFile, toUploadPath } from "@/src/lib/file"
-import { useAuthStore } from "@/src/store/authStore"
+import { useAuthStore, decodeJwtUsername } from "@/src/store/authStore"
 import { useHandleError } from "@/src/hooks/useHandleError"
 import { signinPath } from "@/src/lib/navigation"
 import { useMyLocation } from "@/src/hooks/useMyLocation"
@@ -20,14 +20,10 @@ export default function Page() {
   const params = useParams()
   const postId = params.id ? Number(Array.isArray(params.id) ? params.id[0] : params.id) : null
   const token = useAuthStore((s) => s.accessToken)
-  const myUsername = useAuthStore((s) => {
-    if (s.username) return s.username
-    if (!s.accessToken) return null
-    try {
-      const p = JSON.parse(atob(s.accessToken.split('.')[1]))
-      return p.username ?? p.sub ?? null
-    } catch { return null }
-  })
+  // 토큰은 만료 직전·탭 복귀 때 재발급된다. 토큰 값에 의존하면 재발급마다 다시 불러와 편집 중인 내용을 덮어써서,
+  // 로그인 여부에만 의존하고 요청에는 그 시점의 최신 토큰을 쓴다
+  const hasToken = !!token
+  const myUsername = useAuthStore((s) => s.username ?? (s.accessToken ? decodeJwtUsername(s.accessToken) : null))
   const handleError = useHandleError()
   const { location, loaded: locationLoaded } = useMyLocation()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -44,7 +40,7 @@ export default function Page() {
     if (!postId) return
     setLoading(true)
     try {
-      const res = await getPost(postId, token)
+      const res = await getPost(postId, useAuthStore.getState().accessToken)
       const data = res.data ?? res
       if (data.username && myUsername && data.username !== myUsername) {
         router.replace(`/posts/${postId}`)
@@ -61,7 +57,7 @@ export default function Page() {
     } finally {
       setLoading(false)
     }
-  }, [postId, token, myUsername])
+  }, [postId, hasToken, myUsername])
 
   useEffect(() => { fetchPost() }, [fetchPost])
 
@@ -77,18 +73,22 @@ export default function Page() {
     setUploading(true)
 
     let insertPos = cursorPosRef.current
-    let newContent = content
 
+    // 업로드하는 동안에도 계속 입력할 수 있어, 시작할 때의 본문이 아니라 그때그때의 최신 본문에 끼워 넣는다.
+    // (예전에는 시작 시점 본문으로 덮어써서 업로드 중에 친 글자가 사라졌다)
     for (const file of files) {
       try {
         const { url } = await uploadFile(token, file)
         const md = `![image](${url})\n`
-        newContent = newContent.slice(0, insertPos) + md + newContent.slice(insertPos)
+        const pos = insertPos
+        setContent((prev) => {
+          const at = Math.min(pos, prev.length)
+          return prev.slice(0, at) + md + prev.slice(at)
+        })
         insertPos += md.length
       } catch (e) { handleError(e) }
     }
 
-    setContent(newContent)
     setUploading(false)
     e.target.value = ""
   }

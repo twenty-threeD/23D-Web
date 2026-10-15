@@ -20,6 +20,9 @@ export default function Page() {
   const params = useParams();
   const postId = params.id ? Number(Array.isArray(params.id) ? params.id[0] : params.id) : null;
   const token = useAuthStore((s) => s.accessToken);
+  // 토큰은 만료 직전·탭 복귀 때 재발급된다. 토큰 값에 의존하면 재발급마다 다시 불러와 편집 중인 내용을 덮어써서,
+  // 로그인 여부에만 의존하고 요청에는 그 시점의 최신 토큰을 쓴다
+  const hasToken = !!token;
   const myUsername = useAuthStore((s) => s.username);
   const handleError = useHandleError();
   const { addToast } = useToast();
@@ -46,7 +49,7 @@ export default function Page() {
 
     async function fetchExisting() {
       try {
-        const res = await getPost(postId!, token);
+        const res = await getPost(postId!, useAuthStore.getState().accessToken);
         if (cancelled) return;
         const post = res.data;
         if (post.member?.username && myUsername && post.member.username !== myUsername) {
@@ -72,7 +75,7 @@ export default function Page() {
 
     fetchExisting();
     return () => { cancelled = true; };
-  }, [postId, token, myUsername]);
+  }, [postId, hasToken, myUsername]);
 
   async function handleSubmit() {
     if (!token) { router.push(signinPath()); return; }
