@@ -11,6 +11,7 @@ import { useAuthStore } from "@/src/store/authStore"
 import { useToast } from "@/src/hooks/useToast"
 import ImageLightbox from "@/src/components/ImageLightbox"
 import { FieldLabel } from "@/src/components/write/WriteInputField"
+import { isHeifFile } from "@/src/lib/imageCompress"
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"]
 // 백엔드는 게시글당 이미지를 헤더 포함 최대 6장까지 받는다.
@@ -87,8 +88,8 @@ export default function UploadFile({ initialImages, onUpload }: UploadFileProps)
   }
 
   function validateFile(file: File) {
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      addToast({ message: `${file.name}: 지원되지 않는 파일 형식입니다. (JPG, PNG, GIF, WEBP만 가능)`, type: "error" })
+    if (!ALLOWED_TYPES.includes(file.type) && !isHeifFile(file)) {
+      addToast({ message: `${file.name}: 지원되지 않는 파일 형식입니다. (JPG, PNG, GIF, WEBP, HEIF만 가능)`, type: "error" })
       return false
     }
     if (file.size > MAX_FILE_SIZE) {
@@ -211,7 +212,7 @@ export default function UploadFile({ initialImages, onUpload }: UploadFileProps)
         <input
           ref={headerInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/gif,image/webp"
+          accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif"
           className="hidden"
           onChange={(e) => {
             void handleHeaderFile(e.target.files?.[0])
@@ -322,7 +323,7 @@ export default function UploadFile({ initialImages, onUpload }: UploadFileProps)
         <input
           ref={inputRef}
           type="file"
-          accept="image/jpeg,image/png,image/gif,image/webp"
+          accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.heic,.heif"
           multiple
           className="hidden"
           onChange={(e) => {
