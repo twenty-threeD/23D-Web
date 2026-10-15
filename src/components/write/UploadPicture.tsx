@@ -11,7 +11,7 @@ import { useAuthStore } from "@/src/store/authStore"
 import { useToast } from "@/src/hooks/useToast"
 import ImageLightbox from "@/src/components/ImageLightbox"
 import { FieldLabel } from "@/src/components/write/WriteInputField"
-import { isHeifFile } from "@/src/lib/imageCompress"
+import { HeifConversionError, isHeifFile } from "@/src/lib/imageCompress"
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"]
 // 백엔드는 게시글당 이미지를 헤더 포함 최대 6장까지 받는다.
@@ -19,6 +19,12 @@ const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"]
 const MAX_POST_IMAGES = 6
 const MAX_CONTENT_IMAGES = MAX_POST_IMAGES - 1
 const MAX_FILE_SIZE = 25 * 1024 * 1024
+
+function getUploadErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof HeifConversionError) return error.message
+  if (isPayloadTooLarge(error)) return "사진은 최대 25MB까지 업로드할 수 있어요."
+  return fallback
+}
 
 interface UploadFileProps {
   // 서버가 반환하는 순서: 헤더 이미지, 메인 이미지, 나머지 이미지
@@ -109,10 +115,7 @@ export default function UploadFile({ initialImages, onUpload }: UploadFileProps)
       const { url } = await uploadFile(token, file)
       commit(url, latestRef.current.images)
     } catch (e) {
-      addToast({
-        message: isPayloadTooLarge(e) ? "사진은 최대 25MB까지 업로드할 수 있어요." : "헤더 이미지 업로드에 실패했습니다.",
-        type: "error",
-      })
+      addToast({ message: getUploadErrorMessage(e, "헤더 이미지 업로드에 실패했습니다."), type: "error" })
     } finally {
       setHeaderUploading(false)
     }
@@ -141,10 +144,7 @@ export default function UploadFile({ initialImages, onUpload }: UploadFileProps)
       }
       commit(latestRef.current.header, [...latestRef.current.images, ...uploaded].slice(0, MAX_CONTENT_IMAGES))
     } catch (e) {
-      addToast({
-        message: isPayloadTooLarge(e) ? "사진은 최대 25MB까지 업로드할 수 있어요." : "이미지 업로드에 실패했습니다.",
-        type: "error",
-      })
+      addToast({ message: getUploadErrorMessage(e, "이미지 업로드에 실패했습니다."), type: "error" })
     } finally {
       setContentUploading(false)
     }
