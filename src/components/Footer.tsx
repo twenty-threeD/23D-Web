@@ -24,7 +24,7 @@ const FOOTER_LINK_GROUPS = [
 
 const SOCIAL_LINKS = [
   { label: "인스타그램", href: "https://www.instagram.com/idta.blockchain/", icon: "/instagram.svg" },
-  { label: "깃허브", href: "https://github.com/twenty-threeD/23D-Web", icon: "/github.svg" },
+  { label: "깃허브", href: "https://github.com/twenty-threeD/", icon: "/github.svg" },
 ];
 
 export default function Footer() {
