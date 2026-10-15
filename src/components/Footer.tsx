@@ -36,9 +36,9 @@ export default function Footer() {
         <div className="flex flex-col gap-10 md:flex-row md:gap-16 lg:gap-[100px]">
           {/* 로고 / 소개 */}
           <div className="flex flex-col gap-5">
-            {/* Header 와 같은 logo.svg 를 쓴다. 글자 영역(92x46)이 시안의 60x30 이 되도록 파일 전체를 63x42 로 키우고,
+            {/* Header 와 같은 logo.png 를 쓴다. 글자 영역(92x46)이 시안의 60x30 이 되도록 파일 전체를 63x42 로 키우고,
                 파일 위아래 여백이 생기므로 시안의 로고~문구 간격(26px)에서 그만큼 뺀 gap 을 준다 */}
-            <Image src="/logo.svg" alt="잇다" width={63} height={42} className="block w-[63px] h-[42px] bg-[#363636] mix-blend-multiply" />
+            <Image src="/logo.png" alt="잇다" width={63} height={42} className="block w-[63px] h-[42px]" />
 
             <div className="flex flex-col gap-2 text-neutral-400">
               <p className="text-sm leading-[normal]">
