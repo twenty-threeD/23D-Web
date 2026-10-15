@@ -77,18 +77,22 @@ export default function Page() {
     setUploading(true)
 
     let insertPos = cursorPosRef.current
-    let newContent = content
 
+    // 업로드하는 동안에도 계속 입력할 수 있어, 시작할 때의 본문이 아니라 그때그때의 최신 본문에 끼워 넣는다.
+    // (예전에는 시작 시점 본문으로 덮어써서 업로드 중에 친 글자가 사라졌다)
     for (const file of files) {
       try {
         const { url } = await uploadFile(token, file)
         const md = `![image](${url})\n`
-        newContent = newContent.slice(0, insertPos) + md + newContent.slice(insertPos)
+        const pos = insertPos
+        setContent((prev) => {
+          const at = Math.min(pos, prev.length)
+          return prev.slice(0, at) + md + prev.slice(at)
+        })
         insertPos += md.length
       } catch (e) { handleError(e) }
     }
 
-    setContent(newContent)
     setUploading(false)
     e.target.value = ""
   }
