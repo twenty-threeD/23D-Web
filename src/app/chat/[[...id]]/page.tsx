@@ -133,8 +133,10 @@ export default function Page() {
   const [messages, setMessages] = useState<Message[]>([])
   const [loadingRooms, setLoadingRooms] = useState(() => !useChatRoomsStore.getState().loaded)
   const [loadingMessages, setLoadingMessages] = useState(false)
-  const [pendingImageUrls, setPendingImageUrls] = useState<string[]>([])
-  const [pendingPreviews, setPendingPreviews] = useState<string[]>([])
+  // 미리보기와 업로드 결과를 한 항목으로 묶는다. 배열 두 개로 따로 들면 일부만 실패하거나
+  // 업로드 중에 하나를 지울 때 순서가 어긋나 엉뚱한 사진이 보내지거나 지워졌다
+  const [pendingImages, setPendingImages] = useState<{ preview: string; url: string | null }[]>([])
+  const uploadedImageUrls = pendingImages.flatMap((img) => (img.url ? [img.url] : []))
   const [pendingDocUrl, setPendingDocUrl] = useState<string | null>(null)
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
   // 방금 복사한 트랜잭션 해시. 해시 줄에 잠깐 "복사됨"을 띄우는 데만 쓴다
@@ -487,31 +489,33 @@ export default function Page() {
       return true
     })
     if (!files.length || !token) return
-    const previews = files.map((file) => URL.createObjectURL(file))
-    setPendingPreviews((prev) => [...prev, ...previews])
+    const added = files.map((file) => ({ file, preview: URL.createObjectURL(file) }))
+    setPendingImages((prev) => [...prev, ...added.map(({ preview }) => ({ preview, url: null }))])
     setShowAttach(false)
     setUploading(true)
+    let failed = 0
     try {
-      const uploaded: string[] = []
-      for (const file of files) {
-        const { url } = await uploadFile(token, file)
-        uploaded.push(url)
+      for (const { file, preview } of added) {
+        try {
+          const { url } = await uploadFile(token, file)
+          setPendingImages((prev) => prev.map((img) => (img.preview === preview ? { ...img, url } : img)))
+        } catch {
+          // 실패한 사진만 빼고 나머지는 그대로 보낼 수 있게 둔다
+          failed++
+          URL.revokeObjectURL(preview)
+          setPendingImages((prev) => prev.filter((img) => img.preview !== preview))
+        }
       }
-      setPendingImageUrls((prev) => [...prev, ...uploaded])
-    } catch {
-      previews.forEach((p) => URL.revokeObjectURL(p))
-      setPendingPreviews((prev) => prev.filter((p) => !previews.includes(p)))
+      if (failed > 0) addToast({ message: `사진 ${failed}장을 올리지 못했어요.`, type: "error" })
     } finally {
       setUploading(false)
       e.target.value = ""
     }
   }
 
-  function clearPendingImage(index: number) {
-    const preview = pendingPreviews[index]
-    if (preview) URL.revokeObjectURL(preview)
-    setPendingPreviews((prev) => prev.filter((_, i) => i !== index))
-    setPendingImageUrls((prev) => prev.filter((_, i) => i !== index))
+  function clearPendingImage(preview: string) {
+    URL.revokeObjectURL(preview)
+    setPendingImages((prev) => prev.filter((img) => img.preview !== preview))
   }
 
   async function handleDocChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -537,11 +541,11 @@ export default function Page() {
   }
 
   function handleSend() {
-    if (!message.trim() && pendingImageUrls.length === 0 && !pendingDocUrl) return
+    if (!message.trim() && uploadedImageUrls.length === 0 && !pendingDocUrl) return
     const client = stompClientRef.current
     if (!client?.connected || uploading) return
 
-    const fileUrls = pendingImageUrls.length > 0 ? pendingImageUrls : pendingDocUrl ? [pendingDocUrl] : []
+    const fileUrls = uploadedImageUrls.length > 0 ? uploadedImageUrls : pendingDocUrl ? [pendingDocUrl] : []
     const body = JSON.stringify({
       roomId: selectedId,
       message: message.trim() || "",
@@ -553,9 +557,8 @@ export default function Page() {
       body,
     })
     setMessage("")
-    pendingPreviews.forEach((p) => URL.revokeObjectURL(p))
-    setPendingPreviews([])
-    setPendingImageUrls([])
+    pendingImages.forEach((img) => URL.revokeObjectURL(img.preview))
+    setPendingImages([])
     clearPendingDoc()
   }
 
@@ -1254,20 +1257,20 @@ export default function Page() {
                 </div>
               )}
 
-              {pendingPreviews.length > 0 && (
+              {pendingImages.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto pb-1">
-                  {pendingPreviews.map((preview, i) => (
+                  {pendingImages.map(({ preview, url }) => (
                     <div key={preview} className="relative w-24 h-24 rounded-lg overflow-hidden shrink-0">
                       {/* blob: URL 이라 next/image 최적화 대상이 아니다. 보내기 전 로컬 미리보기일 뿐이다 */}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={preview} alt="첨부 이미지" className="w-full h-full object-cover" />
-                      {uploading && !pendingImageUrls[i] ? (
+                      {!url ? (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                           <span className="text-white text-xs">업로드 중</span>
                         </div>
                       ) : (
                         <button
-                          onClick={() => clearPendingImage(i)}
+                          onClick={() => clearPendingImage(preview)}
                           className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center transition-colors hover:bg-black/70 cursor-pointer"
                         >
                           <IoClose className="text-white text-xs" />
