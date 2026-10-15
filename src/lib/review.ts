@@ -149,6 +149,7 @@ export async function getReviewSummary(memberId: number, token?: string | null) 
 }
 
 export interface ReviewAnalysis {
+  postId: number
   summary: string
   keywords: string[]
   analyzedReviewCount: number
@@ -172,6 +173,7 @@ export function getReviewAnalysis(postId: number, token: string) {
     const data = json?.data
     if (!data) return null
     return {
+      postId: asNumber(data.postId ?? data.post_id, postId),
       summary: typeof data.summary === 'string' ? data.summary : '',
       keywords: Array.isArray(data.keywords) ? data.keywords.filter((k: unknown) => typeof k === 'string') : [],
       // 응답 키가 snake_case(analyzed_review_count, analyzed_at)로 안내돼서 기존 camelCase 와 둘 다 받는다
