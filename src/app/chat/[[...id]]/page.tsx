@@ -766,12 +766,16 @@ export default function Page() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "/") {
-        e.preventDefault()
-        chatHotKey()
-      }
+      if (e.key !== "/") return
+      // 이미 무언가를 입력 중이면 '/' 는 글자다. 막으면 날짜(10/15)·URL 을 칠 수 없다
+      const target = e.target as HTMLElement | null
+      if (target && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return
+      e.preventDefault()
+      chatHotKey()
     }
     window.addEventListener("keydown", handleKeyDown)
+    // 방을 옮길 때마다 페이지가 새로 마운트돼서, 해제하지 않으면 리스너가 계속 쌓인다
+    return () => window.removeEventListener("keydown", handleKeyDown)
   }, [])
 
   return (
