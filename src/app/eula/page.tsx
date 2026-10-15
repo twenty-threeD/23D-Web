@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { PAGE_PADDING } from "@/src/lib/layout";
 
 
 const sections = [
@@ -77,9 +78,9 @@ export default function Page() {
   return (
     <div className="flex flex-1 flex-col bg-white">
 
-      <main className="flex-1 px-5 md:px-10 xl:px-20 py-8">
+      <main className={`flex-1 ${PAGE_PADDING}`}>
         <div className="w-full">
-          <header className="border-b border-zinc-200 py-8 lg:py-10">
+          <header className="border-b border-line pb-8 lg:pb-10">
             <p className="pb-3 text-sm font-bold tracking-wide text-main">
               ITDA POLICY
             </p>
@@ -109,7 +110,7 @@ export default function Page() {
               </p>
 
               {/* 조항이 많아 목록만 따로 스크롤한다. 끝에 닿았을 때 페이지까지 같이 내려가지 않게 overscroll을 막는다 */}
-              <ul className="flex min-h-0 flex-col gap-2 border-l border-zinc-200 pl-4 lg:overflow-y-auto lg:overscroll-contain">
+              <ul className="flex min-h-0 flex-col gap-2 border-l border-line pl-4 lg:overflow-y-auto lg:overscroll-contain">
                 {sections.map((section) => (
                   <li key={section.id}>
                     <Link
@@ -752,7 +753,7 @@ export default function Page() {
                 </div>
               </section>
 
-              <div className="mt-12 border-t border-zinc-200 pt-8">
+              <div className="mt-12 border-t border-line pt-8">
                 <p className="font-semibold text-zinc-700">
                   부칙
                 </p>

@@ -16,8 +16,8 @@ export default function Search({ isTop, where, initialValue = "", onSearch }: Se
   const isChat = where === "chat";
 
   const styleClass = isHeader
-    ? (isTop ? "hidden" : "flex items-center gap-2 w-lg px-4 py-2 border border-zinc-300 rounded-lg")
-    : "flex items-center gap-2 w-full px-4 py-2 border border-zinc-300 rounded-lg";
+    ? (isTop ? "hidden" : "flex items-center gap-2 w-lg px-4 py-2 border border-line rounded-lg")
+    : "flex items-center gap-2 w-full px-4 py-2 border border-line rounded-lg";
 
   const placeholderText =
     where === "post" ? "검색어를 입력해주세요" :

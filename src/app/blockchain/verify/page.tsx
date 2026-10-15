@@ -19,6 +19,7 @@ import BlockHeightCounter from "@/src/components/blockchain/BlockHeightCounter";
 import HelpTooltip from "@/src/components/blockchain/HelpTooltip";
 import {LuBlocks, LuNetwork} from "react-icons/lu";
 import {TbCashBanknotePlus} from "react-icons/tb";
+import { PAGE_PADDING } from "@/src/lib/layout";
 
 function CardTitle({
     icon,
@@ -167,7 +168,7 @@ export default function Page() {
 
     return (
         <div className="flex justify-center bg-white">
-            <main className="flex w-full max-w-[1312px] flex-col gap-8 md:gap-12 px-5 md:px-6 pb-16 md:pb-28 pt-12 md:pt-24 lg:pt-40">
+            <main className={`flex w-full flex-col gap-8 md:gap-12 ${PAGE_PADDING}`}>
                 <h1 className="text-center text-2xl md:text-4xl leading-normal text-black">
                     <span className="font-bold text-main">블록체인</span>
                     <span className="font-medium">에 기록된</span>

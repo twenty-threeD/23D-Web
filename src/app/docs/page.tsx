@@ -6,6 +6,7 @@ import {
   IoHelpCircleOutline,
   IoSearchOutline,
 } from "react-icons/io5";
+import { PAGE_PADDING } from "@/src/lib/layout";
 
 const guideItems = [
   {
@@ -57,9 +58,9 @@ const policyItems = [
 export default function Page() {
   return (
     <div className="flex flex-1 flex-col bg-white">
-      <main className="flex-1 px-5 md:px-10 xl:px-20 py-8">
+      <main className={`flex-1 ${PAGE_PADDING}`}>
         <div className="w-full">
-          <header className="border-b border-zinc-200 py-8 lg:py-10">
+          <header className="border-b border-line pb-8 lg:pb-10">
             <p className="pb-3 text-sm font-bold tracking-wide text-main">
               ITDA DOCS
             </p>
@@ -96,7 +97,7 @@ export default function Page() {
                   <Link
                     key={item.title}
                     href={item.href}
-                    className="group flex min-h-56 flex-col justify-between border border-zinc-200 p-6 transition-colors hover:border-main hover:bg-main/5"
+                    className="group flex min-h-56 flex-col justify-between border border-line p-6 transition-colors hover:border-main hover:bg-main/5"
                   >
                     <div>
                       <Icon className="text-2xl text-main" aria-hidden="true" />
@@ -124,7 +125,7 @@ export default function Page() {
           </section>
 
           <section
-            className="border-t border-zinc-200 py-10 lg:py-14"
+            className="border-t border-line py-10 lg:py-14"
             aria-labelledby="policy-heading"
           >
             <div className="pb-5">
@@ -138,7 +139,7 @@ export default function Page() {
                 도움말 및 정책
               </h2>
             </div>
-            <div className="divide-y divide-zinc-200 border-y border-zinc-200">
+            <div className="divide-y divide-line border-y border-line">
               {policyItems.map((item) => (
                 <Link
                   key={item.title}

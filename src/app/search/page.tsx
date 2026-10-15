@@ -5,7 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import ServiceCard, { ServiceCardSkeleton } from "@/src/components/main/ServiceCard";
 import { SearchIcon } from "@/src/components/main/icons";
 import TopButton from "@/src/components/TopButton";
+import { IoChevronDownOutline } from "react-icons/io5";
 import { searchPostsPaged, getPostCategories, CATEGORIES, type Post, type PostCategory } from "@/src/lib/post";
+import { PAGE_PADDING } from "@/src/lib/layout";
 
 const SORT_OPTIONS = [
   { label: "최신순", value: "updatedAt,desc" },
@@ -114,17 +116,20 @@ function SearchContent() {
     updateQuery({ categoryId: id !== undefined ? String(id) : null });
   }
 
+  // 지금 고른 카테고리 이름. 휴대폰 필터 바의 select 는 서버 id 대신 이름으로 고른다(목록이 오기 전에도 고를 수 있게)
+  const selectedCategoryName = categories.find((category) => String(category.id) === categoryId)?.name ?? "";
+
   const chipClass = (active: boolean) =>
     `px-[18px] py-3 rounded-[21px] border font-semibold leading-none transition-colors cursor-pointer ${
-      active ? "bg-main border-main text-white" : "border-[#838383] text-[#838383] hover:border-main hover:text-main"
+      active ? "bg-main border-main text-white" : "border-line text-[#838383] hover:border-main hover:text-main"
     }`;
 
   return (
     <div>
       {/* 메인 검색 영역과 같은 시안이라 라운드·보더·간격을 메인 페이지와 맞췄다 */}
-      <main className="flex flex-col items-center gap-16 md:gap-[120px] px-5 pt-12 md:pt-[120px] pb-16 md:pb-[120px]">
+      <main className={`flex flex-col items-center gap-8 md:gap-[120px] ${PAGE_PADDING}`}>
         <section className="flex flex-col items-center gap-6 w-full max-w-[920px]">
-          <div className="flex items-center gap-3 w-full h-[52px] px-6 rounded-xl border border-[#b8b8b8] focus-within:border-main transition-colors">
+          <div className="flex items-center gap-3 w-full h-[52px] px-6 rounded-xl border border-line focus-within:border-main transition-colors">
             <input
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
@@ -142,7 +147,39 @@ function SearchContent() {
             </button>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-5">
+          {/* 휴대폰에서는 카테고리 칩 아홉 개가 세 줄로 쌓여 검색창과 결과 사이를 크게 벌린다.
+              칩 대신 검색창 바로 아래에 카테고리·정렬을 고르는 바 하나로 줄인다 */}
+          <div className="md:hidden flex w-full gap-2">
+            <label className="relative flex-1 min-w-0">
+              <span className="sr-only">카테고리</span>
+              <select
+                value={selectedCategoryName}
+                onChange={(e) => selectCategory(e.target.value || null)}
+                className="w-full h-10 appearance-none rounded-lg border border-line bg-white pl-3 pr-8 text-sm font-medium text-ink focus:outline-none focus:border-main"
+              >
+                <option value="">전체 카테고리</option>
+                {CATEGORIES.map((c) => (
+                  <option key={c.name} value={c.name}>{c.label}</option>
+                ))}
+              </select>
+              <IoChevronDownOutline className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 size-4 text-ink-sub" />
+            </label>
+            <label className="relative w-28 shrink-0">
+              <span className="sr-only">정렬</span>
+              <select
+                value={sort}
+                onChange={(e) => updateQuery({ sort: e.target.value })}
+                className="w-full h-10 appearance-none rounded-lg border border-line bg-white pl-3 pr-8 text-sm font-medium text-ink focus:outline-none focus:border-main"
+              >
+                {SORT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+              <IoChevronDownOutline className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 size-4 text-ink-sub" />
+            </label>
+          </div>
+
+          <div className="hidden md:flex flex-wrap justify-center gap-5">
             <button type="button" onClick={() => selectCategory(null)} className={chipClass(!categoryId)}>
               전체
             </button>
@@ -163,8 +200,9 @@ function SearchContent() {
         </section>
 
         {/* 섹션 폭은 그리드 폭(w-fit)을 따르고, 시안처럼 정렬 줄이 카드보다 양옆 66px 넓게 나오도록
-            그리드 쪽에 좌우 패딩을 준다. 5열(2xl)에서는 66px 를 더하면 화면을 넘쳐 패딩을 뺐다 */}
-        <section className="flex flex-col items-center gap-12 w-fit max-w-full">
+            그리드 쪽에 좌우 패딩을 준다. 5열(2xl)에서는 66px 를 더하면 화면을 넘쳐 패딩을 뺐다.
+            휴대폰의 두 칸 그리드는 칸이 화면 폭을 따라 늘어나야 해서 섹션도 꽉 채운다 */}
+        <section className="flex flex-col items-center gap-6 sm:gap-12 w-full sm:w-fit max-w-full">
           {/* 결과 요약 + 정렬 */}
           <div className="w-full flex items-center justify-between font-semibold text-[#838383]">
             <p>
@@ -172,7 +210,8 @@ function SearchContent() {
               {keyword ? "검색 결과 " : "전체 "}
               <span className="text-[#1c1c1c]">{total.toLocaleString()}</span>건
             </p>
-            <div className="flex gap-2 font-medium">
+            {/* 휴대폰은 위 필터 바에서 정렬을 고르므로 여기서는 건수만 남긴다 */}
+            <div className="hidden md:flex gap-2 font-medium">
               {SORT_OPTIONS.map((option) => (
                 <button
                   key={option.value}
@@ -188,18 +227,19 @@ function SearchContent() {
             </div>
           </div>
 
-          {/* 카드 폭(260px)은 고정하고 화면 폭에 따라 한 줄 1~5개로 바꾼다.
+          {/* 카드 폭(260px)은 고정하고 화면 폭에 따라 한 줄 2~5개로 바꾼다.
               auto-fill 은 최대 개수를 제한할 수 없어 브레이크포인트마다 열 수를 명시했다.
-              각 구간은 (열 수 × 260 + 간격 36 + 좌우 여백 40)이 들어가는 가장 작은 폭이다 */}
-          <div className="xl:px-[66px] 2xl:px-0 max-w-full">
+              각 구간은 (열 수 × 260 + 간격 36 + 좌우 여백 40)이 들어가는 가장 작은 폭이다.
+              640px 미만은 260px 카드가 하나밖에 안 들어가 화면 폭을 반씩 나눈 두 칸으로 채운다 */}
+          <div className="w-full sm:w-auto xl:px-[66px] 2xl:px-0 max-w-full">
           {loading || posts.length > 0 ? (
-            <div className="grid grid-cols-[repeat(1,260px)] sm:grid-cols-[repeat(2,260px)] lg:grid-cols-[repeat(3,260px)] xl:grid-cols-[repeat(4,260px)] 2xl:grid-cols-[repeat(5,260px)] gap-x-9 gap-y-16">
+            <div className="grid grid-cols-2 sm:grid-cols-[repeat(2,260px)] lg:grid-cols-[repeat(3,260px)] xl:grid-cols-[repeat(4,260px)] 2xl:grid-cols-[repeat(5,260px)] gap-x-3 gap-y-10 sm:gap-x-9 sm:gap-y-16">
               {loading
-                ? Array.from({ length: 10 }).map((_, i) => <ServiceCardSkeleton key={i} />)
-                : posts.map((post) => <ServiceCard key={post.id} post={post} />)}
+                ? Array.from({ length: 10 }).map((_, i) => <ServiceCardSkeleton key={i} inGrid />)
+                : posts.map((post) => <ServiceCard key={post.id} post={post} inGrid />)}
             </div>
           ) : (
-            <div className="w-[260px] sm:w-[556px] lg:w-[852px] xl:w-[1148px] 2xl:w-[1444px] max-w-full py-20 flex flex-col items-center gap-2">
+            <div className="w-full sm:w-[556px] lg:w-[852px] xl:w-[1148px] 2xl:w-[1444px] max-w-full py-20 flex flex-col items-center gap-2">
               <p className="font-medium text-ink-sub">검색 결과가 없습니다.</p>
               <p className="text-sm text-ink-muted">다른 검색어나 카테고리로 찾아보세요.</p>
             </div>

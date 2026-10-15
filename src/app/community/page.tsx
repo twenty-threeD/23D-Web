@@ -23,6 +23,7 @@ import PostItem from "@/src/components/PostItem";
 import Search from "@/src/components/Search";
 import TopButton from "@/src/components/TopButton";
 import PostItemSkeleton from "@/src/components/PostItemSkeleton";
+import { PAGE_PADDING } from "@/src/lib/layout";
 
 interface Post {
   id: number
@@ -114,7 +115,7 @@ function PostList() {
         </button>
       </div>
 
-      <div className="flex flex-col divide-y divide-zinc-300">
+      <div className="flex flex-col divide-y divide-line">
         {loading ? (
           Array.from({ length: 5 }).map((_, i) => <PostItemSkeleton key={i} />)
         ) : posts.length === 0 ? (
@@ -153,11 +154,11 @@ function PostList() {
 export default function Page() {
   return (
     <div>
-      <div className="flex flex-col md:flex-row md:items-start justify-between px-5 md:px-10 xl:px-20 py-8 gap-6 md:gap-8">
+      <div className={`flex flex-col md:flex-row md:items-start justify-between ${PAGE_PADDING} gap-6 md:gap-8`}>
         <CommunityMenu />
         <Suspense
           fallback={
-            <main className="flex flex-col divide-y divide-zinc-300 w-full">
+            <main className="flex flex-col divide-y divide-line w-full">
               {Array.from({ length: 5 }).map((_, i) => <PostItemSkeleton key={i} />)}
             </main>
           }

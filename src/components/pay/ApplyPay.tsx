@@ -5,7 +5,7 @@ interface ApplyPayProps {
 
 export const ApplyPay = ({ isAgree, setIsAgree }: ApplyPayProps) => {
     return (
-        <div className="w-87.5 border p-5 gap-5 border-zinc-300 rounded-lg">
+        <div className="w-87.5 border p-5 gap-5 border-line rounded-lg">
             <div className="flex items-center gap-2.5">
                 <input 
                     type="checkbox" 

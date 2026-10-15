@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { IoChevronDownOutline } from "react-icons/io5";
+import { PAGE_PADDING } from "@/src/lib/layout";
 
 const faqItems = [
   {
@@ -60,9 +61,9 @@ export default function Page() {
 
   return (
     <div className="flex flex-1 flex-col bg-white">
-      <main className="flex-1 px-5 md:px-10 xl:px-20 py-8">
+      <main className={`flex-1 ${PAGE_PADDING}`}>
         <div className="w-full">
-          <header className="border-b border-zinc-200 py-8 lg:py-10">
+          <header className="border-b border-line pb-8 lg:pb-10">
             <p className="pb-3 text-sm font-bold tracking-wide text-main">
               ITDA HELP
             </p>
@@ -75,14 +76,14 @@ export default function Page() {
           </header>
 
           <section aria-label="자주 묻는 질문 목록" className="py-10 lg:py-14">
-            <div className="overflow-hidden rounded-xl border border-zinc-200">
+            <div className="overflow-hidden rounded-xl border border-line">
               {faqItems.map((item, index) => {
                 const isOpen = openIndex === index;
 
                 return (
                   <div
                     key={item.question}
-                    className="border-b border-zinc-200 last:border-b-0"
+                    className="border-b border-line last:border-b-0"
                   >
                     <button
                       type="button"

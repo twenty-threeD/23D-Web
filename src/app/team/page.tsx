@@ -1,4 +1,5 @@
 import { FaGithub } from "react-icons/fa";
+import { PAGE_PADDING } from "@/src/lib/layout";
 
 // github 은 각자 프로필 주소를 채워 넣는다. 빈 문자열이면 버튼을 렌더하지 않는다.
 const members = [
@@ -14,9 +15,9 @@ const members = [
 export default function Page() {
   return (
     <div className="flex flex-1 flex-col bg-zinc-50">
-      <main className="flex-1 px-5 md:px-10 xl:px-20 py-8">
+      <main className={`flex-1 ${PAGE_PADDING}`}>
         <div className="w-full">
-          <header className="border-b border-zinc-200 py-8 lg:py-10">
+          <header className="border-b border-line pb-8 lg:pb-10">
             <p className="pb-3 text-sm font-bold tracking-wide text-main">
               MEET THE TEAM
             </p>
@@ -61,7 +62,7 @@ export default function Page() {
                       target="_blank"
                       rel="noreferrer noopener"
                       aria-label={`${member.name} GitHub`}
-                      className="flex size-9 shrink-0 items-center justify-center rounded-full border border-zinc-300 text-zinc-600 transition-colors hover:border-main hover:text-main"
+                      className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line text-zinc-600 transition-colors hover:border-main hover:text-main"
                     >
                       <FaGithub className="size-4.5" />
                     </a>

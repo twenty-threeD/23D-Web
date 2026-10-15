@@ -53,7 +53,7 @@ export default function Modal({
         className={`bg-white w-full ${WIDTH_CLASS[width]} max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-modal-panel`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-zinc-200 shrink-0">
+        <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-line shrink-0">
           <h2 className="text-lg font-bold">{title}</h2>
           <button
             onClick={onClose}

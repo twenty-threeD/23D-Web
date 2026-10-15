@@ -44,6 +44,7 @@ import { parseChatStart } from "@/src/lib/chatPreview"
 import DealCard from "@/src/components/chat/DealCard"
 import { formatDealCancel, parseDealEnd, parseDealRequest } from "@/src/lib/deal"
 import { ApiError } from "@/src/lib/apiError"
+import { PAGE_TOP, PAGE_X } from "@/src/lib/layout";
 
 function isImageUrl(url: string) {
   return /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(url)
@@ -784,11 +785,11 @@ export default function Page() {
       )}
 
       {/* 휴대폰 폭에서는 목록과 대화방을 나란히 둘 수 없어, 방을 고르기 전엔 목록만 · 고른 뒤엔 대화방만 보여준다 */}
-      <div className="flex flex-1 px-5 md:px-10 xl:px-20 pt-4 md:pt-8 overflow-hidden">
+      <div className={`flex flex-1 ${PAGE_X} ${PAGE_TOP} overflow-hidden`}>
         {/* 왼쪽 채팅 목록 */}
-        <div className={`${selectedId ? "hidden md:flex" : "flex"} flex-col w-full md:w-64 lg:w-80 md:pr-4 shrink-0 md:border-r border-zinc-200`}>
+        <div className={`${selectedId ? "hidden md:flex" : "flex"} flex-col w-full md:w-64 lg:w-80 md:pr-4 shrink-0 md:border-r border-line`}>
           {/* 탭 */}
-          <div className="flex border-b border-zinc-200">
+          <div className="flex border-b border-line">
             {tabs.map((t) => (
               <button
                 key={t.key}
@@ -813,7 +814,8 @@ export default function Page() {
           <div className="flex flex-col flex-1 overflow-y-auto rounded-md">
             {loadingRooms ? (
               Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-3 px-4 animate-pulse">
+                // 실제 방 줄과 같은 위아래 여백(py-3)을 둬야 불러온 뒤 목록 높이가 바뀌지 않는다
+                <div key={i} className="flex items-center gap-3 px-4 py-3 animate-pulse">
                   <div className="w-12 h-12 rounded-full bg-zinc-200 shrink-0" />
                   <div className="flex flex-col gap-2 flex-1">
                     <div className="h-3 w-24 bg-zinc-200 rounded" />
@@ -886,7 +888,7 @@ export default function Page() {
           {selectedRoom ? (
             <>
               {/* 채팅 헤더 */}
-              <div className="flex items-center gap-3 px-2 md:px-6 py-4 border-b border-zinc-200 shrink-0">
+              <div className="flex items-center gap-3 px-2 md:px-6 py-4 border-b border-line shrink-0">
                 {/* 휴대폰에서는 목록이 가려져 있어 목록으로 돌아갈 길이 필요하다 */}
                 <button
                   type="button"
@@ -986,7 +988,7 @@ export default function Page() {
                   const attachment = attachedUrls.length > 0 ? (
                     <div className="flex flex-col gap-1">
                       {imageUrls.length > 0 && (
-                        <div className="flex flex-wrap gap-1 max-w-xs">
+                        <div className="flex flex-wrap gap-1 max-w-[min(20rem,62vw)]">
                           {imageUrls.map((url) => (
                             <div
                               key={url}
@@ -1004,7 +1006,7 @@ export default function Page() {
                           href={toRelativeUrl(url)}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex items-center gap-2 bg-zinc-100 rounded-xl px-3 py-2 max-w-xs hover:bg-zinc-200"
+                          className="flex items-center gap-2 bg-zinc-100 rounded-xl px-3 py-2 max-w-[min(20rem,62vw)] hover:bg-zinc-200"
                         >
                           <MdOutlineDescription className="text-lg text-zinc-500 shrink-0" />
                           <span className="text-xs text-zinc-600 truncate">{fileNameFromUrl(url)}</span>
@@ -1052,8 +1054,10 @@ export default function Page() {
                   ) : null
 
                   const textBubble = msg.message && !contractMsg && !paymentCard && !callCard && !dealCard ? (
-                    <div className={`rounded-2xl px-4 py-2 max-w-xs ${isSent ? "bg-main rounded-br-none" : "bg-zinc-100 rounded-bl-none"}`}>
-                      <p className={`text-sm whitespace-pre-line ${isSent ? "text-white" : ""}`}>{displayText}</p>
+                    // 휴대폰에서는 아바타·시간과 한 줄에 놓여 320px 고정폭이면 화면을 넘는다. 화면 폭 비율로 줄이고,
+                    // 띄어쓰기 없는 긴 링크·단어도 말풍선 안에서 줄을 바꾼다
+                    <div className={`rounded-2xl px-4 py-2 max-w-[min(20rem,62vw)] ${isSent ? "bg-main rounded-br-none" : "bg-zinc-100 rounded-bl-none"}`}>
+                      <p className={`text-sm whitespace-pre-line [overflow-wrap:anywhere] ${isSent ? "text-white" : ""}`}>{displayText}</p>
                     </div>
                   ) : null
 
@@ -1191,7 +1195,7 @@ export default function Page() {
 
           {/* 입력 영역. 거래가 끝나도 대화는 막지 않는다 */}
           {selectedRoom && (
-            <div className="shrink-0 border-t border-zinc-200 px-2 md:px-6 py-4 flex flex-col gap-3">
+            <div className="shrink-0 border-t border-line px-2 md:px-6 py-4 flex flex-col gap-3">
               {showAttach && (
                 <div className="flex gap-6">
                   <div className="flex flex-col items-center gap-1">
@@ -1288,7 +1292,7 @@ export default function Page() {
                 </div>
               )}
 
-              <div className="flex items-center gap-3 p-2 rounded-lg border border-zinc-200">
+              <div className="flex items-center gap-3 p-2 rounded-lg border border-line">
                 <button
                   onClick={() => setShowAttach((v) => !v)}
                   className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-colors ${
