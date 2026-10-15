@@ -32,6 +32,17 @@ const ALSO_ACTIVE: Partial<Record<(typeof NAV_ITEMS)[number]["href"], string[]>>
   "/blockchain/verify": ["/blockchain/more"],
 }
 
+// 휴대폰은 엄지가 닿기 쉬운 가운데에 서비스 등록을 두고, 자주 여는 커뮤니티·능력자 찾기를 앞에 둔다.
+// 헤더 가로 메뉴는 기존 순서를 그대로 쓰므로 NAV_ITEMS 를 바꾸지 않고 하단 바에서만 순서를 정한다
+const MOBILE_ORDER: (typeof NAV_ITEMS)[number]["href"][] = [
+  "/community",
+  "/search",
+  "/upload",
+  "/chat",
+  "/blockchain/verify",
+]
+const MOBILE_ITEMS = MOBILE_ORDER.flatMap((href) => NAV_ITEMS.filter((item) => item.href === href))
+
 function isUnder(pathname: string, base: string) {
   return pathname === base || pathname.startsWith(`${base}/`)
 }
@@ -44,7 +55,7 @@ export default function BottomNav() {
   return (
     <nav className="md:hidden fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white pb-[env(safe-area-inset-bottom)]">
       <ul className="grid h-16 grid-cols-5">
-        {NAV_ITEMS.map((item) => {
+        {MOBILE_ITEMS.map((item) => {
           // 상세 화면(/chat/12, /blockchain/verify/detail/…)에서도 그 메뉴가 켜져 있어야 위치를 알 수 있다
           const active = [item.href, ...(ALSO_ACTIVE[item.href] ?? [])].some((base) => isUnder(pathname, base))
           const Icon = active ? ICONS[item.href].on : ICONS[item.href].off

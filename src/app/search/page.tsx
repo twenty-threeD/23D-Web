@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import ServiceCard, { ServiceCardSkeleton } from "@/src/components/main/ServiceCard";
 import { SearchIcon } from "@/src/components/main/icons";
 import TopButton from "@/src/components/TopButton";
 import { IoChevronDownOutline } from "react-icons/io5";
+import { useInfiniteScroll } from "@/src/hooks/useInfiniteScroll";
 import { searchPostsPaged, getPostCategories, CATEGORIES, type Post, type PostCategory } from "@/src/lib/post";
 import { PAGE_PADDING } from "@/src/lib/layout";
 
@@ -77,7 +78,19 @@ function SearchContent() {
     router.push(`/search?${params.toString()}`);
   }
 
+  // 스크롤로 자동으로 부르므로 같은 페이지를 겹쳐 부르지 않게 막는다. state 는 다음 렌더에야 바뀌어 ref 로 본다
+  const loadingMoreRef = useRef(false);
+  // 다음 페이지를 받는 사이 검색 조건이 바뀌면, 이전 조건의 결과를 새 목록 뒤에 붙이지 않는다
+  const queryKey = `${keyword}|${categoryId ?? ""}|${sort}`;
+  const queryKeyRef = useRef(queryKey);
+  useEffect(() => {
+    queryKeyRef.current = queryKey;
+  }, [queryKey]);
+
   async function handleLoadMore() {
+    if (loadingMoreRef.current) return;
+    loadingMoreRef.current = true;
+    const requestedKey = queryKey;
     setLoadingMore(true);
     try {
       const res = await searchPostsPaged({
@@ -87,15 +100,25 @@ function SearchContent() {
         page: page + 1,
         size: PAGE_SIZE,
       });
+      if (queryKeyRef.current !== requestedKey) return;
       setPosts((prev) => [...prev, ...res.posts]);
       setPage(res.page);
       setIsLast(res.last);
     } catch {
-      setIsLast(true);
+      // 실패한 채로 두면 끝 표시가 계속 보여 같은 요청을 끝없이 반복하므로 더 부르지 않는다
+      if (queryKeyRef.current === requestedKey) setIsLast(true);
     } finally {
+      loadingMoreRef.current = false;
       setLoadingMore(false);
     }
   }
+
+  // 더보기 버튼을 누르지 않아도 목록 끝에 가까워지면 다음 페이지를 이어 붙인다
+  const sentinelRef = useInfiniteScroll({
+    enabled: !loading && !isLast,
+    itemCount: posts.length,
+    onLoadMore: handleLoadMore,
+  });
 
   const [searchValue, setSearchValue] = useState(keyword);
   const [syncedKeyword, setSyncedKeyword] = useState(keyword);
@@ -247,14 +270,9 @@ function SearchContent() {
           </div>
 
           {!loading && !isLast && (
-            <button
-              type="button"
-              onClick={handleLoadMore}
-              disabled={loadingMore}
-              className="w-[260px] h-9 rounded-lg border border-ink-muted font-medium text-ink hover:border-main hover:text-main transition-colors disabled:opacity-50 cursor-pointer"
-            >
-              {loadingMore ? "불러오는 중..." : "더 보기"}
-            </button>
+            <div ref={sentinelRef} className="flex h-9 items-center justify-center text-sm text-ink-muted">
+              {loadingMore && "불러오는 중..."}
+            </div>
           )}
         </section>
       </main>

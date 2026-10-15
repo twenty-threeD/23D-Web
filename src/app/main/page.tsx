@@ -94,7 +94,9 @@ function MainContent() {
       <section className={`flex flex-col gap-5 w-full ${SECTION_INSET}`}>
         <CardRow
           gap="gap-[26px]"
-          autoSlideMs={3000}
+          autoSlideMs={5000}
+          snapMobile
+          loopMobile={!loading && adPosts.length > 1}
           header={
             <div className="flex items-end gap-3">
               <h2 className="text-2xl md:text-[28px] font-semibold text-ink leading-none">광고</h2>
