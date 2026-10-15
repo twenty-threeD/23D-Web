@@ -39,6 +39,8 @@ export default function Page() {
   const [post, setPost] = useState<Post | null>(null);
   const [relatedPosts, setRelatedPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  // 없는 글(404)·잘못된 주소면 빈 상세 화면 대신 안내를 띄운다
+  const [notFound, setNotFound] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
@@ -58,8 +60,11 @@ export default function Page() {
   useEffect(() => {
     if (!postId) return;
     getPost(postId, token)
-      .then((res) => setPost(res.data ?? null))
-      .catch(() => {})
+      .then((res) => {
+        setPost(res.data ?? null);
+        setNotFound(!res.data);
+      })
+      .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [postId, token]);
 
@@ -173,6 +178,15 @@ export default function Page() {
   // 메인과 같은 규칙으로 줄을 채운다. 추천 API 가 없어 전체 글에서 잘라 쓴다
   const revisitPosts = [...relatedPosts.slice(4), ...relatedPosts.slice(0, 4)].slice(0, 10);
   const popularPosts = relatedPosts.slice(0, 10);
+
+  // id 없이 들어오면 불러올 글이 없어 loading 이 영영 끝나지 않으므로 바로 안내로 넘긴다
+  if (!postId || notFound) {
+    return (
+      <div>
+        <p className="text-center py-20 text-ink-muted">존재하지 않는 서비스입니다.</p>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

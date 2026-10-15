@@ -274,6 +274,12 @@ export const useCallStore = create<CallStore>()((set, get) => ({
       // 거부당한 뒤에 만들면 상대 전화만 울리는 유령 통화가 남는다.
       await ensureMediaPermission(callType === 'VIDEO')
       const session = await startCall(token, roomId, callType)
+      // 권한 확인·startCall 응답을 기다리는 사이 끊었으면 hangUp 은 callId 를 몰라 서버에 종료를 못 보냈다.
+      // 여기서 접지 않으면 상대 전화가 계속 울리고 다음 통화가 409 로 막힌다
+      if (get().phase !== 'connecting') {
+        await abandonCall(token, session.call.callId)
+        return
+      }
       // 채널에 붙기 전에 먼저 들고 있는다.
       // 이게 없으면 접속하는 몇 초 사이에 끊었을 때 callId 를 몰라 서버에 종료를 못 알리고,
       // 화면만 닫힌 채 상대 전화는 계속 울린다.
@@ -284,7 +290,11 @@ export const useCallStore = create<CallStore>()((set, get) => ({
         peerImageUrl: session.call.callee.imageUrl ?? get().peerImageUrl,
       })
       const joined = await joinChannel(session, callType === 'VIDEO', () => get().phase === 'connecting')
-      if (!joined) return
+      if (!joined) {
+        // 채널에 붙는 사이 정리된 경우다. 이미 끝난 통화면 서버가 거절할 뿐이라 한 번 더 접어도 해가 없다
+        await abandonCall(token, session.call.callId)
+        return
+      }
       // 상대가 아주 빨리 받으면 ACCEPTED 가 join 보다 먼저 도착한다.
       // 그때는 시그널이 넣어둔 최신 스냅샷을 살리고 바로 통화 중으로 넘어간다.
       const arrived = get().call

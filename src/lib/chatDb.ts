@@ -182,3 +182,18 @@ export async function deleteRoomCache(roomId: number): Promise<void> {
     db.close()
   }
 }
+
+// 모든 방의 캐시를 비운다. DB 가 계정 구분 없이 하나라, 로그아웃·다른 계정 로그인 때 비우지 않으면
+// 공용 PC 에서 다음 사람이 이전 사람의 대화 기록을 읽을 수 있다
+export async function clearAllChatCache(): Promise<void> {
+  if (!isAvailable()) return
+
+  const db = await openDb()
+  try {
+    const tx = db.transaction(STORE, 'readwrite')
+    tx.objectStore(STORE).clear()
+    await done(tx)
+  } finally {
+    db.close()
+  }
+}
