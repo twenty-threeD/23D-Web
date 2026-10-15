@@ -6,6 +6,13 @@ const UPLOADABLE = new Set(['image/jpeg', 'image/png', 'image/webp', 'applicatio
 const HEIF_TYPES = new Set(['image/heic', 'image/heif'])
 const HEIF_EXTENSION = /\.(heic|heif)$/i
 
+export class HeifConversionError extends Error {
+  constructor(fileName: string) {
+    super(`${fileName}: HEIF 사진을 업로드용 형식으로 변환하지 못했어요. JPG, PNG 또는 WEBP로 저장한 뒤 다시 선택해주세요.`)
+    this.name = 'HeifConversionError'
+  }
+}
+
 export function isHeifFile(file: File) {
   return HEIF_TYPES.has(file.type.toLowerCase()) || HEIF_EXTENSION.test(file.name)
 }
@@ -27,15 +34,20 @@ function toJpegName(name: string) {
 }
 
 async function convertHeifToJpeg(file: File): Promise<File> {
-  const { default: heic2any } = await import('heic2any')
-  const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.92 })
-  const jpeg = Array.isArray(converted) ? converted[0] : converted
-  if (!jpeg) throw new Error('HEIF 이미지에서 사진을 찾을 수 없습니다.')
+  try {
+    const { default: heic2any } = await import('heic2any')
+    const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.92 })
+    const jpeg = Array.isArray(converted) ? converted[0] : converted
+    if (!jpeg) throw new Error('HEIF 이미지에서 사진을 찾을 수 없습니다.')
 
-  return new File([jpeg], toJpegName(file.name), {
-    type: 'image/jpeg',
-    lastModified: file.lastModified,
-  })
+    return new File([jpeg], toJpegName(file.name), {
+      type: 'image/jpeg',
+      lastModified: file.lastModified,
+    })
+  } catch {
+    // HEIF 원본은 브라우저 미리보기 호환성이 낮아 변환 실패를 사용자에게 구분해 알린다.
+    throw new HeifConversionError(file.name)
+  }
 }
 
 /**
