@@ -1,4 +1,5 @@
 import { throwApiError } from './apiError'
+import { invalidateMe } from './profile'
 
 // 인증코드 전송
 export async function sendVerifyCode(email: string) {
@@ -7,7 +8,8 @@ export async function sendVerifyCode(email: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
   })
-  if (!res.ok) throw new Error('인증코드 전송 실패')
+  // 발송 한도 초과·메일 서버 장애를 구분해 안내해야 해서 서버 에러 코드를 살려 던진다
+  if (!res.ok) await throwApiError(res)
   return res.json()
 }
 
@@ -29,7 +31,7 @@ export async function sendEmailChangeCode(email: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
   })
-  if (!res.ok) throw new Error('인증코드 전송 실패')
+  if (!res.ok) await throwApiError(res)
   return res.json()
 }
 
@@ -52,6 +54,8 @@ export async function checkPhoneVerifyCode(phone: string, code: string) {
     body: JSON.stringify({ recipientNumber: phone, code }),
   })
   if (!res.ok) throw new Error('인증코드 불일치')
+  // 내 정보가 바뀌었으니 들고 있던 프로필을 버린다
+  invalidateMe()
   return res.json()
 }
 

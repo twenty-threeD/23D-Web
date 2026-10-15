@@ -52,12 +52,16 @@ export async function createContract(
     inspectionPeriod: number
     price: number
     servicesDescription: string
+    // 서버는 계약에 postId 가 있어야 그 게시글의 리뷰 대상으로 묶는다(없으면 리뷰 작성 가능 목록이 항상 비어 있다).
+    // 게시글 작성자와 professionalId 가 다르면 400 CONTRACT_INVALID_POST 다
+    postId?: number | null
   }
 ) {
+  const { postId, ...rest } = data
   const res = await fetch(`/api/contract`, {
     method: 'POST',
     headers: authHeaders(token),
-    body: JSON.stringify(data),
+    body: JSON.stringify(postId != null ? { ...rest, postId } : rest),
   })
   if (!res.ok) await throwApiError(res)
   const json = await res.json()

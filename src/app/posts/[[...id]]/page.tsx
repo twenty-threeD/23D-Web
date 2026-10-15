@@ -260,11 +260,11 @@ export default function Page() {
 
   return (
     <div>
-      <div className="flex items-start justify-between px-20 py-8 gap-8">
+      <div className="flex flex-col md:flex-row md:items-start justify-between px-5 md:px-10 xl:px-20 py-8 gap-6 md:gap-8">
         <CommunityMenu />
 
         <main className="flex flex-col gap-8 w-full">
-          <div className="flex flex-col gap-4 w-full border-zinc-200 border rounded-lg p-8">
+          <div className="flex flex-col gap-4 w-full border-zinc-200 border rounded-lg p-5 md:p-8">
             {/* 헤더 */}
             <header className="flex flex-col gap-3">
               <div className="flex justify-between items-start gap-4">
@@ -292,13 +292,14 @@ export default function Page() {
                 </div>
                 <div className="flex flex-col justify-center w-full">
                   <h3 className="text-sm font-medium">{post.username}</h3>
-                  <div className="flex justify-between">
-                    <div className="flex gap-2">
+                  {/* 휴대폰 폭에서는 날짜·조회수·댓글 수가 한 줄에 다 들어가지 않아 항목 단위로 줄을 바꾼다 */}
+                  <div className="flex flex-wrap justify-between gap-x-3 gap-y-1">
+                    <div className="flex flex-wrap gap-x-2 gap-y-1 whitespace-nowrap">
                       <span className="text-sm font-medium text-zinc-400">{dateStr}</span>
                       <span className="text-sm font-medium text-zinc-400">조회 {(post.viewCount ?? 0).toLocaleString()}</span>
                       {post.edited && <span className="text-xs text-zinc-400">(수정됨)</span>}
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 whitespace-nowrap">
                       <IoChatboxOutline className="text-xl" />
                       <span className="text-zinc-500 text-sm font-semibold">댓글</span>
                       <p className="text-sm font-semibold">{post.commentCount ?? 0}</p>

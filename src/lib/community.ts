@@ -1,4 +1,25 @@
 import { throwApiError } from './apiError'
+import { cached, invalidate, MINUTE } from './cache'
+import { ME_KEY } from './profile'
+
+// 커뮤니티 목록 캐시 키 묶음. 글·댓글·좋아요가 바뀌면 invalidateCommunity() 로 지운다
+const COMMUNITY_KEY = 'community:'
+// '전체'·'동네 주민' 탭은 지역 필터 때문에 글 전체를 마지막 페이지까지 받는다.
+// 글을 보고 목록으로 돌아올 때마다 처음부터 다시 받지 않게 잠깐 들고 있는다
+const LIST_TTL = 30_000
+
+function invalidateCommunity() {
+  invalidate(COMMUNITY_KEY)
+}
+
+// 목록 응답을 url 별로 들고 있는다. 상세(조회수)와 댓글은 늘 새로 받는다
+function cachedList(url: string, token?: string | null) {
+  return cached(`${COMMUNITY_KEY}${url}`, LIST_TTL, async () => {
+    const res = await fetch(url, { headers: authHeaders(token) })
+    if (!res.ok) await throwApiError(res)
+    return res.json()
+  })
+}
 
 function authHeaders(token?: string | null) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -50,11 +71,15 @@ export interface MemberLocation {
 }
 
 // 지역 미설정 회원은 404(LOCATION_NOT_SET)가 오므로 에러 대신 null 로 돌려준다
-export async function getMyLocation(token: string): Promise<MemberLocation | null> {
-  const res = await fetch(`/api/member/location`, { headers: authHeaders(token) })
-  if (!res.ok) return null
-  const json = await res.json()
-  return json.data ?? null
+// 커뮤니티 목록·글 상세가 화면마다 다시 묻던 값이다. 지역은 프로필 수정으로만 바뀌고, 그때 invalidateMe() 로 지워진다.
+// 실패는 캐시하지 않고(일시 오류로 한동안 동네 글이 안 보이는 일을 막는다) 호출부에는 지금처럼 null 로 돌려준다
+export function getMyLocation(token: string): Promise<MemberLocation | null> {
+  return cached(`${ME_KEY}location`, MINUTE, async () => {
+    const res = await fetch(`/api/member/location`, { headers: authHeaders(token) })
+    if (!res.ok) throw new Error('location')
+    const json = await res.json()
+    return (json.data ?? null) as MemberLocation | null
+  }).catch(() => null)
 }
 
 interface RegionFilterable {
@@ -143,33 +168,21 @@ function pageParams(page: number, size: number) {
   return `page=${page}&size=${size}`
 }
 
-export async function getPosts(token?: string | null, page = 0, size = COMMUNITY_PAGE_SIZE) {
-  const res = await fetch(`/api/community/post?${pageParams(page, size)}`, {
-    headers: authHeaders(token),
-  })
-  if (!res.ok) await throwApiError(res)
-  return res.json()
+export function getPosts(token?: string | null, page = 0, size = COMMUNITY_PAGE_SIZE) {
+  return cachedList(`/api/community/post?${pageParams(page, size)}`, token)
 }
 
-export async function getPostsByCategory(
+export function getPostsByCategory(
   category: CommunityCategory,
   token?: string | null,
   page = 0,
   size = COMMUNITY_PAGE_SIZE,
 ) {
-  const res = await fetch(`/api/community/post/category?category=${category}&${pageParams(page, size)}`, {
-    headers: authHeaders(token),
-  })
-  if (!res.ok) await throwApiError(res)
-  return res.json()
+  return cachedList(`/api/community/post/category?category=${category}&${pageParams(page, size)}`, token)
 }
 
-export async function searchPosts(keyword: string, token?: string | null, page = 0, size = COMMUNITY_PAGE_SIZE) {
-  const res = await fetch(`/api/community/post/search?keyword=${encodeURIComponent(keyword)}&${pageParams(page, size)}`, {
-    headers: authHeaders(token),
-  })
-  if (!res.ok) await throwApiError(res)
-  return res.json()
+export function searchPosts(keyword: string, token?: string | null, page = 0, size = COMMUNITY_PAGE_SIZE) {
+  return cachedList(`/api/community/post/search?keyword=${encodeURIComponent(keyword)}&${pageParams(page, size)}`, token)
 }
 
 export async function createPost(
@@ -182,6 +195,7 @@ export async function createPost(
     body: JSON.stringify(data),
   })
   if (!res.ok) await throwApiError(res)
+  invalidateCommunity()
   return res.json()
 }
 
@@ -196,6 +210,7 @@ export async function updatePost(
     body: JSON.stringify({ postId, ...data }),
   })
   if (!res.ok) await throwApiError(res)
+  invalidateCommunity()
   return res.json()
 }
 
@@ -205,6 +220,7 @@ export async function deletePost(token: string, postId: number) {
     headers: authHeaders(token),
   })
   if (!res.ok) await throwApiError(res)
+  invalidateCommunity()
   return res.json()
 }
 
@@ -226,6 +242,7 @@ export async function createComment(token: string, postId: number, content: stri
     body: JSON.stringify({ postId, content }),
   })
   if (!res.ok) await throwApiError(res)
+  invalidateCommunity()
   return res.json()
 }
 
@@ -236,6 +253,7 @@ export async function updateComment(token: string, commentId: number, content: s
     body: JSON.stringify({ commentId, content }),
   })
   if (!res.ok) await throwApiError(res)
+  invalidateCommunity()
   return res.json()
 }
 
@@ -245,6 +263,7 @@ export async function deleteComment(token: string, commentId: number) {
     headers: authHeaders(token),
   })
   if (!res.ok) await throwApiError(res)
+  invalidateCommunity()
   return res.json()
 }
 
@@ -258,6 +277,7 @@ export async function addLike(token: string, postId: number) {
   })
   if (res.status === 400) return { alreadyLiked: true }
   if (!res.ok) await throwApiError(res)
+  invalidateCommunity()
   return res.json()
 }
 
@@ -267,5 +287,6 @@ export async function removeLike(token: string, postId: number) {
     headers: authHeaders(token),
   })
   if (!res.ok) await throwApiError(res)
+  invalidateCommunity()
   return res.json()
 }

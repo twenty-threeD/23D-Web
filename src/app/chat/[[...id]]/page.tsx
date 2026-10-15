@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Image from "next/image"
-import { IoClose, IoSend, IoAdd } from "react-icons/io5"
+import { IoClose, IoSend, IoAdd, IoChevronBack } from "react-icons/io5"
 import Search from "@/src/components/Search"
 import { HiDotsHorizontal } from "react-icons/hi"
 import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment, MdCall, MdVideocam, MdOutlineCancel } from "react-icons/md"
@@ -82,6 +82,10 @@ interface Message {
   payment?: ChatPayment | null
   call?: ChatCall | null
 }
+
+// 미리보기가 "새 메시지" 로만 남은 옛 방을 이미 원문으로 채웠는지.
+// 이 페이지는 방을 바꿀 때마다 새로 마운트돼서, 컴포넌트 ref 에 두면 방을 옮길 때마다 그 방들의 메시지 전체를 다시 받는다
+const legacyCheckedRooms = new Set<number>()
 
 export default function Page() {
   const params = useParams()
@@ -350,12 +354,11 @@ export default function Page() {
   // 백엔드가 예전에 미리보기를 전부 "새 메시지"로 저장해서, 그때 끝난 거래 방은 목록만 보고는 완료·취소를 알 수 없다.
   // 끝난 방엔 새 메시지가 오지 않아 저절로 고쳐지지도 않으므로, 그런 방만 마지막 메시지를 한 번 받아 원문으로 채운다.
   // 모든 방의 미리보기가 원문으로 바뀌면 이 보완은 걷어내도 된다.
-  const legacyCheckedRef = useRef<Set<number>>(new Set())
   useEffect(() => {
     if (!token) return
     for (const room of rooms) {
-      if (room.lastMessagePreview !== "새 메시지" || legacyCheckedRef.current.has(room.roomId)) continue
-      legacyCheckedRef.current.add(room.roomId)
+      if (room.lastMessagePreview !== "새 메시지" || legacyCheckedRooms.has(room.roomId)) continue
+      legacyCheckedRooms.add(room.roomId)
       getChatMessages(token, room.roomId)
         .then((json) => {
           const list = unwrap<{ message?: string }[] | { content?: { message?: string }[] }>(json)
@@ -562,7 +565,9 @@ export default function Page() {
   // 서명은 PDF 안에 그림으로 이미 들어가므로 서버에 따로 서명하는 단계는 없다
   // (백엔드에서 /api/contract/sign 이 제거됨).
   //
-  // 등록하는 사람은 항상 갑이므로 clientId는 내 회원 ID, professionalId는 채팅 상대(을)의 ID다.
+  // 갑·을은 등록하는 사람이 아니라 게시글 작성자로 정한다. 작성자가 을(professionalId)이고 채팅의 다른 쪽이 갑(clientId)이다.
+  // 서버가 게시글 작성자와 professionalId 가 같은지 검사하므로, "등록자 = 갑"으로 두면 을이 등록할 때 400 이 나고
+  // postId 를 빼면 계약이 게시글에 묶이지 않아 리뷰를 쓸 수 없다.
   async function handleContractSubmit(data: ContractData, pdfBlob?: Blob) {
     if (!token || !selectedId || !contractModalState || !selectedRoom) return
     const client = stompClientRef.current
@@ -573,8 +578,19 @@ export default function Page() {
       if (contractModalState.mode === "review") {
         if (!pdfBlob) return
 
-        const professionalId = selectedRoom.participantId
-        if (!myMemberId || !professionalId) {
+        const postId = selectedRoom.postId ?? null
+        let clientId: number | null | undefined = myMemberId
+        let professionalId: number | null | undefined = selectedRoom.participantId
+        if (postId) {
+          // 방에 들어올 때 이미 받아둔 글이 있으면 다시 조회하지 않는다
+          const authorId =
+            selectedPost?.id === postId
+              ? selectedPost.member?.id
+              : (await getPost(postId, token)).data?.member?.id
+          professionalId = authorId
+          clientId = authorId != null && authorId === myMemberId ? selectedRoom.participantId : myMemberId
+        }
+        if (!clientId || !professionalId) {
           addToast({ message: "계약 당사자 정보를 확인하지 못했습니다.", type: "error" })
           return
         }
@@ -585,8 +601,9 @@ export default function Page() {
 
         const contract = await createContract(token, {
           contractUrl,
-          clientId: myMemberId,
+          clientId,
           professionalId,
+          postId,
           startedAt: toContractDateTime(data.startDate),
           endedAt: toContractDateTime(data.endDate, true),
           inspectionPeriod: Number(data.inspectionDays),
@@ -752,7 +769,8 @@ export default function Page() {
   }, [])
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">  
+    // 휴대폰은 주소창이 접혔다 펴져도 맞도록 dvh 를 쓰고, 목록 화면에서는 하단 메뉴(4rem)만큼 더 뺀다
+    <div className={`flex flex-col ${selectedId ? "h-[calc(100dvh-4rem)]" : "h-[calc(100dvh-8rem)]"} md:h-[calc(100vh-4rem)]`}>  
       {contractModalState && selectedRoom && myPartyRole && (
         <ContractWizardModal
           myRole={myPartyRole}
@@ -765,16 +783,17 @@ export default function Page() {
         />
       )}
 
-      <div className="flex flex-1 px-20 pt-8 overflow-hidden">
+      {/* 휴대폰 폭에서는 목록과 대화방을 나란히 둘 수 없어, 방을 고르기 전엔 목록만 · 고른 뒤엔 대화방만 보여준다 */}
+      <div className="flex flex-1 px-5 md:px-10 xl:px-20 pt-4 md:pt-8 overflow-hidden">
         {/* 왼쪽 채팅 목록 */}
-        <div className="flex flex-col w-80 pr-4 shrink-0 border-r border-zinc-200">
+        <div className={`${selectedId ? "hidden md:flex" : "flex"} flex-col w-full md:w-64 lg:w-80 md:pr-4 shrink-0 md:border-r border-zinc-200`}>
           {/* 탭 */}
           <div className="flex border-b border-zinc-200">
             {tabs.map((t) => (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`flex-1 py-4 text-lg font-semibold border-b-2 transition-colors cursor-pointer ${
+                className={`flex-1 whitespace-nowrap py-4 text-sm lg:text-lg font-semibold border-b-2 transition-colors cursor-pointer ${
                   tab === t.key
                     ? "border-zinc-800 text-zinc-800 font-bold"
                     : "border-transparent text-zinc-400"
@@ -834,9 +853,9 @@ export default function Page() {
                   <div className="flex flex-col flex-1 min-w-0">
                     {/* 거래가 끝나도 대화는 이어지므로 마지막 메시지는 그대로 보여주고, 결과는 이름 옆에 붙인다 */}
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-semibold">{room.participantName}</span>
+                      <span className="text-sm font-semibold truncate">{room.participantName}</span>
                       {roomStatus !== "IN_PROGRESS" && (
-                        <span className={`text-xs font-semibold ${roomStatus === "COMPLETED" ? "text-emerald-700" : "text-red-500"}`}>
+                        <span className={`shrink-0 whitespace-nowrap text-xs font-semibold ${roomStatus === "COMPLETED" ? "text-emerald-700" : "text-red-500"}`}>
                           {roomStatus === "COMPLETED" ? "완료된 거래" : "취소된 거래"}
                         </span>
                       )}
@@ -863,11 +882,20 @@ export default function Page() {
         </div>
 
         {/* 오른쪽 채팅창 */}
-        <div className="flex flex-col flex-1 w-1/2 overflow-hidden">
+        <div className={`${selectedId ? "flex" : "hidden md:flex"} flex-col flex-1 min-w-0 overflow-hidden`}>
           {selectedRoom ? (
             <>
               {/* 채팅 헤더 */}
-              <div className="flex items-center gap-3 px-6 py-4 border-b border-zinc-200 shrink-0">
+              <div className="flex items-center gap-3 px-2 md:px-6 py-4 border-b border-zinc-200 shrink-0">
+                {/* 휴대폰에서는 목록이 가려져 있어 목록으로 돌아갈 길이 필요하다 */}
+                <button
+                  type="button"
+                  aria-label="채팅 목록으로"
+                  onClick={() => router.push("/chat")}
+                  className="md:hidden flex size-8 shrink-0 items-center justify-center rounded-full text-xl text-zinc-600 hover:bg-zinc-100 cursor-pointer"
+                >
+                  <IoChevronBack />
+                </button>
                 <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-zinc-200">
                   <Image
                     src={selectedRoom.participantImageUrl ? toRelativeUrl(selectedRoom.participantImageUrl) : "/profile.webp"}
@@ -921,7 +949,7 @@ export default function Page() {
                 onScroll={(e) => {
                   if (e.currentTarget.scrollTop < 80) void loadOlder()
                 }}
-                className="flex flex-col flex-1 overflow-y-auto px-6 py-6 gap-4"
+                className="flex flex-col flex-1 overflow-y-auto px-2 md:px-6 py-6 gap-4"
               >
                 {loadingMessages ? (
                   <p className="text-center text-zinc-400 text-sm">불러오는 중...</p>
@@ -1029,8 +1057,9 @@ export default function Page() {
                     </div>
                   ) : null
 
-                  // 계약서는 을(파는 사람)이 갑(사는 사람)에게만 제안하므로 받은 사람(=갑)만 검토·서명할 수 있고,
-                  // 체결 메시지는 갑이 서명하면서 보낸 것이라 보낸 사람(=갑)에게만 결제 버튼이 붙는다.
+                  // 계약서는 제안을 받은 쪽이 검토·서명한다.
+                  // 결제는 누가 체결 메시지를 보냈는지와 상관없이 갑(의뢰인 = 게시글 작성자가 아닌 쪽)만 한다.
+                  // 글 작성자를 아직 못 불러왔으면(myPartyRole 이 null) 결제 버튼을 띄우지 않는다
                   const contractCard = contractMsg ? (
                     contractMsg.kind === "propose" ? (
                       <ContractCard
@@ -1052,7 +1081,7 @@ export default function Page() {
                         contractUrl={contractMsg.data.contractUrl}
                         signedAt={msg.createdAt}
                         paid={idx < lastPaymentIdx}
-                        onPay={isSent && selectedRoom.postId ? () => handlePayNavigate(contractMsg.data) : undefined}
+                        onPay={myPartyRole === "client" && selectedRoom.postId ? () => handlePayNavigate(contractMsg.data) : undefined}
                       />
                     )
                   ) : null
@@ -1094,11 +1123,11 @@ export default function Page() {
                             {callCard}
                             {dealCard}
                           </div>
-                          {showTime && <span className="text-xs text-zinc-400 shrink-0">{formatTime(msg.createdAt)}</span>}
+                          {showTime && <span className="text-xs text-zinc-400 shrink-0 whitespace-nowrap">{formatTime(msg.createdAt)}</span>}
                         </div>
                       ) : (
                         <div className="flex justify-end items-end gap-3">
-                          {showTime && <span className="text-xs text-zinc-400">{formatTime(msg.createdAt)}</span>}
+                          {showTime && <span className="text-xs text-zinc-400 shrink-0 whitespace-nowrap">{formatTime(msg.createdAt)}</span>}
                           <div className="flex flex-col gap-1 items-end">
                             {attachment}
                             {textBubble}
@@ -1162,7 +1191,7 @@ export default function Page() {
 
           {/* 입력 영역. 거래가 끝나도 대화는 막지 않는다 */}
           {selectedRoom && (
-            <div className="shrink-0 border-t border-zinc-200 px-6 py-4 flex flex-col gap-3">
+            <div className="shrink-0 border-t border-zinc-200 px-2 md:px-6 py-4 flex flex-col gap-3">
               {showAttach && (
                 <div className="flex gap-6">
                   <div className="flex flex-col items-center gap-1">

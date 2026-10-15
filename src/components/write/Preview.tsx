@@ -27,7 +27,7 @@ export default function Preview({
   const displayRating = ratingCount > 0 ? rating.toFixed(1) : "-";
 
   return (
-    <aside className="w-65 shrink-0 flex flex-col gap-6 sticky top-24 self-start">
+    <aside className="w-full max-w-65 shrink-0 flex flex-col gap-6 xl:sticky xl:top-24 self-start">
       <h2 className="text-xl font-bold text-black leading-none">미리보기</h2>
 
       <div className="flex flex-col gap-4">

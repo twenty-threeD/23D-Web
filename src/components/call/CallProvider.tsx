@@ -4,7 +4,6 @@ import { useEffect, useRef } from "react"
 import { Client } from "@stomp/stompjs"
 import SockJS from "sockjs-client"
 import { useAuthStore, setWsAuthCookie, wsStompUrl } from "@/src/store/authStore"
-import { useChatRoomsStore } from "@/src/store/chatRoomsStore"
 import { useCallStore } from "@/src/store/callStore"
 import { callEngine } from "@/src/lib/agoraEngine"
 import { playHangupTone, primeRingtone, startRingtone, stopRingtone } from "@/src/lib/ringtone"
@@ -200,13 +199,6 @@ export default function CallProvider() {
             return
           }
           try {
-            // 통화 API 에는 프로필 이미지가 없어서 채팅방 목록에서 가져다 쓴다
-            if (event.signal === "INVITED") {
-              const room = useChatRoomsStore
-                .getState()
-                .rooms.find((r) => r.roomId === event.call?.roomId)
-              useCallStore.setState({ peerImageUrl: room?.participantImageUrl ?? null })
-            }
             useCallStore.getState().applySignal(event)
           } catch (e) {
             // 예전에는 여기서 조용히 삼켜서, 시그널이 오는데도 전화가 안 울리는 것처럼 보였다

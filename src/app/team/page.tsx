@@ -14,7 +14,7 @@ const members = [
 export default function Page() {
   return (
     <div className="flex flex-1 flex-col bg-zinc-50">
-      <main className="flex-1 px-20 py-8">
+      <main className="flex-1 px-5 md:px-10 xl:px-20 py-8">
         <div className="w-full">
           <header className="border-b border-zinc-200 py-8 lg:py-10">
             <p className="pb-3 text-sm font-bold tracking-wide text-main">

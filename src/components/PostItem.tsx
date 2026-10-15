@@ -33,15 +33,16 @@ export default function PostItem({ id, title, content = "", imageUrl, createdAt 
 
   return (
     <Link href={`/posts/${id}`} className="flex flex-col gap-2 justify-between items-center shrink-0 py-4">
-      <div className="flex justify-between w-full">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-xl font-bold">{title}</h2>
+      <div className="flex justify-between gap-4 w-full">
+        <div className="flex flex-col gap-2 min-w-0">
+          <h2 className="text-lg md:text-xl font-bold">{title}</h2>
           <p className="text-zinc-500 line-clamp-2">{stripMarkdown(content)}</p>
         </div>
 
-        <div className="relative w-32 h-32 rounded-lg shrink-0 ml-4 overflow-hidden bg-white">
+        {/* 휴대폰은 폭이 좁아 사진이 없는 글까지 자리를 비워두면 제목이 잘게 꺾인다. 사진이 있을 때만 작게 둔다 */}
+        <div className={`relative ${thumbnail ? "block" : "hidden md:block"} size-20 md:size-32 rounded-lg shrink-0 overflow-hidden bg-white`}>
           {thumbnail && (
-            <Image src={thumbnail} alt="" fill sizes="128px" className="object-cover" />
+            <Image src={thumbnail} alt="" fill sizes="(max-width: 767px) 80px, 128px" className="object-cover" />
           )}
         </div>
       </div>

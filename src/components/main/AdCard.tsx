@@ -7,7 +7,7 @@ import { parsePostContent } from "@/src/types/priceCard";
 
 export function AdCardSkeleton() {
   return (
-    <div className="flex flex-col shrink-0 w-[360px] h-[300px] rounded-[10px] bg-[#f7f7f7] overflow-hidden animate-pulse">
+    <div className="flex flex-col shrink-0 w-[min(360px,85vw)] h-[300px] rounded-[10px] bg-[#f7f7f7] overflow-hidden animate-pulse">
       <div className="h-40 bg-zinc-200" />
       <div className="flex flex-col gap-2 p-4">
         <div className="h-4 w-40 bg-zinc-200 rounded" />
@@ -25,7 +25,7 @@ export default function AdCard({ post }: { post: Post }) {
   return (
     <Link
       href={`/item/${post.id}`}
-      className="flex flex-col shrink-0 w-[360px] h-[300px] rounded-[10px] bg-[#f7f7f7] overflow-hidden hover:shadow-sm transition-shadow"
+      className="flex flex-col shrink-0 w-[min(360px,85vw)] h-[300px] rounded-[10px] bg-[#f7f7f7] overflow-hidden hover:shadow-sm transition-shadow"
     >
       <div className="relative h-40 bg-zinc-200">
         {image && (

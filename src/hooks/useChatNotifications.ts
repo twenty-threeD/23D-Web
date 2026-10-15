@@ -12,7 +12,7 @@ import {
 } from "@/src/lib/notifications"
 import { previewOf } from "@/src/lib/chatPreview"
 
-export type NotificationType = "chat" | "notice"
+export type NotificationType = "chat" | "notice" | "call"
 
 export interface Notification {
   id: number
@@ -29,6 +29,18 @@ export interface Notification {
 const PASSWORD_NOTICE_PREFIX = "비밀번호가 설정되지 않았어요"
 
 function toNotification(n: NotificationResponse): Notification {
+  if (n.type === "CALL_MISSED") {
+    return {
+      id: n.notificationId ?? -Date.now(),
+      type: "call",
+      senderName: n.senderName ?? "부재중 전화",
+      message: n.message || "부재중 전화가 있어요.",
+      createdAt: n.sentAt,
+      roomId: n.roomId,
+      // 누르면 전화가 걸려온 채팅방으로 보낸다. 채팅 알림과 달리 같은 방이어도 묶지 않아 따로 경로를 둔다
+      link: n.roomId != null ? `/chat/${n.roomId}` : undefined,
+    }
+  }
   return {
     id: n.notificationId ?? -Date.now(),
     type: n.type === "NOTICE" ? "notice" : "chat",

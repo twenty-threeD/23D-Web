@@ -27,7 +27,7 @@ export default function LandingHeader() {
 
   return (
     <div
-      className={`sticky top-0 z-10 bg-white/60 backdrop-blur-md flex items-center justify-between h-16 px-20 transition-all duration-300 ${
+      className={`sticky top-0 z-10 bg-white/60 backdrop-blur-md flex items-center justify-between h-16 px-5 md:px-10 xl:px-20 transition-all duration-300 ${
         visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full pointer-events-none"
       }`}
     >

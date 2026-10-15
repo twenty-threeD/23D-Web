@@ -51,11 +51,11 @@ function MainContent() {
   const revisitPosts = [...posts.slice(4), ...posts.slice(0, 4)].slice(0, 10);
 
   return (
-    <div className="flex flex-col items-center gap-20 pt-[120px] pb-24 overflow-x-hidden">
+    <div className="flex flex-col items-center gap-14 md:gap-20 pt-12 md:pt-[120px] pb-24 overflow-x-hidden">
       {/* 검색 + 카테고리 */}
       <section className="flex flex-col items-center gap-9 w-full max-w-[960px] px-5">
-        <h1 className="text-center text-[28px] font-semibold text-ink leading-tight">
-          블록체인 기반 용역 중개 플랫폼, <span className="text-[32px] font-bold text-main">잇다</span>에서
+        <h1 className="text-center text-xl md:text-[28px] font-semibold text-ink leading-tight">
+          블록체인 기반 용역 중개 플랫폼, <span className="text-2xl md:text-[32px] font-bold text-main">잇다</span>에서
           <br />
           필요한 순간, 필요한 능력자를 만나보세요.
         </h1>
@@ -92,7 +92,7 @@ function MainContent() {
           gap="gap-[26px]"
           header={
             <div className="flex items-end gap-3">
-              <h2 className="text-[28px] font-semibold text-ink leading-none">광고</h2>
+              <h2 className="text-2xl md:text-[28px] font-semibold text-ink leading-none">광고</h2>
               <MoreLink />
             </div>
           }

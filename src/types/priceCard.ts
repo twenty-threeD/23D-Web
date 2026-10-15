@@ -19,6 +19,9 @@ export const DEFAULT_PLAN: PriceCardPlan = {
   items: [],
 }
 
+// 플랜 없이 올라온 글을 보여주거나 문의할 때 대신 쓰는 플랜. 이름이 비어 있으면 고를 항목이 안 보인다
+export const FALLBACK_PLAN: PriceCardPlan = { ...DEFAULT_PLAN, planName: "기본 플랜" }
+
 export interface PostContent {
   description: string
   plans: PriceCardPlan[]

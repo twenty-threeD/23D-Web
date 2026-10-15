@@ -222,8 +222,8 @@ export default function ContractWizardModal({
       onClose={onClose}
     >
       {/* 계약서 미리보기 */}
-      <div className="flex-1 overflow-y-auto px-10 py-8 border-r border-zinc-200 bg-zinc-50/60">
-        <div className="relative isolate max-w-2xl mx-auto bg-white rounded-xl shadow-sm ring-1 ring-zinc-100 px-10 py-10 flex flex-col gap-6">
+      <div className="shrink-0 md:shrink md:flex-1 md:overflow-y-auto px-4 md:px-10 py-6 md:py-8 border-t md:border-t-0 md:border-r border-zinc-200 bg-zinc-50/60">
+        <div className="relative isolate max-w-2xl mx-auto bg-white rounded-xl shadow-sm ring-1 ring-zinc-100 px-5 md:px-10 py-6 md:py-10 flex flex-col gap-6">
           <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none">
             <Image
               src="/icon.png"
@@ -311,7 +311,8 @@ export default function ContractWizardModal({
       </div>
 
       {/* 입력 패널 */}
-      <div className="w-80 shrink-0 overflow-y-auto px-6 py-8 flex flex-col gap-5">
+      {/* 휴대폰에서는 긴 계약서 전문 아래에 입력칸이 있으면 한참 내려야 해서, 입력칸을 위로 올린다 */}
+      <div className="order-first md:order-none w-full md:w-80 shrink-0 md:overflow-y-auto px-4 md:px-6 py-6 md:py-8 flex flex-col gap-5">
         <div className="flex items-center gap-2 text-sm">
           <span
             className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${step === 1 ? "bg-main text-white shadow-sm shadow-main/30" : "bg-zinc-100 text-zinc-400"}`}

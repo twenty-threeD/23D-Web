@@ -1,6 +1,7 @@
 import { throwApiError } from './apiError'
 
-export type NotificationKind = 'CHAT' | 'NOTICE'
+// CALL_MISSED: 받지 못한 전화. roomId 로 그 통화가 걸려온 채팅방을 알려준다
+export type NotificationKind = 'CHAT' | 'NOTICE' | 'CALL_MISSED'
 
 export interface NotificationResponse {
   notificationId: number | null
@@ -50,6 +51,8 @@ interface NotificationHandlers {
 }
 
 const RECONNECT_MS = 3000
+// 서버가 내려가 있거나 네트워크가 끊긴 동안 3초마다 두드리지 않게, 실패가 이어지면 간격을 늘린다
+const MAX_RECONNECT_MS = 60_000
 
 function dispatch(rawEvent: string, handlers: NotificationHandlers): number | null {
   let eventName = 'message'
@@ -60,7 +63,8 @@ function dispatch(rawEvent: string, handlers: NotificationHandlers): number | nu
     else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim())
     else if (line.startsWith('id:')) eventId = Number(line.slice(3).trim()) || null
   }
-  if (eventName === 'chat' || eventName === 'notice') {
+  // 부재중 통화 알림이 어떤 SSE 이벤트 이름으로 오는지 스펙에 없어, 대소문자·구분자 차이를 모두 받는다
+  if (eventName === 'chat' || eventName === 'notice' || /^call[_-]?missed$/i.test(eventName)) {
     try {
       handlers.onNotification?.(JSON.parse(dataLines.join('\n')))
     } catch {}
@@ -74,6 +78,9 @@ export function subscribeToNotifications(token: string, handlers: NotificationHa
   let controller: AbortController | null = null
   let retryTimer: ReturnType<typeof setTimeout> | null = null
   let lastEventId: number | null = null
+  let failures = 0
+  // 토큰이 거절되면 같은 토큰으로 다시 붙어도 계속 거절된다. 토큰이 바뀌면 훅이 새로 구독하므로 여기서는 멈춘다
+  let rejected = false
 
   async function connect() {
     if (stopped) return
@@ -88,7 +95,9 @@ export function subscribeToNotifications(token: string, handlers: NotificationHa
         headers,
         signal: controller.signal,
       })
+      if (res.status === 401 || res.status === 403) rejected = true
       if (!res.ok || !res.body) throw new Error('subscribe failed')
+      failures = 0
 
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
@@ -111,8 +120,9 @@ export function subscribeToNotifications(token: string, handlers: NotificationHa
       // 연결 실패/중단 시 아래에서 재연결
     }
 
-    if (!stopped) {
-      retryTimer = setTimeout(connect, RECONNECT_MS)
+    if (!stopped && !rejected) {
+      failures++
+      retryTimer = setTimeout(connect, Math.min(RECONNECT_MS * 2 ** (failures - 1), MAX_RECONNECT_MS))
     }
   }
 

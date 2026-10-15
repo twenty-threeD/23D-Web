@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation"
 import Header from "@/src/components/Header"
 import Footer from "@/src/components/Footer"
+import BottomNav from "@/src/components/BottomNav"
 
 function isAuthPath(pathname: string) {
   return pathname.startsWith("/login") || pathname === "/oauth/success"
@@ -19,6 +20,8 @@ function hasFooter(pathname: string) {
 export default function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const showHeader = pathname !== "/" && !isAuthPath(pathname) && !isPaymentResultPath(pathname)
+  // 대화방 안에서는 입력창이 화면 맨 아래에 붙어야 해서 하단 메뉴를 숨긴다(목록으로 돌아가는 버튼이 따로 있다)
+  const showBottomNav = showHeader && !/^\/chat\/[^/]+/.test(pathname)
 
   return (
     <>
@@ -30,6 +33,13 @@ export default function SiteChrome({ children }: { children: React.ReactNode }) 
       <div className={hasFooter(pathname) ? "" : "hidden"}>
         <Footer />
       </div>
+      {showBottomNav && (
+        <>
+          {/* 고정된 하단 메뉴가 페이지 마지막 내용을 덮지 않도록 그 높이만큼 자리를 비워둔다 */}
+          <div aria-hidden className="md:hidden h-[calc(4rem+env(safe-area-inset-bottom))] shrink-0" />
+          <BottomNav />
+        </>
+      )}
     </>
   )
 }

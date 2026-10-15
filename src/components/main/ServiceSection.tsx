@@ -64,9 +64,10 @@ export function CardRow({ children, gap, header }: { children: ReactNode; gap: s
 
   return (
     <div className={`flex flex-col flex-1 min-w-0 ${header ? "gap-5" : "gap-3"}`}>
-      <div className="flex items-end justify-between gap-3">
+      {/* 휴대폰은 손가락으로 넘기면 되어 화살표를 숨긴다. 제목도 없으면 이 줄 자체가 빈 줄이라 같이 숨긴다 */}
+      <div className={`${header ? "flex" : "hidden md:flex"} items-end justify-between gap-3`}>
         {header ?? <span />}
-        <div className="relative w-16 h-6 shrink-0">
+        <div className="hidden md:block relative w-16 h-6 shrink-0">
           <LeftRightIcon className="size-full" />
           <button type="button" aria-label="이전" onClick={() => scroll(-1)} className="absolute left-0 top-0 size-6 cursor-pointer" />
           <button type="button" aria-label="다음" onClick={() => scroll(1)} className="absolute right-0 top-0 size-6 cursor-pointer" />
@@ -84,9 +85,10 @@ export function Empty() {
 export default function ServiceSection({ title, loading, posts, inset = SECTION_INSET }: { title: [string, string]; loading: boolean; posts: Post[]; inset?: string }) {
   return (
     <section className={`flex flex-col md:flex-row gap-6 md:gap-12 w-full ${inset}`}>
-      <div className="flex flex-col gap-3 shrink-0 w-32 pt-2.5">
-        <h2 className="text-[28px] font-bold text-ink leading-tight">
-          {title[0]}<br />{title[1]}
+      {/* 데스크톱은 카드 줄 왼쪽에 두 줄 제목을 세우고, 휴대폰은 카드 위에 한 줄 제목과 더보기를 나란히 둔다 */}
+      <div className="flex md:flex-col items-end md:items-start gap-3 shrink-0 md:w-32 md:pt-2.5">
+        <h2 className="text-2xl md:text-[28px] font-bold text-ink leading-tight">
+          {title[0]}<span className="md:hidden"> </span><br className="hidden md:block" />{title[1]}
         </h2>
         <div className="flex"><MoreLink /></div>
       </div>
