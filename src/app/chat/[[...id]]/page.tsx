@@ -616,7 +616,7 @@ export default function Page() {
           return
         }
 
-        const price = Number(data.price.replace(/[^0-9]/g, "")) || 0
+        const price = data.price
         const pdfFile = pdfBlobToFile(pdfBlob, `contract-${Date.now()}.pdf`)
         const { url: contractUrl } = await uploadFile(token, pdfFile)
 
@@ -627,7 +627,7 @@ export default function Page() {
           postId,
           startedAt: toContractDateTime(data.startDate),
           endedAt: toContractDateTime(data.endDate, true),
-          inspectionPeriod: Number(data.inspectionDays),
+          inspectionPeriod: data.inspectionDays,
           price,
           servicesDescription: data.serviceContent,
         })
@@ -725,7 +725,26 @@ export default function Page() {
 
     if (text.startsWith(PROPOSE)) {
       try {
-        return { kind: "propose", data: JSON.parse(text.slice(PROPOSE.length)) as ContractData }
+        const parsed = JSON.parse(text.slice(PROPOSE.length)) as Record<string, unknown>
+        // 예전 채팅에는 문자열 금액과 검수일수가 저장되어 있어 읽을 때 숫자로 맞춘다.
+        const toNumber = (value: unknown) => {
+          let number = Number.NaN
+          if (typeof value === "number") number = value
+          else if (typeof value === "string") number = Number(value.replace(/,/g, "").trim())
+          return Number.isFinite(number) ? number : 0
+        }
+        const data: ContractData = {
+          clientName: typeof parsed.clientName === "string" ? parsed.clientName : "",
+          professionalName: typeof parsed.professionalName === "string" ? parsed.professionalName : "",
+          startDate: typeof parsed.startDate === "string" ? parsed.startDate : "",
+          endDate: typeof parsed.endDate === "string" ? parsed.endDate : "",
+          inspectionDays: toNumber(parsed.inspectionDays),
+          serviceContent: typeof parsed.serviceContent === "string" ? parsed.serviceContent : "",
+          price: toNumber(parsed.price),
+          clientSig: typeof parsed.clientSig === "string" ? parsed.clientSig : "",
+          professionalSig: typeof parsed.professionalSig === "string" ? parsed.professionalSig : "",
+        }
+        return { kind: "propose", data }
       } catch {
         return null
       }

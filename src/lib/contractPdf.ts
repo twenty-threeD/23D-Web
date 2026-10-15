@@ -6,9 +6,9 @@ export interface ContractPdfData {
   professionalName: string;
   startDate: string;
   endDate: string;
-  inspectionDays: string;
+  inspectionDays: number;
   serviceContent: string;
-  price: string;
+  price: number;
   clientSig: string;
   professionalSig: string;
 }
@@ -47,10 +47,9 @@ function formatDate(value: string) {
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
 }
 
-function formatPrice(value: string) {
-  const digits = value.replace(/[^0-9]/g, "");
-  if (!digits) return "";
-  return Number(digits).toLocaleString();
+function formatPrice(value: number) {
+  if (!Number.isFinite(value)) return "";
+  return value.toLocaleString();
 }
 
 // 주어진 폭에 맞게 줄을 나눈다. 한글은 단어 경계가 넓어서 어절 단위로 끊되,

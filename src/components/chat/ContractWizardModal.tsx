@@ -16,9 +16,9 @@ export interface ContractData {
   professionalName: string;
   startDate: string;
   endDate: string;
-  inspectionDays: string;
+  inspectionDays: number;
   serviceContent: string;
-  price: string;
+  price: number;
   clientSig: string;
   professionalSig: string;
 }
@@ -45,10 +45,9 @@ function formatDate(value: string) {
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
 }
 
-function formatPrice(value: string) {
-  const digits = value.replace(/[^0-9]/g, "");
-  if (!digits) return "";
-  return Number(digits).toLocaleString();
+function formatPrice(value: number) {
+  if (!value) return "";
+  return value.toLocaleString();
 }
 
 // 이름 마지막 글자의 받침 유무에 따라 조사를 고른다 (완성형 한글 범위 밖이면 받침 없는 쪽으로 처리).
@@ -81,13 +80,14 @@ export default function ContractWizardModal({
   );
   const [startDate, setStartDate] = useState(initial.startDate ?? "");
   const [endDate, setEndDate] = useState(initial.endDate ?? "");
+  // 숫자 입력창은 문자열 값을 주므로, 제출할 때 계약 데이터의 숫자 타입으로 변환한다.
   const [inspectionDays, setInspectionDays] = useState(
-    initial.inspectionDays ?? "",
+    String(initial.inspectionDays ?? ""),
   );
   const [serviceContent, setServiceContent] = useState(
     initial.serviceContent ?? "",
   );
-  const [price, setPrice] = useState(initial.price ?? "");
+  const [price, setPrice] = useState(String(initial.price ?? ""));
   const [clientSig, setClientSig] = useState(initial.clientSig ?? "");
   const [professionalSig, setProfessionalSig] = useState(
     initial.professionalSig ?? "",
@@ -148,9 +148,9 @@ export default function ContractWizardModal({
       professionalName,
       startDate,
       endDate,
-      inspectionDays,
+      inspectionDays: Number(inspectionDays),
       serviceContent,
-      price,
+      price: numericPrice,
       clientSig,
       professionalSig,
     };
@@ -185,7 +185,7 @@ export default function ContractWizardModal({
     },
     {
       title: "제 3 조 (대금 및 지급)",
-      body: `1. 계약의 총액은 금 ${formatPrice(price)}원으로 하며, 갑이 을에게 지급한다.\n2. 갑은 용역 이행에 대한 검수 후 영업일 기준 3일 이내에 을에게 대금을 지급한다.`,
+      body: `1. 계약의 총액은 금 ${formatPrice(numericPrice)}원으로 하며, 갑이 을에게 지급한다.\n2. 갑은 용역 이행에 대한 검수 후 영업일 기준 3일 이내에 을에게 대금을 지급한다.`,
     },
     {
       title: "제 4 조 (계약 이행 및 검수)",

@@ -17,7 +17,7 @@ import { calculatePaymentFee } from "@/src/lib/paymentFee"
 interface ContractCardBase {
   /** 내가 보낸 메시지인지 (보낸 쪽/받은 쪽 문구가 달라진다) */
   isSent: boolean
-  price?: string | number | null
+  price?: number | null
 }
 
 interface ProposeCardProps extends ContractCardBase {
@@ -46,20 +46,16 @@ interface CompletedCardProps extends ContractCardBase {
 
 type ContractCardProps = ProposeCardProps | CompletedCardProps
 
-function formatPrice(price?: string | number | null) {
+function formatPrice(price?: number | null) {
   if (price === null || price === undefined) return null
-  const digits = String(price).replace(/[^0-9]/g, "")
-  if (!digits) return null
-  return `${Number(digits).toLocaleString()}원`
+  if (!Number.isFinite(price)) return null
+  return `${price.toLocaleString()}원`
 }
 
-function getPaymentFee(price?: string | number | null) {
+function getPaymentFee(price?: number | null) {
   if (price === null || price === undefined) return null
-  const digits = String(price).replace(/[^0-9]/g, "")
-  if (!digits) return null
-  const amount = Number(digits)
-  if (!Number.isSafeInteger(amount) || amount <= 0) return null
-  return calculatePaymentFee(amount)
+  if (!Number.isSafeInteger(price) || price <= 0) return null
+  return calculatePaymentFee(price)
 }
 
 function toDate(value?: string | null) {
