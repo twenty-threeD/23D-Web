@@ -79,12 +79,12 @@ export default function Page() {
                 style={{ height: getHeight() }}
                 className={`
                     w-106 py-16 rounded-3xl border border-zinc-300 bg-white 
-                    flex flex-col items-center justify-center
+                    flex flex-col items-center justify-center gap-5
                     transition-[height] duration-500 ease-in-out overflow-hidden
                 `}
             >
                 <Link href="/main">
-                    <Image src="/logo.svg" alt="Logo" width={80} height={40} className="mb-5 bg-black" />
+                    <Image src="/icon.png" alt="Logo" width={80} height={40} />
                 </Link>
                 <div className="w-full flex flex-col gap-3 items-center transition-opacity duration-300">
                     {step === 1 && (
