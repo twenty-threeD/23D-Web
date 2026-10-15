@@ -73,12 +73,15 @@ function MainContent() {
               <SearchIcon className="size-full" />
             </button>
           </div>
-          <div className="flex flex-wrap justify-center gap-5">
+          {/* 칩 너비가 글자 수마다 달라 폰에서는 3·3·2 로 들쭉날쭉하게 끊기고 화면 절반을 차지했다.
+              8개를 같은 너비 4칸 × 2줄로 맞추고, 8개가 한 줄에 다 들어가는 lg 부터 기존 모양으로 둔다
+              (태블릿 폭에서는 기존 모양이 6·2 로 끊긴다) */}
+          <div className="grid w-full grid-cols-4 gap-2 md:gap-3 lg:flex lg:flex-wrap lg:justify-center lg:gap-5">
             {CATEGORIES.map((c) => (
               <Link
                 key={c.label}
                 href={categoryHref(c.name)}
-                className="px-[18px] py-3 rounded-[21px] border border-line font-semibold leading-none text-[#838383] hover:border-main hover:text-main transition-colors"
+                className="py-2.5 md:py-3 lg:px-[18px] rounded-[21px] border border-line text-center text-[13px] md:text-base whitespace-nowrap font-semibold leading-none text-[#838383] hover:border-main hover:text-main transition-colors"
               >
                 {c.label}
               </Link>
