@@ -173,7 +173,7 @@ function toErrorState(e: unknown, attempt: number): State {
     case "REVIEW_ANALYSIS_FAILED":
       return { kind: "failed" }
     default:
-      // MEMBER_NOT_FOUND(404)·REVIEW_ANALYSIS_NOT_CONFIGURED(503) 등은 다시 시도해도 달라지지 않는다
+      // 글이 없거나(REVIEW_ANALYSIS_NOT_CONFIGURED 포함) 서버 설정이 빠진 경우엔 다시 요청해도 달라지지 않는다
       return { kind: "hidden" }
   }
 }
