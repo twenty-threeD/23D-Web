@@ -43,6 +43,27 @@ export async function getUsername(email: string) {
   return res.json()
 }
 
+// develop 서버의 공개 재설정 경로는 인증 코드와 계정 연락처를 대조한 뒤 비밀번호를 바꾼다.
+export async function resetPasswordWithoutAuth(data: {
+  username: string
+  email: string
+  verifyCode: string
+  newPassword: string
+}) {
+  const res = await fetch(`/api/member/password/reset`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      username: data.username,
+      email: data.email,
+      verify_code: data.verifyCode,
+      new_password: data.newPassword,
+    }),
+  })
+  if (!res.ok) await throwApiError(res)
+  return res.json()
+}
+
 // 로그인 상태에서 비밀번호 변경. 이미 로그인했으니 인증번호 대신 기존 비밀번호로 본인 확인한다.
 // 성공하면 서버가 토큰을 지우므로 호출한 쪽에서 재로그인시켜야 한다
 export async function changePassword(token: string, currentPassword: string, newPassword: string) {
