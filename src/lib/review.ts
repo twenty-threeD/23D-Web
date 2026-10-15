@@ -155,14 +155,15 @@ export interface ReviewAnalysis {
   updatedAt: string | null
 }
 
-// 전문가(회원)가 받은 리뷰를 AI 가 요약한 결과. 남의 분석도 볼 수 있지만 로그인은 필요해서 토큰 없이 부르면 401 이다.
+// 게시글 하나에 달린 리뷰를 AI 가 요약한 결과. 서버가 전문가 단위 총평을 없애고 글 단위로 바꿔서 postId 로 조회한다.
+// 남의 분석도 볼 수 있지만 로그인은 필요해서 토큰 없이 부르면 401 이다.
 // 분석 중(409)·리뷰 부족(400)·분석 실패(502)·미설정(503)은 ApiError 의 code 로 구분한다
-// AI 요약은 서버가 리뷰가 쌓일 때만 다시 만든다. 같은 전문가의 다른 글로 옮겨 다녀도 다시 받지 않게 길게 들고 있는다.
+// AI 요약은 서버가 리뷰가 쌓일 때만 다시 만든다. 같은 글을 다시 열어도 다시 받지 않게 길게 들고 있는다.
 // 분석 중(REVIEW_ANALYSIS_IN_PROGRESS) 같은 실패 응답은 캐시하지 않아 다음에 다시 확인한다.
 // 결과는 보는 사람과 무관하게 같아서 캐시 키에 토큰을 넣지 않는다
-export function getReviewAnalysis(memberId: number, token: string) {
-  return cached(`${REVIEW_KEY}analysis:${memberId}`, 5 * MINUTE, async () => {
-    const params = new URLSearchParams({ memberId: String(memberId) })
+export function getReviewAnalysis(postId: number, token: string) {
+  return cached(`${REVIEW_KEY}analysis:${postId}`, 5 * MINUTE, async () => {
+    const params = new URLSearchParams({ postId: String(postId) })
     const res = await fetch(`/api/post/review/analysis?${params}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -173,8 +174,9 @@ export function getReviewAnalysis(memberId: number, token: string) {
     return {
       summary: typeof data.summary === 'string' ? data.summary : '',
       keywords: Array.isArray(data.keywords) ? data.keywords.filter((k: unknown) => typeof k === 'string') : [],
-      analyzedReviewCount: Number(data.analyzedReviewCount) || 0,
-      updatedAt: data.updatedAt ?? null,
+      // 응답 키가 snake_case(analyzed_review_count, analyzed_at)로 안내돼서 기존 camelCase 와 둘 다 받는다
+      analyzedReviewCount: Number(data.analyzedReviewCount ?? data.analyzed_review_count) || 0,
+      updatedAt: data.updatedAt ?? data.analyzedAt ?? data.analyzed_at ?? null,
     } as ReviewAnalysis
   })
 }
