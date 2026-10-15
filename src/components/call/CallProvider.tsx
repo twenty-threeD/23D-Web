@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react"
 import { Client } from "@stomp/stompjs"
 import SockJS from "sockjs-client"
-import { useAuthStore, setWsAuthCookie, wsStompUrl } from "@/src/store/authStore"
+import { useAuthStore, setWsAuthCookie, wsStompUrl, decodeJwtUsername } from "@/src/store/authStore"
 import { useCallStore } from "@/src/store/callStore"
 import { callEngine } from "@/src/lib/agoraEngine"
 import { playHangupTone, primeRingtone, startRingtone, stopRingtone } from "@/src/lib/ringtone"
@@ -26,16 +26,7 @@ export default function CallProvider() {
   const token = useAuthStore((s) => s.accessToken)
   // 갑/을 판별과 달리 여기서는 "통화에서 내가 어느 쪽인지"를 username 으로만 가른다.
   // 구버전 저장 상태에는 username 이 비어 있을 수 있어 채팅방과 같은 방식으로 토큰에서 꺼낸다.
-  const username = useAuthStore((s) => {
-    if (s.username) return s.username
-    if (!s.accessToken) return null
-    try {
-      const p = JSON.parse(atob(s.accessToken.split(".")[1]))
-      return p.username ?? p.sub ?? null
-    } catch {
-      return null
-    }
-  })
+  const username = useAuthStore((s) => s.username ?? (s.accessToken ? decodeJwtUsername(s.accessToken) : null))
   const setMyUsername = useCallStore((s) => s.setMyUsername)
   const phase = useCallStore((s) => s.phase)
   const error = useCallStore((s) => s.error)

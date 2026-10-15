@@ -90,8 +90,9 @@ export async function login(email: string, password: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   })
+  // 게이트웨이 오류처럼 본문이 JSON 이 아니면 파싱 에러 문구가 그대로 토스트에 떴다
   if (!res.ok) {
-    const err = await res.json()
+    const err = await res.json().catch(() => null)
     throw new Error(err?.error?.message ?? '로그인에 실패했습니다.')
   }
   const json = await res.json()

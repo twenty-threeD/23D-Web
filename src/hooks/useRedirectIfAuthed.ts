@@ -24,8 +24,9 @@ export function useRedirectIfAuthed(fallback = "/main") {
     setSessionCookie(true)
 
     const target = new URLSearchParams(window.location.search).get("redirect")
-    // 외부 도메인으로 넘어가지 않도록 앱 내부 경로만 허용한다 (//evil.com 차단)
-    const safe = target && target.startsWith("/") && !target.startsWith("//") ? target : fallback
+    // 외부 도메인으로 넘어가지 않도록 앱 내부 경로만 허용한다 (//evil.com 차단).
+    // 브라우저는 '\' 를 '/' 로 읽어 '/\evil.com' 도 외부 주소가 되므로 역슬래시도 막는다
+    const safe = target && target.startsWith("/") && !target.startsWith("//") && !target.includes("\\") ? target : fallback
     router.replace(safe)
   }, [hydrated, hasSession, router, fallback])
 }

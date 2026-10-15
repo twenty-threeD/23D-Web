@@ -8,7 +8,7 @@ import Search from "@/src/components/Search"
 import { HiDotsHorizontal } from "react-icons/hi"
 import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment, MdCall, MdVideocam, MdOutlineCancel } from "react-icons/md"
 import { useCallStore } from "@/src/store/callStore"
-import { useAuthStore, setWsAuthCookie, wsStompUrl } from "@/src/store/authStore"
+import { useAuthStore, setWsAuthCookie, wsStompUrl, decodeJwtUsername } from "@/src/store/authStore"
 import { useChatRoomsStore, type ChatRoom, type TradeStatus } from "@/src/store/chatRoomsStore"
 import {
   getChatRooms,
@@ -43,7 +43,7 @@ import ImageLightbox from "@/src/components/ImageLightbox"
 import { parseChatStart } from "@/src/lib/chatPreview"
 import DealCard from "@/src/components/chat/DealCard"
 import { formatDealCancel, parseDealEnd, parseDealRequest } from "@/src/lib/deal"
-import { ApiError } from "@/src/lib/apiError"
+import { ApiError, isPayloadTooLarge } from "@/src/lib/apiError"
 import { PAGE_TOP, PAGE_X } from "@/src/lib/layout";
 
 function isImageUrl(url: string) {
@@ -92,14 +92,8 @@ export default function Page() {
   const params = useParams()
   const router = useRouter()
   const token = useAuthStore((s) => s.accessToken)
-  const myUsername = useAuthStore((s) => {
-    if (s.username) return s.username
-    if (!s.accessToken) return null
-    try {
-      const p = JSON.parse(atob(s.accessToken.split('.')[1]))
-      return p.username ?? p.sub ?? null
-    } catch { return null }
-  })
+  const hasToken = !!token
+  const myUsername = useAuthStore((s) => s.username ?? (s.accessToken ? decodeJwtUsername(s.accessToken) : null))
   const selectedId = params.id ? Number(Array.isArray(params.id) ? params.id[0] : params.id) : null
 
   const [tab, setTab] = useState<Tab>("all")
@@ -133,8 +127,10 @@ export default function Page() {
   const [messages, setMessages] = useState<Message[]>([])
   const [loadingRooms, setLoadingRooms] = useState(() => !useChatRoomsStore.getState().loaded)
   const [loadingMessages, setLoadingMessages] = useState(false)
-  const [pendingImageUrls, setPendingImageUrls] = useState<string[]>([])
-  const [pendingPreviews, setPendingPreviews] = useState<string[]>([])
+  // 미리보기와 업로드 결과를 한 항목으로 묶는다. 배열 두 개로 따로 들면 일부만 실패하거나
+  // 업로드 중에 하나를 지울 때 순서가 어긋나 엉뚱한 사진이 보내지거나 지워졌다
+  const [pendingImages, setPendingImages] = useState<{ preview: string; url: string | null }[]>([])
+  const uploadedImageUrls = pendingImages.flatMap((img) => (img.url ? [img.url] : []))
   const [pendingDocUrl, setPendingDocUrl] = useState<string | null>(null)
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
   // 방금 복사한 트랜잭션 해시. 해시 줄에 잠깐 "복사됨"을 띄우는 데만 쓴다
@@ -191,13 +187,16 @@ export default function Page() {
   }, [selectedId, setActiveRoomId])
 
   useEffect(() => {
-    if (!selectedId || !token) return
+    if (!selectedId || !hasToken) return
+    // 토큰은 만료 전에 재발급된다. effect 가 토큰 값에 의존하면 재발급마다 소켓이 끊겼다 붙고 메시지를 다시 받아서,
+    // 연결은 로그인 여부(hasToken)로만 유지하고 실제 값은 쓸 때마다 스토어에서 최신으로 꺼낸다
+    const currentToken = () => useAuthStore.getState().accessToken ?? ""
 
     markRoomRead(selectedId)
 
     // 인증은 쿠키로 넘어간다(setWsAuthCookie). 백엔드가 ?token= 쿼리 인증을 막았고,
     // 토큰을 URL 에 실으면 브라우저 히스토리·프록시 로그에 남기 때문에 쿼리는 쓰지 않는다.
-    setWsAuthCookie(token)
+    setWsAuthCookie(currentToken())
     const sockjsUrl = wsStompUrl()
 
     // 첫 연결은 fetchMessages 가 동기화하므로, 재연결일 때만 끊긴 구간을 after 로 메운다
@@ -205,8 +204,11 @@ export default function Page() {
 
     const client = new Client({
       webSocketFactory: () => new SockJS(sockjsUrl),
-      connectHeaders: {
-        Authorization: `Bearer ${token}`,
+      // 재연결 때도 최신 토큰으로 붙도록 접속 직전마다 헤더·쿠키를 다시 채운다
+      beforeConnect: () => {
+        const latest = currentToken()
+        setWsAuthCookie(latest)
+        client.connectHeaders = { Authorization: `Bearer ${latest}` }
       },
       onConnect: () => {
         client.subscribe(`/topic/chat/rooms/${selectedId}`, (frame) => {
@@ -236,7 +238,7 @@ export default function Page() {
         })
 
         if (connectedOnce) {
-          void syncChatMessages(token, selectedId, messagesRef.current as never)
+          void syncChatMessages(currentToken(), selectedId, messagesRef.current as never)
             .then((list) => {
               if (currentRoomRef.current !== selectedId) return
               setMessages((cur) => mergeMessages(cur, list as unknown as Message[]))
@@ -251,7 +253,7 @@ export default function Page() {
         if (paid) {
           client.publish({
             destination: "/app/chat.send",
-            headers: { Authorization: `Bearer ${token}` },
+            headers: { Authorization: `Bearer ${currentToken()}` },
             body: JSON.stringify({
               roomId: selectedId,
               message: `[결제 완료]\n${JSON.stringify(paid)}`,
@@ -272,7 +274,7 @@ export default function Page() {
           })}`
           client.publish({
             destination: "/app/chat.send",
-            headers: { Authorization: `Bearer ${token}` },
+            headers: { Authorization: `Bearer ${currentToken()}` },
             body: JSON.stringify({ roomId: selectedId, message: greeting, fileUrls: [] }),
           })
           clearPendingGreeting(selectedId)
@@ -287,7 +289,7 @@ export default function Page() {
       client.deactivate()
       stompClientRef.current = null
     }
-  }, [selectedId, token, myUsername, clearPendingGreeting, clearPendingPayment])
+  }, [selectedId, hasToken, myUsername, clearPendingGreeting, clearPendingPayment])
 
   const fetchRooms = useCallback(async () => {
     if (!token) return
@@ -302,7 +304,9 @@ export default function Page() {
     }
   }, [token, setRoomsInStore])
 
+  // 토큰 재발급으로 목록을 비우고 다시 받지 않도록 로그인 여부에만 의존하고, 값은 호출 시점의 최신 토큰을 쓴다
   const fetchMessages = useCallback(async () => {
+    const token = useAuthStore.getState().accessToken
     if (!token || !selectedId) return
     const roomId = selectedId as number
     currentRoomRef.current = roomId
@@ -327,7 +331,7 @@ export default function Page() {
     } finally {
       if (currentRoomRef.current === roomId) setLoadingMessages(false)
     }
-  }, [token, selectedId])
+  }, [hasToken, selectedId])
 
   const loadOlder = useCallback(async () => {
     if (!token || !selectedId || !hasOlder || loadingOlderRef.current) return
@@ -487,31 +491,33 @@ export default function Page() {
       return true
     })
     if (!files.length || !token) return
-    const previews = files.map((file) => URL.createObjectURL(file))
-    setPendingPreviews((prev) => [...prev, ...previews])
+    const added = files.map((file) => ({ file, preview: URL.createObjectURL(file) }))
+    setPendingImages((prev) => [...prev, ...added.map(({ preview }) => ({ preview, url: null }))])
     setShowAttach(false)
     setUploading(true)
+    let failed = 0
     try {
-      const uploaded: string[] = []
-      for (const file of files) {
-        const { url } = await uploadFile(token, file)
-        uploaded.push(url)
+      for (const { file, preview } of added) {
+        try {
+          const { url } = await uploadFile(token, file)
+          setPendingImages((prev) => prev.map((img) => (img.preview === preview ? { ...img, url } : img)))
+        } catch {
+          // 실패한 사진만 빼고 나머지는 그대로 보낼 수 있게 둔다
+          failed++
+          URL.revokeObjectURL(preview)
+          setPendingImages((prev) => prev.filter((img) => img.preview !== preview))
+        }
       }
-      setPendingImageUrls((prev) => [...prev, ...uploaded])
-    } catch {
-      previews.forEach((p) => URL.revokeObjectURL(p))
-      setPendingPreviews((prev) => prev.filter((p) => !previews.includes(p)))
+      if (failed > 0) addToast({ message: `사진 ${failed}장을 올리지 못했어요.`, type: "error" })
     } finally {
       setUploading(false)
       e.target.value = ""
     }
   }
 
-  function clearPendingImage(index: number) {
-    const preview = pendingPreviews[index]
-    if (preview) URL.revokeObjectURL(preview)
-    setPendingPreviews((prev) => prev.filter((_, i) => i !== index))
-    setPendingImageUrls((prev) => prev.filter((_, i) => i !== index))
+  function clearPendingImage(preview: string) {
+    URL.revokeObjectURL(preview)
+    setPendingImages((prev) => prev.filter((img) => img.preview !== preview))
   }
 
   async function handleDocChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -523,8 +529,13 @@ export default function Page() {
     try {
       const { url } = await uploadFile(token, file)
       setPendingDocUrl(url)
-    } catch {
+    } catch (e) {
       setPendingDocName(null)
+      // 실패해도 첨부 표시만 사라져서 사용자는 왜 안 붙는지 알 수 없었다
+      addToast({
+        message: isPayloadTooLarge(e) ? `${file.name}: 파일이 너무 커요.` : `${file.name}: 문서를 올리지 못했어요. PDF 파일만 보낼 수 있어요.`,
+        type: "error",
+      })
     } finally {
       setUploading(false)
       e.target.value = ""
@@ -537,12 +548,12 @@ export default function Page() {
   }
 
   function handleSend() {
-    if (!message.trim() && pendingImageUrls.length === 0 && !pendingDocUrl) return
+    if (!message.trim() && uploadedImageUrls.length === 0 && !pendingDocUrl) return
     const client = stompClientRef.current
     if (!client?.connected || uploading) return
 
     // 사진과 문서를 함께 첨부했으면 같이 보낸다. 예전에는 사진만 보내고 문서 첨부는 지워서 문서가 조용히 사라졌다
-    const fileUrls = [...pendingImageUrls, ...(pendingDocUrl ? [pendingDocUrl] : [])]
+    const fileUrls = [...uploadedImageUrls, ...(pendingDocUrl ? [pendingDocUrl] : [])]
     const body = JSON.stringify({
       roomId: selectedId,
       message: message.trim() || "",
@@ -554,9 +565,8 @@ export default function Page() {
       body,
     })
     setMessage("")
-    pendingPreviews.forEach((p) => URL.revokeObjectURL(p))
-    setPendingPreviews([])
-    setPendingImageUrls([])
+    pendingImages.forEach((img) => URL.revokeObjectURL(img.preview))
+    setPendingImages([])
     clearPendingDoc()
   }
 
@@ -762,12 +772,16 @@ export default function Page() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "/") {
-        e.preventDefault()
-        chatHotKey()
-      }
+      if (e.key !== "/") return
+      // 이미 무언가를 입력 중이면 '/' 는 글자다. 막으면 날짜(10/15)·URL 을 칠 수 없다
+      const target = e.target as HTMLElement | null
+      if (target && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return
+      e.preventDefault()
+      chatHotKey()
     }
     window.addEventListener("keydown", handleKeyDown)
+    // 방을 옮길 때마다 페이지가 새로 마운트돼서, 해제하지 않으면 리스너가 계속 쌓인다
+    return () => window.removeEventListener("keydown", handleKeyDown)
   }, [])
 
   return (
@@ -971,6 +985,11 @@ export default function Page() {
                       (m.type === "PAYMENT" && m.payment) || m.message?.startsWith("[결제 완료]") ? i : acc,
                     -1
                   )
+                  // 서버가 만든 PAYMENT 메시지와 결제 성공 페이지가 보낸 [결제 완료] 메시지가 같은 주문을 가리킬 수 있다.
+                  // 둘 다 그리면 카드·해시가 두 번 보이므로, 서버 메시지가 있는 주문은 접두사 메시지를 건너뛴다
+                  const serverPaidOrderIds = new Set(
+                    messages.flatMap((m) => (m.type === "PAYMENT" && m.payment?.orderId ? [m.payment.orderId] : []))
+                  )
                   return messages.map((msg, idx) => {
                   const prevMsg = messages[idx - 1]
                   const nextMsg = messages[idx + 1]
@@ -1018,8 +1037,10 @@ export default function Page() {
 
                   // 백엔드가 만들어주는 결제 완료 메시지. 본문 대신 카드로 보여준다.
                   // 백엔드가 PAYMENT 타입으로 내려주면 그걸 쓰고, 아니면 접두사 메시지를 판다.
+                  const prefixedPayment = msg.type === "PAYMENT" ? null : parsePaymentMessage(msg.message)
                   const paymentInfo =
-                    (msg.type === "PAYMENT" ? msg.payment : null) ?? parsePaymentMessage(msg.message)
+                    (msg.type === "PAYMENT" ? msg.payment : null) ??
+                    (prefixedPayment && !serverPaidOrderIds.has(prefixedPayment.orderId) ? prefixedPayment : null)
                   const paymentCard = paymentInfo ? (
                     <PaymentCard payment={paymentInfo} isSent={isSent} paidAt={msg.createdAt} />
                   ) : null
@@ -1054,7 +1075,7 @@ export default function Page() {
                     <DealCard kind={dealEnd.kind} isSent={isSent} endedAt={msg.createdAt} />
                   ) : null
 
-                  const textBubble = msg.message && !contractMsg && !paymentCard && !callCard && !dealCard ? (
+                  const textBubble = msg.message && !contractMsg && !paymentCard && !prefixedPayment && !callCard && !dealCard ? (
                     // 휴대폰에서는 아바타·시간과 한 줄에 놓여 320px 고정폭이면 화면을 넘는다. 화면 폭 비율로 줄이고,
                     // 띄어쓰기 없는 긴 링크·단어도 말풍선 안에서 줄을 바꾼다
                     <div className={`rounded-2xl px-4 py-2 max-w-[min(20rem,62vw)] ${isSent ? "bg-main rounded-br-none" : "bg-zinc-100 rounded-bl-none"}`}>
@@ -1255,20 +1276,20 @@ export default function Page() {
                 </div>
               )}
 
-              {pendingPreviews.length > 0 && (
+              {pendingImages.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto pb-1">
-                  {pendingPreviews.map((preview, i) => (
+                  {pendingImages.map(({ preview, url }) => (
                     <div key={preview} className="relative w-24 h-24 rounded-lg overflow-hidden shrink-0">
                       {/* blob: URL 이라 next/image 최적화 대상이 아니다. 보내기 전 로컬 미리보기일 뿐이다 */}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={preview} alt="첨부 이미지" className="w-full h-full object-cover" />
-                      {uploading && !pendingImageUrls[i] ? (
+                      {!url ? (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                           <span className="text-white text-xs">업로드 중</span>
                         </div>
                       ) : (
                         <button
-                          onClick={() => clearPendingImage(i)}
+                          onClick={() => clearPendingImage(preview)}
                           className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center transition-colors hover:bg-black/70 cursor-pointer"
                         >
                           <IoClose className="text-white text-xs" />
@@ -1331,7 +1352,8 @@ export default function Page() {
               <input
                 ref={docInputRef}
                 type="file"
-                accept=".pdf,.doc,.docx,.hwp,.hwpx,.xls,.xlsx,.ppt,.pptx,.zip,.txt"
+                // 백엔드가 이미지와 PDF 만 받아(Tika 로 MIME 검사) 다른 문서는 골라도 업로드가 거부된다
+                accept=".pdf,application/pdf"
                 className="hidden"
                 onChange={handleDocChange}
               />
