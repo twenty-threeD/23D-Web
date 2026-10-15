@@ -92,6 +92,7 @@ export default function Page() {
   const params = useParams()
   const router = useRouter()
   const token = useAuthStore((s) => s.accessToken)
+  const hasToken = !!token
   const myUsername = useAuthStore((s) => {
     if (s.username) return s.username
     if (!s.accessToken) return null
@@ -191,13 +192,16 @@ export default function Page() {
   }, [selectedId, setActiveRoomId])
 
   useEffect(() => {
-    if (!selectedId || !token) return
+    if (!selectedId || !hasToken) return
+    // 토큰은 만료 전에 재발급된다. effect 가 토큰 값에 의존하면 재발급마다 소켓이 끊겼다 붙고 메시지를 다시 받아서,
+    // 연결은 로그인 여부(hasToken)로만 유지하고 실제 값은 쓸 때마다 스토어에서 최신으로 꺼낸다
+    const currentToken = () => useAuthStore.getState().accessToken ?? ""
 
     markRoomRead(selectedId)
 
     // 인증은 쿠키로 넘어간다(setWsAuthCookie). 백엔드가 ?token= 쿼리 인증을 막았고,
     // 토큰을 URL 에 실으면 브라우저 히스토리·프록시 로그에 남기 때문에 쿼리는 쓰지 않는다.
-    setWsAuthCookie(token)
+    setWsAuthCookie(currentToken())
     const sockjsUrl = wsStompUrl()
 
     // 첫 연결은 fetchMessages 가 동기화하므로, 재연결일 때만 끊긴 구간을 after 로 메운다
@@ -205,8 +209,11 @@ export default function Page() {
 
     const client = new Client({
       webSocketFactory: () => new SockJS(sockjsUrl),
-      connectHeaders: {
-        Authorization: `Bearer ${token}`,
+      // 재연결 때도 최신 토큰으로 붙도록 접속 직전마다 헤더·쿠키를 다시 채운다
+      beforeConnect: () => {
+        const latest = currentToken()
+        setWsAuthCookie(latest)
+        client.connectHeaders = { Authorization: `Bearer ${latest}` }
       },
       onConnect: () => {
         client.subscribe(`/topic/chat/rooms/${selectedId}`, (frame) => {
@@ -236,7 +243,7 @@ export default function Page() {
         })
 
         if (connectedOnce) {
-          void syncChatMessages(token, selectedId, messagesRef.current as never)
+          void syncChatMessages(currentToken(), selectedId, messagesRef.current as never)
             .then((list) => {
               if (currentRoomRef.current !== selectedId) return
               setMessages((cur) => mergeMessages(cur, list as unknown as Message[]))
@@ -251,7 +258,7 @@ export default function Page() {
         if (paid) {
           client.publish({
             destination: "/app/chat.send",
-            headers: { Authorization: `Bearer ${token}` },
+            headers: { Authorization: `Bearer ${currentToken()}` },
             body: JSON.stringify({
               roomId: selectedId,
               message: `[결제 완료]\n${JSON.stringify(paid)}`,
@@ -272,7 +279,7 @@ export default function Page() {
           })}`
           client.publish({
             destination: "/app/chat.send",
-            headers: { Authorization: `Bearer ${token}` },
+            headers: { Authorization: `Bearer ${currentToken()}` },
             body: JSON.stringify({ roomId: selectedId, message: greeting, fileUrls: [] }),
           })
           clearPendingGreeting(selectedId)
@@ -287,7 +294,7 @@ export default function Page() {
       client.deactivate()
       stompClientRef.current = null
     }
-  }, [selectedId, token, myUsername, clearPendingGreeting, clearPendingPayment])
+  }, [selectedId, hasToken, myUsername, clearPendingGreeting, clearPendingPayment])
 
   const fetchRooms = useCallback(async () => {
     if (!token) return
@@ -302,7 +309,9 @@ export default function Page() {
     }
   }, [token, setRoomsInStore])
 
+  // 토큰 재발급으로 목록을 비우고 다시 받지 않도록 로그인 여부에만 의존하고, 값은 호출 시점의 최신 토큰을 쓴다
   const fetchMessages = useCallback(async () => {
+    const token = useAuthStore.getState().accessToken
     if (!token || !selectedId) return
     const roomId = selectedId as number
     currentRoomRef.current = roomId
@@ -327,7 +336,7 @@ export default function Page() {
     } finally {
       if (currentRoomRef.current === roomId) setLoadingMessages(false)
     }
-  }, [token, selectedId])
+  }, [hasToken, selectedId])
 
   const loadOlder = useCallback(async () => {
     if (!token || !selectedId || !hasOlder || loadingOlderRef.current) return
