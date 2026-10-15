@@ -10,6 +10,7 @@ import { useProfileStore } from "@/src/store/profileStore";
 import { useToast } from "@/src/hooks/useToast";
 import { useHandleError } from "@/src/hooks/useHandleError";
 import { uploadFile, toRelativeUrl, toUploadPath } from "@/src/lib/file";
+import { HeifConversionError } from "@/src/lib/imageCompress";
 import { isPayloadTooLarge } from "@/src/lib/apiError";
 import {
   getMyProfile,
@@ -186,8 +187,11 @@ export default function Page() {
       const { url } = await uploadFile(token, file);
       setImageUrl(url);
     } catch (e) {
+      let message = "이미지 업로드에 실패했습니다.";
+      if (e instanceof HeifConversionError) message = e.message;
+      else if (isPayloadTooLarge(e)) message = "사진은 최대 25MB까지 업로드할 수 있어요.";
       addToast({
-        message: isPayloadTooLarge(e) ? "사진은 최대 25MB까지 업로드할 수 있어요." : "이미지 업로드에 실패했습니다.",
+        message,
         type: "error",
       });
     } finally {

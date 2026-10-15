@@ -23,6 +23,7 @@ import {
 } from "@/src/lib/chat"
 import { cacheMessages } from "@/src/lib/chatDb"
 import { toRelativeUrl, uploadFile } from "@/src/lib/file"
+import { HeifConversionError } from "@/src/lib/imageCompress"
 import { useHandleError } from "@/src/hooks/useHandleError"
 import { useToast } from "@/src/hooks/useToast"
 import { Client } from "@stomp/stompjs"
@@ -497,19 +498,26 @@ export default function Page() {
     setShowAttach(false)
     setUploading(true)
     let failed = 0
+    let failedHeifConversions = 0
     try {
       for (const { file, preview } of added) {
         try {
           const { url } = await uploadFile(token, file)
           setPendingImages((prev) => prev.map((img) => (img.preview === preview ? { ...img, url } : img)))
-        } catch {
+        } catch (error) {
           // 실패한 사진만 빼고 나머지는 그대로 보낼 수 있게 둔다
           failed++
+          if (error instanceof HeifConversionError) failedHeifConversions++
           URL.revokeObjectURL(preview)
           setPendingImages((prev) => prev.filter((img) => img.preview !== preview))
         }
       }
-      if (failed > 0) addToast({ message: `사진 ${failed}장을 올리지 못했어요.`, type: "error" })
+      if (failed > 0) {
+        const message = failedHeifConversions > 0
+          ? `HEIF 사진 ${failedHeifConversions}장을 변환하지 못했어요. JPG, PNG 또는 WEBP로 저장한 뒤 다시 선택해주세요. (전체 실패 ${failed}장)`
+          : `사진 ${failed}장을 올리지 못했어요.`
+        addToast({ message, type: "error" })
+      }
     } finally {
       setUploading(false)
       e.target.value = ""
