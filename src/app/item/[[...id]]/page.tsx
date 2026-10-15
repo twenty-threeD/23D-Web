@@ -299,7 +299,7 @@ export default function Page() {
                 </div>
 
                 {/* 리뷰 요약은 글이 아니라 전문가(회원) 단위라 작성자 id 로 조회한다 */}
-                {post?.member?.id != null && <ReviewAnalysis memberId={post.member.id} />}
+                {postId != null && <ReviewAnalysis postId={postId} />}
 
                 {/* 후기는 이 글에서 내가 의뢰인으로 결제까지 마친 계약에만, 계약당 한 번 남길 수 있다 */}
                 {canReview && (
