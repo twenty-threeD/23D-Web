@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type ReactNode, type PointerEvent, type MouseEvent, type DragEvent, type RefObject } from "react";
+import { useEffect, useRef, type ReactNode, type PointerEvent, type MouseEvent, type DragEvent, type RefObject } from "react";
 import Link from "next/link";
 import { LeftRightIcon } from "@/src/components/main/icons";
 import ServiceCard, { ServiceCardSkeleton } from "@/src/components/main/ServiceCard";
@@ -57,10 +57,58 @@ function ScrollRow({ children, gap, scrollRef, handlers }: { children: ReactNode
   return <div ref={scrollRef} {...handlers} className={`${ROW_CLASS} ${gap}`}>{children}</div>;
 }
 
+// 휴대폰은 카드가 한 장씩만 보여 다음 카드가 있다는 걸 알기 어렵다. 휴대폰 폭에서만 일정 간격으로 다음 카드로 넘긴다.
+// - 손으로 넘기는 중에 움직이면 손가락과 싸우게 되므로, 만지는 동안은 멈추고 손을 뗀 뒤 한 간격을 쉬고 다시 시작한다
+// - 손으로 넘기다 카드 중간에 멈췄을 수 있어 한 칸 너비를 더하지 않고 다음 카드의 시작 위치로 맞춘다
+// - 마지막 카드에서는 처음으로 돌아간다
+const MOBILE_QUERY = "(max-width: 767px)";
+
+function useMobileAutoSlide(ref: RefObject<HTMLDivElement | null>, intervalMs?: number) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!intervalMs || !el) return;
+    const mobile = window.matchMedia(MOBILE_QUERY);
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let paused = false;
+    let resumeTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const pause = () => { paused = true; clearTimeout(resumeTimer); };
+    const resume = () => {
+      clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(() => { paused = false; }, intervalMs);
+    };
+
+    const next = () => {
+      if (paused || document.hidden || !mobile.matches || reducedMotion.matches) return;
+      if (el.scrollWidth <= el.clientWidth) return;
+      const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
+      const rowLeft = el.getBoundingClientRect().left;
+      const target = Array.from(el.children)
+        .map((child) => child.getBoundingClientRect().left - rowLeft + el.scrollLeft)
+        .find((left) => left > el.scrollLeft + 4);
+      el.scrollTo({ left: atEnd || target === undefined ? 0 : target, behavior: "smooth" });
+    };
+
+    const timer = setInterval(next, intervalMs);
+    el.addEventListener("touchstart", pause, { passive: true });
+    el.addEventListener("touchend", resume);
+    el.addEventListener("touchcancel", resume);
+    return () => {
+      clearInterval(timer);
+      clearTimeout(resumeTimer);
+      el.removeEventListener("touchstart", pause);
+      el.removeEventListener("touchend", resume);
+      el.removeEventListener("touchcancel", resume);
+    };
+  }, [ref, intervalMs]);
+}
+
 // 시안의 좌우 화살표 아이콘(한 장짜리 svg) 위에 투명 버튼 두 개를 겹쳐 조작한다
 // 광고처럼 제목이 카드 줄 위에 오는 섹션은 header 로 넘겨 화살표와 같은 줄에 놓는다
-export function CardRow({ children, gap, header }: { children: ReactNode; gap: string; header?: ReactNode }) {
+// autoSlideMs: 휴대폰 폭에서 이 간격마다 다음 카드로 넘긴다 (넓은 화면에는 영향 없음)
+export function CardRow({ children, gap, header, autoSlideMs }: { children: ReactNode; gap: string; header?: ReactNode; autoSlideMs?: number }) {
   const { ref, handlers } = useDragScroll();
+  useMobileAutoSlide(ref, autoSlideMs);
   const scroll = (dir: -1 | 1) =>
     ref.current?.scrollBy({ left: dir * ref.current.clientWidth * 0.8, behavior: "smooth" });
 
