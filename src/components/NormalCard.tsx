@@ -4,6 +4,7 @@ import { FaStar } from "react-icons/fa"
 import { toRelativeUrl } from "@/src/lib/file"
 import { parsePostContent } from "@/src/types/priceCard"
 import { cardClasses } from "@/src/components/main/ServiceCard"
+import PostRating from "@/src/components/main/PostRating"
 
 interface NormalCardProps {
   id: number
@@ -11,7 +12,6 @@ interface NormalCardProps {
   content: string
   fileUrl?: string
   price?: string
-  rating?: number
   category?: { id: number; name: string } | null
   /** 휴대폰 목록 그리드에서 칸 폭에 맞춰 늘린다. 가로 스크롤 줄에서는 끈다 */
   inGrid?: boolean
@@ -27,7 +27,7 @@ function getPrice(content: string, fallback?: string): string | null {
   return price ? `${Number(String(price).replace(/,/g, "")).toLocaleString()}원 ~` : null
 }
 
-export default function NormalCard({ id, title, content, fileUrl, price, rating, category, inGrid = false }: NormalCardProps) {
+export default function NormalCard({ id, title, content, fileUrl, price, category, inGrid = false }: NormalCardProps) {
   const c = cardClasses(inGrid)
   const description = getDescription(content)
   const displayPrice = getPrice(content, price)
@@ -52,7 +52,7 @@ export default function NormalCard({ id, title, content, fileUrl, price, rating,
           <div className={`flex items-center justify-between ${c.meta}`}>
             <div className="flex items-center gap-1.5 text-ink-sub">
               <FaStar className="text-main text-xs" />
-              <span>{(rating ?? 0).toFixed(1)}</span>
+              <PostRating postId={id} />
             </div>
             {displayPrice && <span className="font-medium text-ink">{displayPrice}</span>}
           </div>

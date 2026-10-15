@@ -4,6 +4,7 @@ import Link from "next/link";
 import { toRelativeUrl } from "@/src/lib/file";
 import { getPostMainImage, type Post } from "@/src/lib/post";
 import { parsePostContent } from "@/src/types/priceCard";
+import PostRating from "@/src/components/main/PostRating";
 
 // 가로 스크롤 줄에서는 시안 폭(260px)을 그대로 쓰고, 휴대폰 목록 그리드(inGrid)에서는 두 칸에 맞춰 늘린다.
 // 목록 그리드도 sm(640px)부터는 다시 260px 칸이라 그때부터는 줄과 같은 모양이다.
@@ -83,7 +84,7 @@ export default function ServiceCard({ post, inGrid = false }: { post: Post; inGr
           <div className={`flex items-center justify-between ${c.meta}`}>
             <div className="flex items-center gap-1.5 text-ink-sub">
               <StarIcon className="size-3.5" />
-              <span>{(0).toFixed(1)}</span>
+              <PostRating postId={post.id} />
             </div>
             {price && <span className="font-medium text-ink">{price}</span>}
           </div>
