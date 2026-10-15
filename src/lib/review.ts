@@ -5,6 +5,7 @@ import { ME_KEY } from './profile'
 const REVIEW_KEY = 'review:'
 const REVIEWABLE_KEY = `${ME_KEY}reviewable:`
 const REVIEW_TTL = 30_000
+export const REVIEW_UPDATED_EVENT = 'itda:review-updated'
 
 function authHeaders(token?: string | null) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -28,6 +29,21 @@ export interface Review {
   priceRange?: string | null
   categoryName?: string | null
   author?: ReviewAuthor | null
+}
+
+export interface PostReviewAggregate {
+  reviewCount: number
+  averageRating: number
+}
+
+export function summarizePostReviews(reviews: readonly Review[]): PostReviewAggregate {
+  const reviewCount = reviews.length
+  return {
+    reviewCount,
+    averageRating: reviewCount > 0
+      ? reviews.reduce((total, review) => total + review.rating, 0) / reviewCount
+      : 0,
+  }
 }
 
 type ReviewResponse = { data?: unknown }
@@ -108,7 +124,8 @@ export function getReviews(postId: number, token?: string | null) {
 // 게시글 id 는 보내지 않는다. 의뢰인이 아니거나 결제가 끝나지 않은 계약이면 403 으로 막힌다
 export async function createReview(
   token: string,
-  data: { contractId: number; rating: number; content: string }
+  data: { contractId: number; rating: number; content: string },
+  postId?: number,
 ) {
   const res = await fetch('/api/post/review', {
     method: 'POST',
@@ -119,6 +136,10 @@ export async function createReview(
   // 리뷰 목록·요약이 바뀌고, 방금 쓴 계약은 더 이상 리뷰를 쓸 수 없다
   invalidate(REVIEW_KEY)
   invalidate(REVIEWABLE_KEY)
+  if (typeof window !== 'undefined') {
+    // 상세 화면에 이미 떠 있는 카드도 방금 쓴 리뷰를 반영하도록 같은 글에 갱신 신호를 보낸다
+    window.dispatchEvent(new CustomEvent(REVIEW_UPDATED_EVENT, { detail: { postId } }))
+  }
 
   const json = await res.json()
   const response = asRecord(json)

@@ -20,7 +20,7 @@ import { ApiError } from "@/src/lib/apiError";
 import { toRelativeUrl } from "@/src/lib/file"
 import ImageLightbox from "@/src/components/ImageLightbox"
 import ReviewAnalysis from "@/src/components/item/ReviewAnalysis"
-import { createReview, getReviews, getReviewableContracts, type Review as ReviewData, type ReviewableContract } from "@/src/lib/review"
+import { createReview, getReviews, getReviewableContracts, summarizePostReviews, type Review as ReviewData, type ReviewableContract } from "@/src/lib/review"
 import { signinPath } from "@/src/lib/navigation"
 import { PAGE_Y } from "@/src/lib/layout";
 
@@ -134,7 +134,7 @@ export default function Page() {
         contractId: activeContractId,
         rating: reviewRating,
         content,
-      });
+      }, postId);
       const newReview: ReviewData = created ?? {
         id: `local-${Date.now()}`,
         rating: reviewRating,
@@ -166,10 +166,7 @@ export default function Page() {
   // 로그아웃하면 이전 계정의 목록이 남지 않도록 토큰이 있을 때만 쓴다
   const myReviewableContracts = token ? reviewableContracts : [];
   const canReview = myReviewableContracts.length > 0;
-  const reviewCount = reviews.length;
-  const review = reviewCount > 0
-    ? reviews.reduce((total, item) => total + item.rating, 0) / reviewCount
-    : 0;
+  const { reviewCount, averageRating: review } = summarizePostReviews(reviews);
   const headerImage = post?.fileUrls?.[0] ?? NO_POST_IMAGE;
   const contentImages = post?.fileUrls && post.fileUrls.length > 1
     ? post.fileUrls.slice(1)
