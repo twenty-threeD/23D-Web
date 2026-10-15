@@ -8,6 +8,7 @@ import {
   IoSearchOutline,
   IoShieldCheckmarkOutline,
 } from "react-icons/io5";
+import { PAGE_PADDING } from "@/src/lib/layout";
 
 const steps = [
   {
@@ -63,10 +64,10 @@ const features = [
 export default function Page() {
   return (
     <div className="flex flex-1 flex-col bg-white">
-      <main className="flex-1 px-5 md:px-10 xl:px-20 py-8">
+      <main className={`flex-1 ${PAGE_PADDING}`}>
         <div className="w-full">
           <section
-            className="border-b border-zinc-200 py-8 lg:py-16"
+            className="border-b border-line pb-8 lg:pb-16"
             aria-labelledby="about-title"
           >
             <div className="max-w-3xl">
@@ -95,7 +96,7 @@ export default function Page() {
                 </Link>
                 <Link
                   href="/docs"
-                  className="flex items-center gap-2 border border-zinc-300 px-5 py-3 text-sm font-semibold text-zinc-700 transition-colors hover:border-main hover:text-main"
+                  className="flex items-center gap-2 border border-line px-5 py-3 text-sm font-semibold text-zinc-700 transition-colors hover:border-main hover:text-main"
                 >
                   이용 안내 보기
                   <IoArrowForwardOutline aria-hidden="true" />
@@ -105,7 +106,7 @@ export default function Page() {
           </section>
 
           <section
-            className="grid gap-10 border-b border-zinc-200 py-12 lg:grid-cols-[1fr_2fr] lg:gap-20 lg:py-20"
+            className="grid gap-10 border-b border-line py-12 lg:grid-cols-[1fr_2fr] lg:gap-20 lg:py-20"
             aria-labelledby="why-title"
           >
             <div>
@@ -136,7 +137,7 @@ export default function Page() {
           </section>
 
           <section
-            className="border-b border-zinc-200 py-12 lg:py-20"
+            className="border-b border-line py-12 lg:py-20"
             aria-labelledby="flow-title"
           >
             <div className="flex flex-col gap-3 pb-8 lg:flex-row lg:items-end lg:justify-between">
@@ -161,7 +162,7 @@ export default function Page() {
                 return (
                   <article
                     key={step.number}
-                    className="flex min-h-56 flex-col border border-zinc-200 p-6"
+                    className="flex min-h-56 flex-col border border-line p-6"
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-bold text-main">
@@ -187,7 +188,7 @@ export default function Page() {
           </section>
 
           <section
-            className="border-b border-zinc-200 py-12 lg:py-20"
+            className="border-b border-line py-12 lg:py-20"
             aria-labelledby="feature-title"
           >
             <div className="pb-8">
@@ -249,7 +250,7 @@ export default function Page() {
               </Link>
               <Link
                 href="/team"
-                className="flex items-center gap-2 border border-zinc-300 px-5 py-3 text-sm font-semibold text-zinc-700 transition-colors hover:border-main hover:text-main"
+                className="flex items-center gap-2 border border-line px-5 py-3 text-sm font-semibold text-zinc-700 transition-colors hover:border-main hover:text-main"
               >
                 팀원 소개
                 <IoArrowForwardOutline aria-hidden="true" />

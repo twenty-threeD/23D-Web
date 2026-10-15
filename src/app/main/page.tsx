@@ -8,6 +8,7 @@ import AdCard, { AdCardSkeleton } from "@/src/components/main/AdCard";
 import ServiceSection, { CardRow, MoreLink, Empty, SECTION_INSET } from "@/src/components/main/ServiceSection";
 import { getPosts, searchPosts, getPostCategories, CATEGORIES, type Post, type PostCategory } from "@/src/lib/post";
 import { useAuthStore } from "@/src/store/authStore";
+import { PAGE_Y } from "@/src/lib/layout";
 
 function MainContent() {
   const token = useAuthStore((s) => s.accessToken);
@@ -51,7 +52,7 @@ function MainContent() {
   const revisitPosts = [...posts.slice(4), ...posts.slice(0, 4)].slice(0, 10);
 
   return (
-    <div className="flex flex-col items-center gap-14 md:gap-20 pt-12 md:pt-[120px] pb-24 overflow-x-hidden">
+    <div className={`flex flex-col items-center gap-14 md:gap-20 ${PAGE_Y} overflow-x-hidden`}>
       {/* 검색 + 카테고리 */}
       <section className="flex flex-col items-center gap-9 w-full max-w-[960px] px-5">
         <h1 className="text-center text-xl md:text-[28px] font-semibold text-ink leading-tight">
@@ -60,7 +61,7 @@ function MainContent() {
           필요한 순간, 필요한 능력자를 만나보세요.
         </h1>
         <div className="flex flex-col items-center gap-6 w-full">
-          <div className="flex items-center gap-3 w-full h-[52px] px-6 rounded-xl border border-[#b8b8b8] focus-within:border-main transition-colors">
+          <div className="flex items-center gap-3 w-full h-[52px] px-6 rounded-xl border border-line focus-within:border-main transition-colors">
             <input
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
@@ -77,7 +78,7 @@ function MainContent() {
               <Link
                 key={c.label}
                 href={categoryHref(c.name)}
-                className="px-[18px] py-3 rounded-[21px] border border-[#838383] font-semibold leading-none text-[#838383] hover:border-main hover:text-main transition-colors"
+                className="px-[18px] py-3 rounded-[21px] border border-line font-semibold leading-none text-[#838383] hover:border-main hover:text-main transition-colors"
               >
                 {c.label}
               </Link>

@@ -41,7 +41,7 @@ export const InputField = ({
             value={value}
             onChange={onChange}
             onKeyDown={onKeyDown}
-            className={`peer w-full border-b-2 ${isError ? "border-[#FF0000]" : "border-zinc-400"} 
+            className={`peer w-full border-b-2 ${isError ? "border-[#FF0000]" : "border-line"} 
                   outline-none p-2 pt-3 bg-transparent
                   ${isError ? "text-[#FF0000]" : "text-black"} 
                   focus:text-main focus:border-main

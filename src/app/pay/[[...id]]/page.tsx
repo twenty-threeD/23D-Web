@@ -17,6 +17,7 @@ import { getMyProfile } from "@/src/lib/profile";
 import { signinPath } from "@/src/lib/navigation";
 import type { ChatRoom } from "@/src/store/chatRoomsStore";
 import { calculatePaymentFee } from "@/src/lib/paymentFee";
+import { PAGE_PADDING } from "@/src/lib/layout";
 
 type Contract = Awaited<ReturnType<typeof getContract>>;
 
@@ -143,7 +144,7 @@ const PayContent = () => {
 
   return (
     // 넓은 화면에서도 시안의 1280px 콘텐츠 폭을 유지한 채 가운데에 둔다 (마진 대신 부모 정렬로)
-    <main className="flex flex-col items-center px-5 md:px-10 xl:px-20 pt-8 md:pt-12 pb-16 md:pb-27.5">
+    <main className={`flex flex-col items-center ${PAGE_PADDING}`}>
       <div className="flex w-full max-w-320 flex-col gap-9">
         <button
           type="button"
@@ -159,11 +160,11 @@ const PayContent = () => {
 
           {/* 계약서 미리보기(795px)와 결제 칸이 나란히 들어가는 건 넓은 화면뿐이라, 그보다 좁으면 결제 칸을 아래로 내린다 */}
           <div className="flex flex-col xl:flex-row xl:items-start gap-8 xl:gap-12">
-            <div className="w-full xl:w-198.75 shrink-0">
+            <div className="w-full xl:flex-1 xl:min-w-0">
               <ContractPreview contractUrl={contractUrl} token={token} />
             </div>
 
-            <div className="flex w-full xl:w-109.25 flex-col gap-14 xl:pt-5">
+            <div className="flex w-full xl:w-109.25 xl:shrink-0 flex-col gap-14 xl:pt-5">
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-6">
                   {fields.map((field) => (

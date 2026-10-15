@@ -13,6 +13,7 @@ import { useHandleError } from "@/src/hooks/useHandleError";
 import { useToast } from "@/src/hooks/useToast";
 import { type PriceCardPlan, DEFAULT_PLAN, parsePostContent, serializePostContent } from "@/src/types/priceCard";
 import { signinPath } from "@/src/lib/navigation"
+import { PAGE_PADDING } from "@/src/lib/layout";
 
 export default function Page() {
   const router = useRouter();
@@ -132,7 +133,7 @@ export default function Page() {
   }
 
   return (
-    <div className="flex flex-col gap-9 px-5 md:px-10 xl:px-20 pt-8 md:pt-12 pb-12">
+    <div className={`flex flex-col gap-9 ${PAGE_PADDING}`}>
       <button
         type="button"
         onClick={() => router.back()}

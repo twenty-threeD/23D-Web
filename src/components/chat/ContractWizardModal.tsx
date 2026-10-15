@@ -222,8 +222,8 @@ export default function ContractWizardModal({
       onClose={onClose}
     >
       {/* 계약서 미리보기 */}
-      <div className="shrink-0 md:shrink md:flex-1 md:overflow-y-auto px-4 md:px-10 py-6 md:py-8 border-t md:border-t-0 md:border-r border-zinc-200 bg-zinc-50/60">
-        <div className="relative isolate max-w-2xl mx-auto bg-white rounded-xl shadow-sm ring-1 ring-zinc-100 px-5 md:px-10 py-6 md:py-10 flex flex-col gap-6">
+      <div className="shrink-0 md:shrink md:flex-1 md:overflow-y-auto px-4 md:px-10 py-6 md:py-8 border-t md:border-t-0 md:border-r border-line bg-zinc-50/60">
+        <div className="relative isolate max-w-2xl mx-auto bg-white rounded-xl shadow-sm ring-1 ring-line px-5 md:px-10 py-6 md:py-10 flex flex-col gap-6">
           <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none">
             <Image
               src="/icon.png"
@@ -276,10 +276,10 @@ export default function ContractWizardModal({
                   <img
                     src={clientSig}
                     alt="갑 서명"
-                    className="h-24 object-contain border border-zinc-200 rounded-lg bg-white"
+                    className="h-24 object-contain border border-line rounded-lg bg-white"
                   />
                 ) : (
-                  <div className="h-24 border border-dashed border-zinc-200 rounded-lg bg-zinc-50 flex items-center justify-center text-xs text-zinc-400">
+                  <div className="h-24 border border-dashed border-line rounded-lg bg-zinc-50 flex items-center justify-center text-xs text-zinc-400">
                     서명 대기 중
                   </div>
                 )}
@@ -297,10 +297,10 @@ export default function ContractWizardModal({
                   <img
                     src={professionalSig}
                     alt="을 서명"
-                    className="h-24 object-contain border border-zinc-200 rounded-lg bg-white"
+                    className="h-24 object-contain border border-line rounded-lg bg-white"
                   />
                 ) : (
-                  <div className="h-24 border border-dashed border-zinc-200 rounded-lg bg-zinc-50 flex items-center justify-center text-xs text-zinc-400">
+                  <div className="h-24 border border-dashed border-line rounded-lg bg-zinc-50 flex items-center justify-center text-xs text-zinc-400">
                     서명 대기 중
                   </div>
                 )}
@@ -444,7 +444,7 @@ export default function ContractWizardModal({
         ) : (
           <div className="flex flex-col gap-4">
             {!verified ? (
-              <div className="flex flex-col gap-2 border border-dashed border-zinc-300 rounded-lg px-4 py-5 text-center">
+              <div className="flex flex-col gap-2 border border-dashed border-line rounded-lg px-4 py-5 text-center">
                 <p className="text-sm text-zinc-600">
                   전화번호 인증을 완료해야 서명할 수 있어요.
                 </p>
@@ -469,7 +469,7 @@ export default function ContractWizardModal({
             <div className="flex gap-2">
               <button
                 onClick={() => setStep(1)}
-                className="w-full rounded-lg px-4 py-3 text-sm border border-zinc-300 font-semibold transition-colors hover:border-main hover:text-main"
+                className="w-full rounded-lg px-4 py-3 text-sm border border-line font-semibold transition-colors hover:border-main hover:text-main"
               >
                 이전으로
               </button>

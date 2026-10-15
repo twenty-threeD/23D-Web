@@ -22,7 +22,7 @@ export default function ServicePickerModal({ plans, busy, onClose, onSelect }: S
             key={i}
             disabled={busy}
             onClick={() => onSelect({ planName: plan.planName || `플랜 ${i + 1}`, price: plan.price })}
-            className="group flex items-center justify-between gap-3 w-full px-4 py-3.5 border border-zinc-300 rounded-lg hover:border-main hover:bg-main/5 transition-colors text-left cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="group flex items-center justify-between gap-3 w-full px-4 py-3.5 border border-line rounded-lg hover:border-main hover:bg-main/5 transition-colors text-left cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <div className="flex flex-col gap-0.5 min-w-0">
               <span className="font-semibold text-sm truncate">{plan.planName || `플랜 ${i + 1}`}</span>
@@ -38,7 +38,7 @@ export default function ServicePickerModal({ plans, busy, onClose, onSelect }: S
         <button
           disabled={busy}
           onClick={() => onSelect({ planName: "기타", price: "" })}
-          className="group flex items-center justify-between gap-3 w-full px-4 py-3.5 border border-dashed border-zinc-300 rounded-lg hover:border-main hover:bg-main/5 transition-colors text-left cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          className="group flex items-center justify-between gap-3 w-full px-4 py-3.5 border border-dashed border-line rounded-lg hover:border-main hover:bg-main/5 transition-colors text-left cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <span className="flex items-center gap-2 text-sm font-semibold text-zinc-600">
             <IoEllipsisHorizontal className="text-base" />

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { LeftRightIcon } from "@/src/components/main/icons";
 import ServiceCard, { ServiceCardSkeleton } from "@/src/components/main/ServiceCard";
 import type { Post } from "@/src/lib/post";
+import { PAGE_X } from "@/src/lib/layout";
 
 // 메인과 서비스 상세 하단이 같은 카드 줄 시안을 써서 한 곳으로 모았다
 
@@ -45,7 +46,8 @@ function useDragScroll() {
 }
 
 // 카드 줄은 좌우 같은 여백에서 잘리도록 섹션 양쪽에 동일한 여백을 준다
-export const SECTION_INSET = "px-5 md:px-10 xl:px-40";
+// 카드 줄도 다른 본문과 같은 좌우 여백에서 시작하고 잘리게 한다
+export const SECTION_INSET = PAGE_X;
 
 const ROW_CLASS = "flex overflow-x-auto cursor-grab active:cursor-grabbing select-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
 

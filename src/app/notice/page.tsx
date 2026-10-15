@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { IoConstructOutline } from "react-icons/io5";
+import { PAGE_PADDING } from "@/src/lib/layout";
 
 function NoticeContent() {
   const router = useRouter();
@@ -26,7 +27,7 @@ function NoticeContent() {
 
 export default function Page() {
   return (
-    <div>
+    <div className={PAGE_PADDING}>
       <Suspense fallback={null}>
         <NoticeContent />
       </Suspense>

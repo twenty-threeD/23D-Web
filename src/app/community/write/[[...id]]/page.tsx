@@ -11,6 +11,7 @@ import { useAuthStore } from "@/src/store/authStore"
 import { useHandleError } from "@/src/hooks/useHandleError"
 import { signinPath } from "@/src/lib/navigation"
 import { useMyLocation } from "@/src/hooks/useMyLocation"
+import { PAGE_PADDING } from "@/src/lib/layout";
 
 const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false })
 
@@ -139,7 +140,7 @@ export default function Page() {
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row md:items-start justify-between px-5 md:px-10 xl:px-20 py-8 gap-6 md:gap-8">
+      <div className={`flex flex-col md:flex-row md:items-start justify-between ${PAGE_PADDING} gap-6 md:gap-8`}>
         <CommunityMenu />
 
         <main className="flex flex-col gap-4 w-full">
@@ -148,7 +149,7 @@ export default function Page() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => router.back()}
-                className="px-5 py-2 rounded-lg border border-zinc-300 text-zinc-600 text-sm font-semibold hover:bg-zinc-100"
+                className="px-5 py-2 rounded-lg border border-line text-zinc-600 text-sm font-semibold hover:bg-zinc-100"
               >
                 취소
               </button>
@@ -162,8 +163,8 @@ export default function Page() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-0 w-full border border-zinc-200 rounded-lg overflow-hidden">
-            <div className="flex items-center gap-3 px-6 py-4 border-b border-zinc-200">
+          <div className="flex flex-col gap-0 w-full border border-line rounded-lg overflow-hidden">
+            <div className="flex items-center gap-3 px-6 py-4 border-b border-line">
               <input
                 type="text"
                 placeholder="제목을 입력해주세요."
@@ -189,13 +190,13 @@ export default function Page() {
               />
             </div>
 
-            <div className="flex flex-col gap-1 px-6 py-4 border-t border-zinc-200">
+            <div className="flex flex-col gap-1 px-6 py-4 border-t border-line">
               <h1 className="text-xl font-bold">카테고리<span className="text-red-500">*</span></h1>
               <div className="relative">
                 <select
                   value={category ?? ""}
                   onChange={(e) => setCategory(isCommunityCategory(e.target.value) ? e.target.value : null)}
-                  className="w-full h-10 border border-zinc-300 rounded-lg pl-3 pr-10 text-sm appearance-none transition-colors focus:outline-none focus:border-main hover:border-zinc-400"
+                  className="w-full h-10 border border-line rounded-lg pl-3 pr-10 text-sm appearance-none transition-colors focus:outline-none focus:border-main hover:border-zinc-400"
                 >
                   <option value="">카테고리를 선택해주세요</option>
                   {COMMUNITY_CATEGORIES.map((c) => (
@@ -212,12 +213,12 @@ export default function Page() {
               )}
             </div>
 
-            <div className="flex items-center gap-3 px-6 py-3 border-t border-zinc-200 bg-zinc-50">
+            <div className="flex items-center gap-3 px-6 py-3 border-t border-line bg-zinc-50">
               <button
                 type="button"
                 onClick={handleUploadClick}
                 disabled={uploading}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-zinc-300 bg-white text-zinc-600 text-sm font-semibold hover:bg-zinc-100 disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-line bg-white text-zinc-600 text-sm font-semibold hover:bg-zinc-100 disabled:opacity-50"
               >
                 <IoImageOutline className="text-lg" />
                 {uploading ? "업로드 중..." : "이미지 삽입"}

@@ -37,6 +37,7 @@ import { ApiError } from "@/src/lib/apiError"
 import { useHandleError } from "@/src/hooks/useHandleError"
 import TopButton from "@/src/components/TopButton"
 import { signinPath } from "@/src/lib/navigation"
+import { PAGE_PADDING } from "@/src/lib/layout";
 
 interface Post {
   id: number
@@ -260,11 +261,11 @@ export default function Page() {
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row md:items-start justify-between px-5 md:px-10 xl:px-20 py-8 gap-6 md:gap-8">
+      <div className={`flex flex-col md:flex-row md:items-start justify-between ${PAGE_PADDING} gap-6 md:gap-8`}>
         <CommunityMenu />
 
         <main className="flex flex-col gap-8 w-full">
-          <div className="flex flex-col gap-4 w-full border-zinc-200 border rounded-lg p-5 md:p-8">
+          <div className="flex flex-col gap-4 w-full border-line border rounded-lg p-5 md:p-8">
             {/* 헤더 */}
             <header className="flex flex-col gap-3">
               <div className="flex justify-between items-start gap-4">
@@ -273,7 +274,7 @@ export default function Page() {
                   <div className="flex gap-2 shrink-0">
                     <button
                       onClick={() => router.push(`/community/write/${postId}`)}
-                      className="px-3 py-1 text-sm text-zinc-600 border border-zinc-300 rounded-lg hover:bg-zinc-50 cursor-pointer"
+                      className="px-3 py-1 text-sm text-zinc-600 border border-line rounded-lg hover:bg-zinc-50 cursor-pointer"
                     >
                       수정
                     </button>
@@ -287,7 +288,7 @@ export default function Page() {
                 )}
               </div>
               <div className="flex gap-2">
-                <div className="w-12 h-12 bg-zinc-400 rounded-full overflow-hidden border border-zinc-300 shrink-0">
+                <div className="w-12 h-12 bg-zinc-400 rounded-full overflow-hidden border border-line shrink-0">
                   <Image src={post.imageUrl ? toRelativeUrl(post.imageUrl) : "/profile.webp"} alt="프로필사진" className="object-cover" width={48} height={48} />
                 </div>
                 <div className="flex flex-col justify-center w-full">
@@ -361,7 +362,7 @@ export default function Page() {
             <hr className="text-zinc-300" />
 
             {/* 댓글 목록 */}
-            <div className="flex flex-col gap-2 divide-zinc-200 divide-y">
+            <div className="flex flex-col gap-2 divide-line divide-y">
               {comments.map((c) => (
                 <Comment
                   key={c.id}
@@ -380,7 +381,7 @@ export default function Page() {
               ))}
               {/* 댓글 달기 */}
               <div className="flex items-start gap-4 pt-4">
-                <div className="flex flex-col gap-2 w-full p-6 border border-zinc-300 rounded-lg">
+                <div className="flex flex-col gap-2 w-full p-6 border border-line rounded-lg">
                   <h3 className="text-md font-bold">
                     {token ? "댓글 작성" : "로그인 후 댓글을 작성할 수 있습니다"}
                   </h3>
@@ -407,7 +408,7 @@ export default function Page() {
           {(relatedPagePosts.length > 0 || relatedTotalPages > 1) && (
             <div className="flex flex-col gap-2">
               <h2 className="text-xl font-bold">관련 게시물</h2>
-              <div className="flex flex-col divide-y divide-zinc-300">
+              <div className="flex flex-col divide-y divide-line">
                 {relatedPagePosts.map((p) => (
                   <PostItem
                     key={p.id}

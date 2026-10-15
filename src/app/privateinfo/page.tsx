@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { PAGE_PADDING } from "@/src/lib/layout";
 
 
 const sections = [
@@ -48,9 +49,9 @@ export default function Page() {
   return (
     <div className="flex flex-1 flex-col bg-white">
 
-      <main className="flex-1 px-5 md:px-10 xl:px-20 py-8">
+      <main className={`flex-1 ${PAGE_PADDING}`}>
         <div className="w-full">
-          <header className="border-b border-zinc-200 py-8 lg:py-10">
+          <header className="border-b border-line pb-8 lg:pb-10">
             <p className="pb-3 text-sm font-bold tracking-wide text-main">
               ITDA POLICY
             </p>
@@ -78,7 +79,7 @@ export default function Page() {
                 CONTENTS
               </p>
 
-              <ul className="flex flex-col gap-3 border-l border-zinc-200 pl-4">
+              <ul className="flex flex-col gap-3 border-l border-line pl-4">
                 {sections.map((section) => (
                   <li key={section.id}>
                     <Link
@@ -362,7 +363,7 @@ export default function Page() {
                 </a>
               </section>
 
-              <div className="mt-12 border-t border-zinc-200 pt-8">
+              <div className="mt-12 border-t border-line pt-8">
                 <p className="font-semibold text-zinc-700">
                   부칙
                 </p>
