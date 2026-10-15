@@ -8,7 +8,7 @@ import Search from "@/src/components/Search"
 import { HiDotsHorizontal } from "react-icons/hi"
 import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment, MdCall, MdVideocam, MdOutlineCancel } from "react-icons/md"
 import { useCallStore } from "@/src/store/callStore"
-import { useAuthStore, setWsAuthCookie, wsStompUrl } from "@/src/store/authStore"
+import { useAuthStore, setWsAuthCookie, wsStompUrl, decodeJwtUsername } from "@/src/store/authStore"
 import { useChatRoomsStore, type ChatRoom, type TradeStatus } from "@/src/store/chatRoomsStore"
 import {
   getChatRooms,
@@ -92,14 +92,7 @@ export default function Page() {
   const params = useParams()
   const router = useRouter()
   const token = useAuthStore((s) => s.accessToken)
-  const myUsername = useAuthStore((s) => {
-    if (s.username) return s.username
-    if (!s.accessToken) return null
-    try {
-      const p = JSON.parse(atob(s.accessToken.split('.')[1]))
-      return p.username ?? p.sub ?? null
-    } catch { return null }
-  })
+  const myUsername = useAuthStore((s) => s.username ?? (s.accessToken ? decodeJwtUsername(s.accessToken) : null))
   const selectedId = params.id ? Number(Array.isArray(params.id) ? params.id[0] : params.id) : null
 
   const [tab, setTab] = useState<Tab>("all")

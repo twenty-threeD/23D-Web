@@ -30,7 +30,7 @@ import {
 } from "@/src/lib/community"
 import CommunityPagination from "@/src/components/CommunityPagination"
 import { useMyLocation } from "@/src/hooks/useMyLocation"
-import { useAuthStore } from "@/src/store/authStore"
+import { useAuthStore, decodeJwtUsername } from "@/src/store/authStore"
 import { toRelativeUrl } from "@/src/lib/file"
 import { useLikeStore } from "@/src/store/likeStore"
 import { ApiError } from "@/src/lib/apiError"
@@ -80,14 +80,7 @@ export default function Page() {
   const router = useRouter()
   const postId = Number(Array.isArray(params.id) ? params.id[0] : params.id)
   const token = useAuthStore((s) => s.accessToken)
-  const myUsername = useAuthStore((s) => {
-    if (s.username) return s.username
-    if (!s.accessToken) return null
-    try {
-      const p = JSON.parse(atob(s.accessToken.split('.')[1]))
-      return p.username ?? p.sub ?? null
-    } catch { return null }
-  })
+  const myUsername = useAuthStore((s) => s.username ?? (s.accessToken ? decodeJwtUsername(s.accessToken) : null))
 
   const handleError = useHandleError()
   const { location, loaded: locationLoaded } = useMyLocation()

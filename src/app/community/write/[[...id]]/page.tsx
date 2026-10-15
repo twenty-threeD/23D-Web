@@ -7,7 +7,7 @@ import CommunityMenu from "@/src/components/CommunitySideBar"
 import { IoImageOutline, IoChevronDown } from "react-icons/io5"
 import { getPost, createPost, updatePost, COMMUNITY_CATEGORIES, isCommunityCategory, parseRegion, tagRegion, type CommunityCategory } from "@/src/lib/community"
 import { uploadFile, toUploadPath } from "@/src/lib/file"
-import { useAuthStore } from "@/src/store/authStore"
+import { useAuthStore, decodeJwtUsername } from "@/src/store/authStore"
 import { useHandleError } from "@/src/hooks/useHandleError"
 import { signinPath } from "@/src/lib/navigation"
 import { useMyLocation } from "@/src/hooks/useMyLocation"
@@ -20,14 +20,7 @@ export default function Page() {
   const params = useParams()
   const postId = params.id ? Number(Array.isArray(params.id) ? params.id[0] : params.id) : null
   const token = useAuthStore((s) => s.accessToken)
-  const myUsername = useAuthStore((s) => {
-    if (s.username) return s.username
-    if (!s.accessToken) return null
-    try {
-      const p = JSON.parse(atob(s.accessToken.split('.')[1]))
-      return p.username ?? p.sub ?? null
-    } catch { return null }
-  })
+  const myUsername = useAuthStore((s) => s.username ?? (s.accessToken ? decodeJwtUsername(s.accessToken) : null))
   const handleError = useHandleError()
   const { location, loaded: locationLoaded } = useMyLocation()
   const fileInputRef = useRef<HTMLInputElement>(null)
