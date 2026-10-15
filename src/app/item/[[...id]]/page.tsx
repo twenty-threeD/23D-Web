@@ -11,7 +11,7 @@ import TopButton from "@/src/components/TopButton";
 import ServiceSection, { SECTION_INSET } from "@/src/components/main/ServiceSection";
 import { IoMdHeart, IoMdHeartEmpty } from "react-icons/io";
 import { IoChevronDownOutline } from "react-icons/io5";
-import { getPost, getPosts, favoritePost, unfavoritePost, getFavoritePosts, type Post } from "@/src/lib/post"
+import { getPost, getPosts, favoritePost, unfavoritePost, getFavoritePosts, NO_POST_IMAGE, type Post } from "@/src/lib/post"
 import { parsePostContent } from "@/src/types/priceCard";
 import { useAuthStore } from "@/src/store/authStore";
 import { useHandleError } from "@/src/hooks/useHandleError";
@@ -170,7 +170,7 @@ export default function Page() {
   const review = reviewCount > 0
     ? reviews.reduce((total, item) => total + item.rating, 0) / reviewCount
     : 0;
-  const headerImage = post?.fileUrls?.[0];
+  const headerImage = post?.fileUrls?.[0] ?? NO_POST_IMAGE;
   const contentImages = post?.fileUrls && post.fileUrls.length > 1
     ? post.fileUrls.slice(1)
     : post?.fileUrls ?? [];
@@ -203,18 +203,17 @@ export default function Page() {
       <div className="flex flex-col gap-10">
         {/* 좌우 여백은 /main 과 같은 규칙(SECTION_INSET)을 써서 두 화면의 본문 시작선을 맞춘다 */}
         <div className={`flex flex-col gap-[52px] w-full ${SECTION_INSET}`}>
-        <div className="relative w-full h-[180px] md:h-[260px] rounded-2xl overflow-hidden bg-zinc-200">
-          {/* 기존 대체 이미지(/profile_banner.png)는 public 에 없어 깨져 보였다. 이미지가 없으면 회색 배경만 둔다 */}
-          {headerImage && (
-            <Image
-              src={toRelativeUrl(headerImage)}
-              alt="서비스 헤더 이미지"
-              fill
-              sizes="(max-width: 768px) 100vw, 1200px"
-              priority
-              className="object-cover"
-            />
-          )}
+        {/* 대체 이미지 양옆이 비므로 그 이미지 바탕색(#f4f4f4)과 거의 같은 neutral-100 으로 이어 붙인다 */}
+        <div className={`relative w-full h-[180px] md:h-[260px] rounded-2xl overflow-hidden ${headerImage === NO_POST_IMAGE ? "bg-neutral-100" : "bg-zinc-200"}`}>
+          {/* 대체 이미지는 가운데 아이콘·문구가 있어 가로로 긴 칸에 꽉 채우면 잘린다. 원본 비율대로 가운데 둔다 */}
+          <Image
+            src={toRelativeUrl(headerImage)}
+            alt="서비스 헤더 이미지"
+            fill
+            sizes="(max-width: 768px) 100vw, 1200px"
+            priority
+            className={headerImage === NO_POST_IMAGE ? "object-contain" : "object-cover"}
+          />
         </div>
 
           {/* 시안(1440) 비율 834:380 을 유지하되, lg 미만에서는 사이드바를 제목 아래로 내린다 */}
