@@ -284,7 +284,7 @@ export default function Page() {
                 {editing && !uploadingImage && (
                   <label className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
                     <CiCamera className="text-white text-3xl" />
-                    <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                    <input type="file" accept="image/*,.heic,.heif" className="hidden" onChange={handleImageChange} />
                   </label>
                 )}
               </div>
