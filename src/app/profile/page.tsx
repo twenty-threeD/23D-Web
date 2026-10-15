@@ -191,7 +191,8 @@ export default function Page() {
         imageUrl: toUploadPath(imageUrl) ?? undefined,
         sigCd: sigCd || undefined,
         movableDistance: movableDistance || undefined,
-        shortDescription: shortDescription || undefined,
+        // 비운 값도 보내야 지워진다. undefined 로 빼면 서버가 '변경 없음'으로 보고 기존 소개를 남긴다
+        shortDescription: shortDescription.trim(),
         jobCategoryId: jobCategoryId === "" ? undefined : Number(jobCategoryId),
       });
       // 아이디가 바뀌면 서버가 응답 직전에 토큰을 지운다. 응답은 200 이고 문구만 달라서 상태 코드로는 구분할 수 없다.
