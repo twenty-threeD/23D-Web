@@ -963,6 +963,11 @@ export default function Page() {
                       (m.type === "PAYMENT" && m.payment) || m.message?.startsWith("[결제 완료]") ? i : acc,
                     -1
                   )
+                  // 서버가 만든 PAYMENT 메시지와 결제 성공 페이지가 보낸 [결제 완료] 메시지가 같은 주문을 가리킬 수 있다.
+                  // 둘 다 그리면 카드·해시가 두 번 보이므로, 서버 메시지가 있는 주문은 접두사 메시지를 건너뛴다
+                  const serverPaidOrderIds = new Set(
+                    messages.flatMap((m) => (m.type === "PAYMENT" && m.payment?.orderId ? [m.payment.orderId] : []))
+                  )
                   return messages.map((msg, idx) => {
                   const prevMsg = messages[idx - 1]
                   const nextMsg = messages[idx + 1]
@@ -1010,8 +1015,10 @@ export default function Page() {
 
                   // 백엔드가 만들어주는 결제 완료 메시지. 본문 대신 카드로 보여준다.
                   // 백엔드가 PAYMENT 타입으로 내려주면 그걸 쓰고, 아니면 접두사 메시지를 판다.
+                  const prefixedPayment = msg.type === "PAYMENT" ? null : parsePaymentMessage(msg.message)
                   const paymentInfo =
-                    (msg.type === "PAYMENT" ? msg.payment : null) ?? parsePaymentMessage(msg.message)
+                    (msg.type === "PAYMENT" ? msg.payment : null) ??
+                    (prefixedPayment && !serverPaidOrderIds.has(prefixedPayment.orderId) ? prefixedPayment : null)
                   const paymentCard = paymentInfo ? (
                     <PaymentCard payment={paymentInfo} isSent={isSent} paidAt={msg.createdAt} />
                   ) : null
@@ -1046,7 +1053,7 @@ export default function Page() {
                     <DealCard kind={dealEnd.kind} isSent={isSent} endedAt={msg.createdAt} />
                   ) : null
 
-                  const textBubble = msg.message && !contractMsg && !paymentCard && !callCard && !dealCard ? (
+                  const textBubble = msg.message && !contractMsg && !paymentCard && !prefixedPayment && !callCard && !dealCard ? (
                     // 휴대폰에서는 아바타·시간과 한 줄에 놓여 320px 고정폭이면 화면을 넘는다. 화면 폭 비율로 줄이고,
                     // 띄어쓰기 없는 긴 링크·단어도 말풍선 안에서 줄을 바꾼다
                     <div className={`rounded-2xl px-4 py-2 max-w-[min(20rem,62vw)] ${isSent ? "bg-main rounded-br-none" : "bg-zinc-100 rounded-bl-none"}`}>
