@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { clearCache } from '@/src/lib/cache'
+import { clearAllChatCache } from '@/src/lib/chatDb'
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
@@ -126,7 +127,11 @@ export const useAuthStore = create<AuthStore>()(
         setWsAuthCookie(token)
         const username = decodeJwtUsername(token)
         // 토큰 재발급은 같은 사람이라 캐시를 살리고, 다른 계정으로 들어왔을 때만 이전 사람의 데이터를 비운다
-        if (username !== get().username) clearCache()
+        if (username !== get().username) {
+          clearCache()
+          // 이전 계정이 남긴 채팅 캐시도 지운다. 실패해도 로그인은 막지 않는다
+          void clearAllChatCache().catch(() => {})
+        }
         set({
           accessToken: token,
           username,
@@ -138,6 +143,7 @@ export const useAuthStore = create<AuthStore>()(
         setSessionCookie(false)
         setWsAuthCookie(null)
         clearCache()
+        void clearAllChatCache().catch(() => {})
         set({ accessToken: null, username: null, role: null, hasSession: false })
       },
     }),
