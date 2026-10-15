@@ -298,7 +298,7 @@ export default function Page() {
                   </div>
                 </div>
 
-                {/* 리뷰 요약은 글이 아니라 전문가(회원) 단위라 작성자 id 로 조회한다 */}
+                {/* AI 총평은 전문가 전체가 아니라 이 글의 리뷰를 기준으로 보여준다 */}
                 {postId != null && <ReviewAnalysis postId={postId} />}
 
                 {/* 후기는 이 글에서 내가 의뢰인으로 결제까지 마친 계약에만, 계약당 한 번 남길 수 있다 */}
