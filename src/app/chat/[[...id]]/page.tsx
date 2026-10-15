@@ -552,7 +552,8 @@ export default function Page() {
     const client = stompClientRef.current
     if (!client?.connected || uploading) return
 
-    const fileUrls = uploadedImageUrls.length > 0 ? uploadedImageUrls : pendingDocUrl ? [pendingDocUrl] : []
+    // 사진과 문서를 함께 첨부했으면 같이 보낸다. 예전에는 사진만 보내고 문서 첨부는 지워서 문서가 조용히 사라졌다
+    const fileUrls = [...uploadedImageUrls, ...(pendingDocUrl ? [pendingDocUrl] : [])]
     const body = JSON.stringify({
       roomId: selectedId,
       message: message.trim() || "",
