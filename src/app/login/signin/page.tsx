@@ -119,7 +119,7 @@ export default function Page() {
           </button>
 
           <div className="flex justify-between w-75">
-            <Link href="#" className="text-[10px] text-zinc-500 underline underline-offset-2  hover:text-main transition-colors duration-100">
+            <Link href="/login/reset-password" className="text-[10px] text-zinc-500 underline underline-offset-2  hover:text-main transition-colors duration-100">
               비밀번호를 잊으셨나요?
             </Link>
             <div className="flex gap-1 text-[10px] text-zinc-500">
