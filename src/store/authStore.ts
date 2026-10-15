@@ -3,15 +3,20 @@ import { persist } from 'zustand/middleware'
 import { clearCache } from '@/src/lib/cache'
 import { clearAllChatCache } from '@/src/lib/chatDb'
 
+// JWT 는 base64url('-','_', 패딩 없음)이라 atob 에 바로 넣으면 그 문자가 섞인 토큰에서 실패한다.
+// 또 atob 는 바이트를 latin1 로 돌려줘서 한글 같은 값이 깨지므로 UTF-8 로 다시 읽는다
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
-    return JSON.parse(atob(token.split('.')[1]))
+    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4)
+    const bytes = Uint8Array.from(atob(padded), (c) => c.charCodeAt(0))
+    return JSON.parse(new TextDecoder().decode(bytes))
   } catch {
     return null
   }
 }
 
-function decodeJwtUsername(token: string): string | null {
+export function decodeJwtUsername(token: string): string | null {
   const payload = decodeJwtPayload(token)
   if (!payload) return null
   return (payload.username as string) ?? (payload.sub as string) ?? null

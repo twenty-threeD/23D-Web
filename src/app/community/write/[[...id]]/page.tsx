@@ -7,7 +7,7 @@ import CommunityMenu from "@/src/components/CommunitySideBar"
 import { IoImageOutline, IoChevronDown } from "react-icons/io5"
 import { getPost, createPost, updatePost, COMMUNITY_CATEGORIES, isCommunityCategory, parseRegion, tagRegion, type CommunityCategory } from "@/src/lib/community"
 import { uploadFile, toUploadPath } from "@/src/lib/file"
-import { useAuthStore } from "@/src/store/authStore"
+import { useAuthStore, decodeJwtUsername } from "@/src/store/authStore"
 import { useHandleError } from "@/src/hooks/useHandleError"
 import { signinPath } from "@/src/lib/navigation"
 import { useMyLocation } from "@/src/hooks/useMyLocation"
@@ -23,14 +23,7 @@ export default function Page() {
   // 토큰은 만료 직전·탭 복귀 때 재발급된다. 토큰 값에 의존하면 재발급마다 다시 불러와 편집 중인 내용을 덮어써서,
   // 로그인 여부에만 의존하고 요청에는 그 시점의 최신 토큰을 쓴다
   const hasToken = !!token
-  const myUsername = useAuthStore((s) => {
-    if (s.username) return s.username
-    if (!s.accessToken) return null
-    try {
-      const p = JSON.parse(atob(s.accessToken.split('.')[1]))
-      return p.username ?? p.sub ?? null
-    } catch { return null }
-  })
+  const myUsername = useAuthStore((s) => s.username ?? (s.accessToken ? decodeJwtUsername(s.accessToken) : null))
   const handleError = useHandleError()
   const { location, loaded: locationLoaded } = useMyLocation()
   const fileInputRef = useRef<HTMLInputElement>(null)
