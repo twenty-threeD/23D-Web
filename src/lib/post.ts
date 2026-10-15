@@ -47,10 +47,14 @@ export interface Post {
   category?: PostCategory | null
 }
 
+// 이미지를 하나도 올리지 않은 서비스에 대신 보여줄 이미지.
+// 빈 회색 칸만 두면 아직 불러오는 중인지 이미지가 없는 건지 구분이 안 된다
+export const NO_POST_IMAGE = "/no-image.svg"
+
 // 서비스 이미지는 헤더, 메인, 상세 이미지 순서로 저장된다.
 // 헤더 이미지가 없는 기존 게시물은 첫 이미지를 메인 이미지로 사용한다.
 export function getPostMainImage(fileUrls?: string[]) {
-  return fileUrls?.[1] ?? fileUrls?.[0]
+  return fileUrls?.[1] ?? fileUrls?.[0] ?? NO_POST_IMAGE
 }
 
 // 게시글 카테고리는 직군 카테고리로 통합되었다 (구 /api/post-category)
