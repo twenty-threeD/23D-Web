@@ -20,6 +20,9 @@ export default function Page() {
   const params = useParams()
   const postId = params.id ? Number(Array.isArray(params.id) ? params.id[0] : params.id) : null
   const token = useAuthStore((s) => s.accessToken)
+  // 토큰은 만료 직전·탭 복귀 때 재발급된다. 토큰 값에 의존하면 재발급마다 다시 불러와 편집 중인 내용을 덮어써서,
+  // 로그인 여부에만 의존하고 요청에는 그 시점의 최신 토큰을 쓴다
+  const hasToken = !!token
   const myUsername = useAuthStore((s) => {
     if (s.username) return s.username
     if (!s.accessToken) return null
@@ -44,7 +47,7 @@ export default function Page() {
     if (!postId) return
     setLoading(true)
     try {
-      const res = await getPost(postId, token)
+      const res = await getPost(postId, useAuthStore.getState().accessToken)
       const data = res.data ?? res
       if (data.username && myUsername && data.username !== myUsername) {
         router.replace(`/posts/${postId}`)
@@ -61,7 +64,7 @@ export default function Page() {
     } finally {
       setLoading(false)
     }
-  }, [postId, token, myUsername])
+  }, [postId, hasToken, myUsername])
 
   useEffect(() => { fetchPost() }, [fetchPost])
 
