@@ -1108,7 +1108,7 @@ export default function Page() {
 
                   const dealReq = parseDealRequest(msg.message)
                   const dealEnd = parseDealEnd(msg.message)
-                  // PAYMENT 카드가 결제 완료와 거래 종료를 함께 보여주므로 같은 메시지에 거래 완료 카드를 중복해 붙이지 않는다.
+                  // 거래 완료 카드는 거래 완료 버튼이 보내는 [거래 완료] 메시지가 띄운다. 결제 메시지에도 붙이면 같은 카드가 두 번 보여서 여기서는 뺀다.
                   const dealCard = msg.type === "PAYMENT" ? null : dealReq ? (
                     <DealCard
                       kind="request"
