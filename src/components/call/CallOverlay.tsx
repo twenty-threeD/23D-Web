@@ -17,6 +17,7 @@ import {
 import { useAuthStore } from "@/src/store/authStore"
 import { useCallStore } from "@/src/store/callStore"
 import { callEngine, canSelectPlaybackDevice, canShareScreen } from "@/src/lib/agoraEngine"
+import type { ILocalVideoTrack, IRemoteVideoTrack } from "agora-rtc-sdk-ng"
 import { useSpeaking } from "@/src/hooks/useSpeaking"
 import { participantsOf } from "@/src/lib/call"
 import { toRelativeUrl } from "@/src/lib/file"
@@ -70,6 +71,8 @@ export default function CallOverlay() {
   const speaking = useSpeaking(phase === "active")
   // 작은 창의 가로/세로 비율. 휴대폰은 세로로 찍는 경우가 많아 16:9 칸에 넣으면 대부분 잘린다
   const [pipAspect, setPipAspect] = useState<Record<string, number>>({})
+  // 작은 창을 눌러 크게 본 영상. 없으면 기본 순서(화면공유 → 상대 카메라 → 내 카메라)로 고른다
+  const [focusKey, setFocusKey] = useState<string | null>(null)
 
   // 벨이 울리는 것만으로 화면을 덮지 않는다. 평소에는 우하단 도크(CallDock)가 맡고,
   // 영상·화면공유가 붙거나 사용자가 크게 보기를 누르면 여기로 넘어온다.
@@ -85,15 +88,21 @@ export default function CallOverlay() {
 
   const localCam = camOn ? callEngine.localCameraTrack : null
   const localScreen = screenOn ? callEngine.localScreenTrack : null
-  // 화면공유가 있으면 그게 주인공이고, 없으면 상대 카메라, 그것도 없으면 내 카메라를 크게 띄운다.
   const mainScreen = remoteScreenTrack ?? localScreen
-  const mainTrack = mainScreen ?? remoteCamTrack ?? localCam
-
-  const pips: { key: string; track: NonNullable<typeof localCam> | NonNullable<typeof remoteCamTrack>; label: string; mirrored?: boolean }[] = []
-  if (mainScreen && remoteCamTrack) pips.push({ key: "peer", track: remoteCamTrack, label: peerName })
   // 앞 카메라만 거울처럼 뒤집는다. 뒤 카메라까지 뒤집으면 글자·방향이 반대로 보인다
   const mirrorLocal = cameraFacing === "user"
-  if (localCam && mainTrack !== localCam) pips.push({ key: "me", track: localCam, label: "나", mirrored: mirrorLocal })
+
+  // 지금 띄울 수 있는 영상들. 기본은 화면공유가 주인공이고, 없으면 상대 카메라, 그것도 없으면 내 카메라를 크게 띄운다.
+  // 작은 창을 누르면 그 영상이 큰 화면으로 올라가고 원래 큰 화면은 작은 창으로 내려간다
+  type Tile = { key: string; track: ILocalVideoTrack | IRemoteVideoTrack; label: string; mirrored: boolean; screen: boolean }
+  const tiles: Tile[] = []
+  if (mainScreen) tiles.push({ key: "screen", track: mainScreen, label: "화면 공유", mirrored: false, screen: true })
+  if (remoteCamTrack) tiles.push({ key: "peer", track: remoteCamTrack, label: peerName, mirrored: false, screen: false })
+  if (localCam) tiles.push({ key: "me", track: localCam, label: "나", mirrored: mirrorLocal, screen: false })
+  // 누른 영상이 사라지면(상대가 카메라를 끔 등) 기본 순서로 돌아간다
+  const mainTile = tiles.find((tile) => tile.key === focusKey) ?? tiles[0] ?? null
+  const mainTrack = mainTile?.track ?? null
+  const pips = tiles.filter((tile) => tile !== mainTile)
   // 말하는 사람의 영상·프로필에 주황 링을 두른다
   const isSpeaking = (track: unknown) =>
     (track === remoteCamTrack && speaking.peer) || (track === localCam && speaking.me)
@@ -163,7 +172,7 @@ export default function CallOverlay() {
               <VideoTile
                 track={mainTrack}
                 fit="contain"
-                mirrored={!mainScreen && mainTrack === localCam && mirrorLocal}
+                mirrored={mainTile?.mirrored ?? false}
                 className={`w-full h-full rounded-3xl overflow-hidden bg-black/50 transition-shadow ${isSpeaking(mainTrack) ? "ring-4 ring-main" : "ring-1 ring-white/10"}`}
               />
               {pips.length > 0 && (
@@ -171,14 +180,17 @@ export default function CallOverlay() {
                   {pips.map((pip) => {
                     const aspect = pipAspect[pip.key] ?? 16 / 9
                     return (
-                    <div
+                    <button
+                      type="button"
                       key={pip.key}
+                      onClick={() => setFocusKey(pip.key)}
+                      aria-label={`${pip.label} 크게 보기`}
                       style={{ aspectRatio: aspect }}
-                      className={`relative ${aspect < 1 ? "w-24 md:w-28" : "w-36 md:w-44"} rounded-2xl overflow-hidden bg-black/60 transition-shadow ${isSpeaking(pip.track) ? "ring-[3px] ring-main" : "ring-1 ring-white/15"}`}
+                      className={`relative ${aspect < 1 ? "w-24 md:w-28" : "w-36 md:w-44"} rounded-2xl overflow-hidden bg-black/60 cursor-pointer transition-shadow ${isSpeaking(pip.track) ? "ring-[3px] ring-main" : "ring-1 ring-white/15"}`}
                     >
                       <VideoTile
                         track={pip.track}
-                        fit="cover"
+                        fit={pip.screen ? "contain" : "cover"}
                         mirrored={pip.mirrored}
                         className="w-full h-full"
                         onAspect={(ratio) =>
@@ -188,7 +200,7 @@ export default function CallOverlay() {
                       <span className="absolute left-2 bottom-2 px-2 py-0.5 rounded-md bg-black/50 text-[11px]">
                         {pip.label}
                       </span>
-                    </div>
+                    </button>
                     )
                   })}
                 </div>

@@ -110,12 +110,10 @@ export function canShareScreen() {
   return typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getDisplayMedia === 'function'
 }
 
-// 소리 나는 곳 고르기는 setSinkId 로만 할 수 있다. 휴대폰 웹은 스피커폰·수화부 전환을 OS 가 맡아
-// 웹에서 바꿀 방법이 없고(안드로이드 크롬도 목록이 기본 장치 하나뿐이다), 사파리는 API 자체가 없다
+// 소리 나는 곳 고르기는 setSinkId 로만 할 수 있다(데스크톱 크롬·사파리 18.4+, 아이폰 iOS 18.4+).
+// 안드로이드 크롬·삼성 인터넷에는 이 API 가 없어 웹에서는 스피커·수화부를 고를 방법이 없다
 export function canSelectPlaybackDevice() {
-  if (typeof window === 'undefined') return false
-  const isTouchPhone = window.matchMedia('(pointer: coarse)').matches && window.matchMedia('(max-width: 1024px)').matches
-  return !isTouchPhone && 'setSinkId' in HTMLMediaElement.prototype
+  return typeof window !== 'undefined' && 'setSinkId' in HTMLMediaElement.prototype
 }
 
 class CallEngine {

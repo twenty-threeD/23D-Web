@@ -31,7 +31,9 @@ export default function VideoTile({
   useEffect(() => {
     const el = ref.current
     if (!el || !track) return
-    track.play(el, { fit })
+    // 아고라는 내 카메라를 기본으로 좌우 반전해서 그린다. CSS 로 한 번 더 뒤집으면 뒤 카메라가 거꾸로 보여
+    // 반전 여부는 아고라에만 맡긴다(앞 카메라만 거울처럼, 뒤 카메라·상대 영상은 그대로)
+    track.play(el, { fit, mirror: mirrored })
 
     // 가로로 찍는지 세로로 찍는지는 영상이 실제로 들어와야 안다. 아고라가 넣어 둔 <video> 의 크기를 읽는다
     let video: HTMLVideoElement | null = null
@@ -60,12 +62,12 @@ export default function VideoTile({
       // 원격 트랙은 stop() 해도 구독은 유지된다. 다시 play 하면 그대로 붙는다.
       track.stop()
     }
-  }, [track, fit])
+  }, [track, fit, mirrored])
 
   return (
     <div
       ref={ref}
-      className={`${className} ${mirrored ? "[&_video]:scale-x-[-1]" : ""}`}
+      className={className}
     />
   )
 }

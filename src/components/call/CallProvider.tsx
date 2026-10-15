@@ -108,12 +108,16 @@ export default function CallProvider() {
   }, [])
 
   useEffect(() => {
-    const unlock = () => primeRingtone()
-    window.addEventListener("pointerdown", unlock, { once: true })
-    window.addEventListener("keydown", unlock, { once: true })
+    // 아이폰 사파리는 터치의 pointerdown 이 아니라 손을 뗄 때(touchend·click)를 사용자 동작으로 쳐준다.
+    // 그래서 여러 동작에 걸어두고, 실제로 소리가 풀린 뒤에야 떼어낸다
+    const events = ["pointerdown", "touchend", "click", "keydown"] as const
+    const remove = () => events.forEach((type) => window.removeEventListener(type, unlock))
+    const unlock = () => {
+      void primeRingtone().then((ok) => { if (ok) remove() })
+    }
+    events.forEach((type) => window.addEventListener(type, unlock, { passive: true }))
     return () => {
-      window.removeEventListener("pointerdown", unlock)
-      window.removeEventListener("keydown", unlock)
+      remove()
     }
   }, [])
 
