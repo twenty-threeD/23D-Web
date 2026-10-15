@@ -1108,11 +1108,8 @@ export default function Page() {
 
                   const dealReq = parseDealRequest(msg.message)
                   const dealEnd = parseDealEnd(msg.message)
-                  // 서버는 결제 승인으로 거래를 완료 처리한 직후 PAYMENT 메시지를 보낸다. 그래서 이 메시지가 곧 거래 완료 시점이고,
-                  // 따로 확인 단계 없이 결제 카드 바로 아래에 완료 카드를 붙인다. 메시지 자체가 남으므로 지난 대화에서도 그대로 보인다
-                  const dealCard = msg.type === "PAYMENT" && msg.payment ? (
-                    <DealCard kind="completed" isSent={isSent} endedAt={msg.createdAt} />
-                  ) : dealReq ? (
+                  // 거래 완료 카드는 거래 완료 버튼이 보내는 [거래 완료] 메시지가 띄운다. 결제 메시지에도 붙이면 같은 카드가 두 번 보여서 여기서는 뺀다.
+                  const dealCard = msg.type === "PAYMENT" ? null : dealReq ? (
                     <DealCard
                       kind="request"
                       orderName={dealReq.orderName}
