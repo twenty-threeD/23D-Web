@@ -12,10 +12,12 @@ import {
   MdCallEnd,
   MdCall,
   MdCloseFullscreen,
+  MdCameraswitch,
 } from "react-icons/md"
 import { useAuthStore } from "@/src/store/authStore"
 import { useCallStore } from "@/src/store/callStore"
-import { callEngine } from "@/src/lib/agoraEngine"
+import { callEngine, canSelectPlaybackDevice, canShareScreen } from "@/src/lib/agoraEngine"
+import { useSpeaking } from "@/src/hooks/useSpeaking"
 import { participantsOf } from "@/src/lib/call"
 import { toRelativeUrl } from "@/src/lib/file"
 import VideoTile from "./VideoTile"
@@ -51,6 +53,9 @@ export default function CallOverlay() {
     toggleMic,
     toggleCam,
     toggleScreen,
+    cameraFacing,
+    canFlipCamera,
+    flipCamera,
   } = useCallStore()
   // 통화 시간은 상태로 들고 있지 않고 activeSince 와의 차이로 계산한다.
   // 여기서는 화면을 다시 그릴 계기(now)만 1초마다 만든다.
@@ -61,6 +66,10 @@ export default function CallOverlay() {
     const id = setInterval(() => setNow(Date.now()), 500)
     return () => clearInterval(id)
   }, [phase])
+
+  const speaking = useSpeaking(phase === "active")
+  // 작은 창의 가로/세로 비율. 휴대폰은 세로로 찍는 경우가 많아 16:9 칸에 넣으면 대부분 잘린다
+  const [pipAspect, setPipAspect] = useState<Record<string, number>>({})
 
   // 벨이 울리는 것만으로 화면을 덮지 않는다. 평소에는 우하단 도크(CallDock)가 맡고,
   // 영상·화면공유가 붙거나 사용자가 크게 보기를 누르면 여기로 넘어온다.
@@ -82,7 +91,12 @@ export default function CallOverlay() {
 
   const pips: { key: string; track: NonNullable<typeof localCam> | NonNullable<typeof remoteCamTrack>; label: string; mirrored?: boolean }[] = []
   if (mainScreen && remoteCamTrack) pips.push({ key: "peer", track: remoteCamTrack, label: peerName })
-  if (localCam && mainTrack !== localCam) pips.push({ key: "me", track: localCam, label: "나", mirrored: true })
+  // 앞 카메라만 거울처럼 뒤집는다. 뒤 카메라까지 뒤집으면 글자·방향이 반대로 보인다
+  const mirrorLocal = cameraFacing === "user"
+  if (localCam && mainTrack !== localCam) pips.push({ key: "me", track: localCam, label: "나", mirrored: mirrorLocal })
+  // 말하는 사람의 영상·프로필에 주황 링을 두른다
+  const isSpeaking = (track: unknown) =>
+    (track === remoteCamTrack && speaking.peer) || (track === localCam && speaking.me)
 
   const statusText =
     phase === "incoming"
@@ -145,25 +159,38 @@ export default function CallOverlay() {
         <div className="relative flex flex-1 min-h-0 items-center justify-center px-4 md:px-8 py-6">
           {mainTrack ? (
             <div className="relative w-full h-full">
+              {/* 가로로 찍은 영상과 세로로 찍은 영상이 섞여 오므로 큰 화면은 자르지 않고(contain) 전부 보여준다 */}
               <VideoTile
                 track={mainTrack}
-                fit={mainScreen ? "contain" : "cover"}
-                mirrored={!mainScreen && mainTrack === localCam}
-                className="w-full h-full rounded-3xl overflow-hidden bg-black/50 ring-1 ring-white/10"
+                fit="contain"
+                mirrored={!mainScreen && mainTrack === localCam && mirrorLocal}
+                className={`w-full h-full rounded-3xl overflow-hidden bg-black/50 transition-shadow ${isSpeaking(mainTrack) ? "ring-4 ring-main" : "ring-1 ring-white/10"}`}
               />
               {pips.length > 0 && (
-                <div className="absolute right-4 top-4 flex flex-col gap-3 w-44">
-                  {pips.map((pip) => (
+                <div className="absolute right-4 top-4 flex flex-col items-end gap-3">
+                  {pips.map((pip) => {
+                    const aspect = pipAspect[pip.key] ?? 16 / 9
+                    return (
                     <div
                       key={pip.key}
-                      className="relative aspect-video rounded-2xl overflow-hidden bg-black/60 ring-1 ring-white/15"
+                      style={{ aspectRatio: aspect }}
+                      className={`relative ${aspect < 1 ? "w-24 md:w-28" : "w-36 md:w-44"} rounded-2xl overflow-hidden bg-black/60 transition-shadow ${isSpeaking(pip.track) ? "ring-[3px] ring-main" : "ring-1 ring-white/15"}`}
                     >
-                      <VideoTile track={pip.track} fit="cover" mirrored={pip.mirrored} className="w-full h-full" />
+                      <VideoTile
+                        track={pip.track}
+                        fit="cover"
+                        mirrored={pip.mirrored}
+                        className="w-full h-full"
+                        onAspect={(ratio) =>
+                          setPipAspect((prev) => (Math.abs((prev[pip.key] ?? 0) - ratio) < 0.01 ? prev : { ...prev, [pip.key]: ratio }))
+                        }
+                      />
                       <span className="absolute left-2 bottom-2 px-2 py-0.5 rounded-md bg-black/50 text-[11px]">
                         {pip.label}
                       </span>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
@@ -181,7 +208,7 @@ export default function CallOverlay() {
                   alt={peerName}
                   width={128}
                   height={128}
-                  className="relative w-32 h-32 rounded-full object-cover ring-4 ring-white/15"
+                  className={`relative w-32 h-32 rounded-full object-cover transition-shadow ring-4 ${speaking.peer ? "ring-main" : "ring-white/15"}`}
                 />
               </div>
               <div className="flex flex-col items-center gap-2">
@@ -208,6 +235,7 @@ export default function CallOverlay() {
               <CallButton
                 label={micOn ? "마이크" : "음소거"}
                 tone={micOn ? "normal" : "off"}
+                highlight={micOn && speaking.me}
                 disabled={!call}
                 onClick={() => token && toggleMic(token)}
               >
@@ -224,6 +252,15 @@ export default function CallOverlay() {
                 {camOn ? <MdVideocam /> : <MdVideocamOff />}
               </CallButton>
 
+              {/* 휴대폰처럼 카메라가 앞뒤로 있는 기기에서만, 카메라를 켰을 때 보인다 */}
+              {camOn && canFlipCamera && (
+                <CallButton label="카메라 전환" disabled={busy} onClick={() => void flipCamera()}>
+                  <MdCameraswitch />
+                </CallButton>
+              )}
+
+              {/* 휴대폰 브라우저는 화면공유 API 가 없어 눌러도 실패만 해서 지원하는 환경에서만 보여준다 */}
+              {canShareScreen() && (
               <CallButton
                 label="화면 공유"
                 tone={screenOn ? "on" : "normal"}
@@ -232,8 +269,10 @@ export default function CallOverlay() {
               >
                 {screenOn ? <MdStopScreenShare /> : <MdScreenShare />}
               </CallButton>
+              )}
 
-              <SpeakerButton />
+              {/* 소리 나는 곳은 데스크톱 크롬 계열에서만 바꿀 수 있다. 휴대폰은 OS 가 스피커·수화부를 정한다 */}
+              {canSelectPlaybackDevice() && <SpeakerButton />}
               <CallButton label="종료" tone="danger" onClick={() => token && hangUp(token)}>
                 <MdCallEnd />
               </CallButton>
