@@ -1058,7 +1058,26 @@ export default function Page() {
                   const iAmCaller = serverCall ? serverCall.callerUsername === myUsername : isSent
                   const displayText = msg.message
 
-                  const callCard = callLog ? <CallLogCard log={callLog} isSent={isSent} iAmCaller={iAmCaller} /> : null
+                  // 통화 기록을 누르면 같은 종류로 다시 건다. 이미 통화 중이면 누를 수 없고, 실수로 누르는 걸 막으려고 한 번 묻는다
+                  const callCard = callLog ? (
+                    <CallLogCard
+                      log={callLog}
+                      isSent={isSent}
+                      iAmCaller={iAmCaller}
+                      onCall={
+                        token && callPhase === "idle"
+                          ? () => {
+                              const kind = callLog.callType === "VIDEO" ? "영상" : "음성"
+                              if (!confirm(`${selectedRoom.participantName}님에게 ${kind} 통화를 걸까요?`)) return
+                              void startCall(token, selectedRoom.roomId, callLog.callType, {
+                                name: selectedRoom.participantName,
+                                imageUrl: selectedRoom.participantImageUrl,
+                              })
+                            }
+                          : undefined
+                      }
+                    />
+                  ) : null
 
                   const dealReq = parseDealRequest(msg.message)
                   const dealEnd = parseDealEnd(msg.message)
