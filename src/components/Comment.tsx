@@ -11,11 +11,16 @@ interface CommentProps {
   deleted?: boolean
   isOwner?: boolean
   onReply?: () => void
+  // 답글에 답한 경우 본문 앞에 붙는 대상 이름. onClick 이 없으면 대상이 사라져 이동할 수 없다
+  mention?: { name: string; onClick?: () => void }
+  // 멘션 칩으로 찾아올 수 있게 DOM id 를 단다
+  domId?: string
+  highlighted?: boolean
   onEdit?: (content: string) => Promise<void> | void
   onDelete?: () => Promise<void> | void
 }
 
-export default function Comment({ authorName, content, createdAt, profileImage, edited, deleted, isOwner, onReply, onEdit, onDelete }: CommentProps) {
+export default function Comment({ authorName, content, createdAt, profileImage, edited, deleted, isOwner, onReply, mention, domId, highlighted, onEdit, onDelete }: CommentProps) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(content)
   const [submitting, setSubmitting] = useState(false)
@@ -32,7 +37,7 @@ export default function Comment({ authorName, content, createdAt, profileImage, 
   }
 
   return (
-    <div className="flex gap-2 py-2">
+    <div id={domId} className={`flex gap-2 py-2 rounded-lg ${highlighted ? "animate-comment-highlight" : ""}`}>
       <div className="w-12 h-12 bg-zinc-400 rounded-full overflow-hidden border border-line shrink-0">
         <Image
           src={(!deleted && profileImage) || "/profile.webp"}
@@ -75,7 +80,17 @@ export default function Comment({ authorName, content, createdAt, profileImage, 
             </div>
           </div>
         ) : (
-          <p className={`text-sm font-medium ${deleted ? "text-zinc-400" : ""}`}>{content}</p>
+          <p className={`text-sm font-medium ${deleted ? "text-zinc-400" : ""}`}>
+            {mention && !deleted && (
+              mention.onClick ? (
+                <button onClick={mention.onClick} className="text-main font-semibold cursor-pointer hover:underline">@{mention.name}</button>
+              ) : (
+                <span className="text-main font-semibold">@{mention.name}</span>
+              )
+            )}
+            {mention && !deleted && " "}
+            {content}
+          </p>
         )}
 
         {!deleted && (

@@ -89,6 +89,16 @@ body { margin: 0; }
   	animation: contract-sweep 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
+/* 멘션 칩으로 이동한 댓글이 어느 것인지 알아보도록 잠깐 칠했다가 서서히 걷어낸다 */
+@keyframes comment-highlight {
+	0%, 40% { background-color: color-mix(in srgb, var(--color-main) 15%, transparent); }
+	100% { background-color: transparent; }
+}
+
+.animate-comment-highlight {
+	animation: comment-highlight 1.6s ease-out;
+}
+
 /* 통화 화면에서 프로필 뒤로 퍼지는 벨 파동 */
 @keyframes call-pulse {
 	0% { opacity: 0.5; transform: scale(1); }

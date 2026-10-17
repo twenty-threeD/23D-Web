@@ -29,6 +29,11 @@ const MESSAGE_BY_CODE: Record<string, string> = {
   NOT_ENOUGH_REVIEWS_TO_ANALYZE: '분석할 리뷰가 아직 충분하지 않아요.',
   REVIEW_ANALYSIS_FAILED: '리뷰 분석에 실패했어요. 잠시 후 다시 시도해주세요.',
   REVIEW_ANALYSIS_NOT_CONFIGURED: '지금은 리뷰 분석을 사용할 수 없어요.',
+  // 답글을 쓰는 사이 대상 댓글이 지워지면 나는 에러들이다. 화면은 목록을 다시 받아 맞춘다
+  COMMENT_PARENT_NOT_FOUND: '답글을 달 댓글이 삭제되었어요.',
+  COMMENT_PARENT_POST_MISMATCH: '이 글의 댓글에만 답글을 달 수 있어요.',
+  COMMENT_REPLY_DEPTH_EXCEEDED: '답글을 달 수 없는 댓글이에요. 새로고침 후 다시 시도해주세요.',
+  COMMENT_REPLY_TARGET_INVALID: '답글을 달 댓글이 삭제되었어요.',
 }
 
 export async function throwApiError(res: Response): Promise<never> {
