@@ -13,6 +13,8 @@
   --color-ink-hint: #838383;
   /* 멘션으로 이동한 댓글 강조. 브랜드 오렌지는 버튼·칩에 이미 써서 배경까지 칠하면 경고처럼 보인다 */
   --color-highlight: #e6f0ff;
+  /* 랜딩의 어두운 섹션 바탕. 첫 화면 영상·문제 섹션·마지막 안내가 같은 색으로 이어진다 */
+  --color-night: #13110f;
   /* 프로젝트 폰트는 Pretendard 로 통일한다. 기본 sans 를 덮어써서 클래스 없이도 전역에 적용되게 한다 */
   --font-sans: var(--font-pretendard-local), system-ui, sans-serif;
 }
