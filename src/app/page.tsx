@@ -1,170 +1,137 @@
 "use client"
 
-import Image from "next/image"
-import Link from 'next/link';
-import { useRef, useState } from 'react';
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useGSAP } from '@gsap/react';
 import LandingHeader from "@/src/components/LandingHeader";
+import ImageSequence, { type ShowcaseStep } from "@/src/components/landing/ImageSequence";
+import ProblemSection from "@/src/components/landing/ProblemSection";
+import ContractSection from "@/src/components/landing/ContractSection";
+import StatementSection from "@/src/components/landing/StatementSection";
+import ShowcaseSection from "@/src/components/landing/ShowcaseSection";
+import DifferenceSection from "@/src/components/landing/DifferenceSection";
+import CtaSection from "@/src/components/landing/CtaSection";
+import type { Quad } from "@/src/lib/perspective";
 import { useRedirectIfAuthed } from "@/src/hooks/useRedirectIfAuthed";
 
-gsap.registerPlugin(useGSAP, ScrollTrigger);
+// 프레임은 public/landing/seq 에 001.webp 부터 60장 들어있다 (원본: public/landing.avif)
+const SEQUENCE_FRAME_COUNT = 60;
+const sequenceFrameUrl = (index: number) =>
+  `/landing/seq/${String(index).padStart(3, "0")}.webp`;
 
-export default function Home() {
+// 노트북 화면(회색 부분)의 네 모서리 (좌상 → 우상 → 우하 → 좌하, 원본 1280x720 px).
+// 프레임마다 회색 화면과 검은 테두리 사이 밝기 경계를 변마다 소수점 단위로 찾아 직선을 맞추고, 그 교점을 꼭짓점으로 썼다.
+// 경계에 걸친 흐린 회색 띠가 비치지 않게 0.6px 씩 바깥으로 넓혔다.
+// 노트북이 오른쪽에 있을수록 비스듬히 보여 사다리꼴이 달라지므로 프레임마다 네 점을 그대로 쓴다.
+// - 16~22: 노트북 왼쪽이 기둥에 가려 변을 잴 수 없어 23~28 프레임의 움직임을 거꾸로 이었다. 기둥은 clipLeft 로 잘라 낸다
+// - 23~32: 오른쪽 변이 프레임 밖이라 오른쪽 두 점만 그다음 프레임들의 화면 폭 변화를 이어 채웠다 (화면 밖이라 보이지 않는 자리)
+// 영상을 바꾸면 다시 재야 한다
+const LAPTOP_SCREEN_TRACK = {
+  // 노트북 화면이 기둥 오른쪽으로 처음 보이는 프레임
+  from: 16,
+  quads: [
+    [[1117.16, 215.79], [1540.9, 216.31], [1571.52, 458.07], [1133.12, 466.91]],
+    [[1098.61, 215.56], [1523.52, 216.3], [1554.12, 458.41], [1114.33, 467]],
+    [[1080.07, 215.33], [1506.13, 216.3], [1536.71, 458.74], [1095.55, 467.09]],
+    [[1061.52, 215.1], [1488.75, 216.29], [1519.31, 459.07], [1076.76, 467.18]],
+    [[1042.97, 214.87], [1471.37, 216.29], [1501.91, 459.41], [1057.97, 467.28]],
+    [[1024.43, 214.64], [1453.99, 216.28], [1484.5, 459.74], [1039.18, 467.37]],
+    [[1005.88, 214.41], [1436.6, 216.28], [1467.1, 460.07], [1020.4, 467.46]],
+    [[983.04, 214.3], [1414.93, 216.05], [1445.45, 460.6], [997.37, 467.65]],
+    [[970.08, 213.92], [1403.12, 216.41], [1433.31, 460.54], [983.84, 467.6]],
+    [[955.93, 213.65], [1390.14, 216.28], [1421.16, 460.84], [970.31, 467.62]],
+    [[928.4, 213.36], [1363.77, 216.59], [1393.69, 461.75], [941.46, 467.9]],
+    [[919.06, 213.33], [1355.6, 216.08], [1385.91, 461.61], [932.3, 467.91]],
+    [[889.34, 213.11], [1327.04, 216.15], [1357.55, 462.11], [902.55, 468.06]],
+    [[875.72, 213.38], [1314.59, 215.93], [1344.39, 462.16], [888.01, 468.16]],
+    [[860.53, 213.32], [1300.57, 215.72], [1330.87, 462.16], [873.1, 468.39]],
+    [[830.77, 213.06], [1271.97, 215.35], [1301.06, 462.53], [841.91, 468.72]],
+    [[816.37, 213.14], [1258.73, 215.06], [1287.21, 462.76], [826.68, 468.81]],
+    [[791.04, 213.15], [1234.75, 215.13], [1262.53, 463.15], [800.71, 469.14]],
+    [[771.86, 213.1], [1216.63, 214.78], [1243.75, 463.3], [780.36, 469.2]],
+    [[762.2, 212.91], [1207.37, 214.29], [1233.84, 463.1], [769.82, 469.08]],
+    [[731.84, 212.71], [1179.35, 213.89], [1204.77, 463.32], [738.44, 469.18]],
+    [[717.4, 212.67], [1165.33, 213.84], [1190.63, 463.4], [723.25, 469.27]],
+    [[692.64, 212.11], [1142.29, 213.5], [1166.24, 463.52], [697.06, 469.33]],
+    [[673.07, 212.1], [1123.72, 212.84], [1147.92, 463.53], [677.13, 469.34]],
+    [[653.97, 211.78], [1105.45, 212.44], [1128.69, 463.48], [656.98, 469.13]],
+    [[635.2, 211.54], [1088.05, 212.16], [1110.88, 463.55], [637.71, 469.28]],
+    [[617.41, 211.46], [1071.45, 212.11], [1093.07, 463.71], [619.45, 469.42]],
+    [[600.32, 211.41], [1055.28, 211.8], [1076.09, 463.86], [601.39, 469.48]],
+    [[583.49, 211.1], [1039.84, 211.6], [1061.47, 463.92], [584.34, 469.52]],
+    [[567.66, 210.96], [1024.18, 211.3], [1044.4, 464.05], [567.22, 469.47]],
+    [[552.2, 210.72], [1009.92, 211.02], [1029.41, 464.16], [551.17, 469.51]],
+    [[537.73, 210.87], [996.17, 210.89], [1015.22, 464.32], [535.72, 469.71]],
+    [[520.35, 210.94], [979.67, 210.84], [998.16, 464.51], [517.59, 469.97]],
+    [[511, 210.9], [970.67, 210.84], [988.82, 464.62], [507.84, 470.08]],
+    [[492.42, 210.85], [953.12, 210.5], [970.69, 464.83], [488.35, 470.2]],
+    [[486.73, 210.85], [947.67, 210.5], [965.01, 464.89], [482.55, 470.24]],
+    [[476.43, 210.9], [937.79, 210.49], [954.81, 465.02], [471.81, 470.28]],
+    [[464.51, 210.92], [926.62, 210.29], [943.03, 465.14], [459.17, 470.43]],
+    [[458.09, 210.84], [920.45, 210.2], [936.73, 465.14], [452.49, 470.46]],
+    [[446.3, 210.75], [909.27, 210.23], [925.12, 465.34], [440.12, 470.55]],
+    [[441.3, 210.79], [904.52, 210.21], [920.36, 465.42], [434.99, 470.59]],
+    [[436.73, 210.78], [900.26, 210.21], [916, 465.49], [430.44, 470.65]],
+    [[428.73, 210.85], [893.14, 210.19], [908.22, 465.65], [422.46, 470.71]],
+    [[427.01, 210.86], [891.23, 210.2], [906.3, 465.71], [420.36, 470.76]],
+    [[423.57, 210.84], [887.65, 210.19], [902.68, 465.77], [416.54, 470.81]],
+  ] as Quad[],
+  // 노트북 앞을 가리는 기둥의 오른쪽 경계(원본 x). 이 왼쪽으로는 화면을 그리지 않는다. 기둥을 벗어난 뒤로는 없다
+  clipLeft: [1245, 1225, 1173, 1155, 1118, 1068, 1040],
+};
+
+// 마지막 프레임의 화면 모서리. 카드로 옮겨 앉는 출발점이다
+const LAPTOP_SCREEN_CORNERS: Quad = LAPTOP_SCREEN_TRACK.quads[LAPTOP_SCREEN_TRACK.quads.length - 1];
+
+// 메인 페이지(idta.store/main, 1512px 폭)에서 섹션을 통째로 떼어낸 조각들. 좌표는 찍을 때 DOM 에서 읽은 섹션 위치다.
+// 검색·카테고리는 blank_main 에 그대로 남아 있어 따로 짚지 않는다.
+const SHOWCASE_STEPS: ShowcaseStep[] = [
+  {
+    title: "눈에 띄는 서비스부터",
+    description: "지금 주목받는 서비스를 맨 위에서 바로 만나봅니다.",
+    src: "/landing/web/card1.webp",
+    rect: { x: 0, y: 436, width: 1512 },
+  },
+  {
+    title: "이웃들이 많이 찾는 일",
+    description: "조회수가 많은 서비스를 모아서 보여줍니다.",
+    src: "/landing/web/card2.webp",
+    rect: { x: 0, y: 864, width: 1512 },
+  },
+  {
+    title: "다시 찾는 데는 이유가 있어요",
+    description: "재구매가 많은 능력자를 따로 추려서 보여줍니다.",
+    src: "/landing/web/card3.webp",
+    rect: { x: 0, y: 1340, width: 1512 },
+  },
+];
+
+export default function Page() {
   // 이미 로그인한 사용자에게는 랜딩 대신 메인을 보여준다
   useRedirectIfAuthed();
 
-  const [isLocation, setIsLocation] = useState(1);
-  const container1 = useRef(null);
-  const container2 = useRef(null);
-  const container3 = useRef(null);
-  const box1 = useRef(null);
-  const box2 = useRef(null);
-  const box3 = useRef(null);
-
-  useGSAP(() => {
-    gsap.fromTo(".problem-card", {
-      y: 100, 
-      opacity: 0,
-    },{
-      y: 0,
-      opacity: 1,
-      stagger: 0.5,        // 0.2씩 시차를 두고 순서대로
-      scrollTrigger: {
-        trigger: container2.current,
-        start: "top top",
-        end: "+=1500",
-        pin: true,
-        scrub: 1,
-      },
-    });
-  }, { scope: container2 });
-
   return (
+    // flex 로 감싸면 안 된다. GSAP 는 고정(pin)할 요소의 부모가 flex 면 고정 구간만큼 자리를 비워 두지 않아
+    // 다음 섹션이 고정된 화면 위로 겹쳐 올라온다
     <div>
-      <LandingHeader/>
-
-      <div className="min-h-[calc(100vh-64px)] px-5 md:px-10 xl:px-20 py-12 xl:py-0 flex relative items-center" ref={container1}>
-        {/* 넓은 화면에서만 글과 그림을 나란히 둔다. 그보다 좁으면 그림을 글 아래로 내린다 */}
-        <div className="w-full flex flex-col xl:flex-row gap-12 justify-between">
-          <div className="flex flex-col gap-10 md:gap-16">
-            <div className="flex flex-col gap-8">
-              {/* Main Title */}
-              <div className="flex flex-col gap-2 text-3xl md:text-5xl font-extrabold">
-                <h1>프리랜서 거래,</h1>
-                <h1>이제 믿고
-                <span className='text-main'> 잇다</span>
-                </h1>
-              </div>
-              {/* Sub Title */}
-              <div className="text-base md:text-lg font-medium text-zinc-500">
-                <p>블록체인에 영구 저장되는 계약서로</p>
-                <p>안전한 거래를 시작하세요</p>
-              </div>
-              {/* Buttons */}
-              <div className="flex">
-                <Link href="/main" className="bg-main text-white font-bold py-3 px-6 text-xl rounded-full hover:bg-black transition-colors">
-                  지금 시작하기
-                </Link>
-              </div>
-            </div>
-            <div className="w-full h-0.5 bg-zinc-300 rounded-full"></div>
-            {/* Info */}
-            <div className="flex flex-wrap gap-x-8 gap-y-5">
-              <div className="flex flex-col gap-1">
-                <h3 className='text-xl md:text-2xl font-bold'>위변조 불가</h3>
-                <p className='text-zinc-500'>블록체인 기반</p>
-              </div>
-              <div className="flex flex-col gap-2">
-                <h3 className='text-xl md:text-2xl font-bold'>에스크로</h3>
-                <p className='text-zinc-500'>대금 선예치 결제</p>
-              </div>
-              <div className="flex flex-col gap-2">
-                <h3 className='text-xl md:text-2xl font-bold'>실시간</h3>
-                <p className='text-zinc-500'>채팅·작업 공유</p>
-              </div>
-            </div>
+      <LandingHeader />
+      <ImageSequence
+        frameUrl={sequenceFrameUrl}
+        frameCount={SEQUENCE_FRAME_COUNT}
+        screen={{ base: "/landing/web/blank_main.webp", corners: LAPTOP_SCREEN_CORNERS, track: LAPTOP_SCREEN_TRACK }}
+        steps={SHOWCASE_STEPS}
+        caption={["사람과", "사람을", "잇다"]}
+        finale={
+          <div className="flex flex-col gap-1 text-3xl font-extrabold leading-tight text-ink md:gap-2 md:text-5xl">
+            <h2>용역을 안전하게</h2>
+            <h2><span className="text-main">잇다</span>로</h2>
           </div>
-          <div className="w-full xl:w-1/2 h-full">
-            <Image
-              src="/landing1.webp"
-              alt="Main Image"
-              width={1440}
-              height={906}
-              priority
-              className="h-auto w-full object-cover rounded-lg shadow-lg"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="h-screen px-5 md:px-10 xl:px-20 flex flex-col relative justify-center bg-[#13110F] text-white gap-8 md:gap-32" ref={container2}>
-        <div className="flex flex-col gap-2 text-3xl md:text-5xl font-extrabold">
-          <p className='text-main text-base font-medium pb-4 md:pb-8'>PROBLEM</p>
-          <h1>프리랜서 거래를 막는 것은</h1>
-          <h1>실력이 아니라 불신입니다</h1>
-        </div>
-        {/* 섹션이 화면 높이에 고정(pin)되므로 휴대폰에서 세 카드가 한 화면에 들어오도록 세로로 쌓고 여백을 줄인다 */}
-        <div className="w-full flex flex-col md:flex-row justify-between gap-4 md:gap-10">
-          <div className="p-5 md:p-10 rounded-2xl flex flex-col gap-2 md:gap-4 border border-zinc-700 problem-card" ref={box1}>
-            <p className='text-main font-semibold'>01</p>
-            <h2 className='text-xl md:text-2xl font-bold'>대금 미지급</h2>
-            <p className='text-zinc-400'>작업을 마쳐도 대금이 들어오지 않습니다. 받을 방법을 증명할 수단도 마땅치 않습니다.</p>
-          </div>
-          <div className="p-5 md:p-10 rounded-2xl flex flex-col gap-2 md:gap-4 border border-zinc-700 problem-card" ref={box2}>
-            <p className='text-main font-semibold'>02</p>
-            <h2 className='text-xl md:text-2xl font-bold'>계약서 분쟁</h2>
-            <p className='text-zinc-400'>구두 합의와 수정된 문서가 섞이면서, 무엇이 원본인지 아무도 확인할 수 없게 됩니다.</p>
-          </div>
-          <div className="p-5 md:p-10 rounded-2xl flex flex-col gap-2 md:gap-4 border border-zinc-700 problem-card" ref={box3}>
-            <p className='text-main font-semibold'>03</p>
-            <h2 className='text-xl md:text-2xl font-bold'>검증 안 된 상대</h2>
-            <p className='text-zinc-400'>이력도 평판도 확인하기 어려운 상태에서, 매번 처음부터 상대를 믿어야 합니다.</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="min-h-screen px-5 md:px-10 xl:px-20 py-16 xl:py-0 flex flex-col xl:flex-row justify-between xl:items-center gap-12 xl:gap-32" ref={container3}>
-        <div className="flex flex-col gap-10 md:gap-16">
-          <div className="flex flex-col gap-2 text-3xl md:text-5xl font-extrabold">
-            <p className='text-main text-base font-medium pb-4 md:pb-8'>SOLUTION</p>
-            <h1>계약서는 한번 기록되면</h1>
-            <h1>누구도 바꿀 수 없습니다</h1>
-          </div>
-
-          <div className="overflow-hidden h-80">
-            <ul className="w-full flex flex-col gap-4">
-              <li className="flex flex-col gap-2 LIST_ITEM">
-                <p className="text-main font-semibold">01</p>
-                <h2 className="text-2xl font-bold">계약 조건 합의</h2>
-                <p className="text-zinc-400">금액, 기간, 산출물을 템플릿으로 정리합니다.</p>
-              </li>
-              <li className="flex flex-col gap-2 LIST_ITEM">
-                <p className="text-main font-semibold">02</p>
-                <h2 className="text-2xl font-bold">해시 생성</h2>
-                <p className="text-zinc-400">문서가 고유한 지문값으로 변환됩니다.</p>
-              </li>
-              <li className="flex flex-col gap-2 LIST_ITEM">
-                <p className="text-main font-semibold">03</p>
-                <h2 className="text-2xl font-bold">블록에 기록</h2>
-                <p className="text-zinc-400">해시가 체인에 올라가고 순서가 확정됩니다.</p>
-              </li>
-              <li className="flex flex-col gap-2 LIST_ITEM">
-                <p className="text-main font-semibold">04</p>
-                <h2 className="text-2xl font-bold">위변조 불가</h2>
-                <p className="text-zinc-400">한 글자만 바뀌어도 검증이 실패합니다. 원본은 언제든 증명됩니다.</p>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="w-full xl:w-1/2 xl:h-1/2 shrink-0">
-          {/* TODO: /main.png 이 public 에 없어 깨져 있다. 경로를 정하면 next/image 로 바꾼다 */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/main.png" alt="Image" className="w-full h-full object-cover rounded-lg shadow-lg"/>
-        </div>
-      </div>
+        }
+      />
+      {/* 첫 화면 → 한 문장 → 실제 화면 → 차이 → 왜 안전한가(문제·해결) → 시작하기 순으로 읽힌다 */}
+      <StatementSection />
+      <ShowcaseSection />
+      <DifferenceSection />
+      <ProblemSection />
+      <ContractSection />
+      <CtaSection />
     </div>
   );
 }
