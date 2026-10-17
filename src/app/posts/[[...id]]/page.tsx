@@ -357,6 +357,7 @@ export default function Page() {
         isOwner={myUsername === c.username}
         domId={commentDomId(c.id)}
         highlighted={highlightedCommentId === c.id}
+        indented={c.parentId !== null}
         // 원댓글에 다는 답글은 멘션 없이, 답글에 다는 답글은 그 답글을 대상으로 둔다
         onReply={() => openReply(root.id, c.parentId ? { id: c.id, username: c.username } : undefined)}
         // 대상이 지워져 목록에서 빠졌으면 칩은 남기되 이동은 막는다. 삭제 표시로 남아 있으면 이동은 된다
@@ -507,32 +508,34 @@ export default function Page() {
                 <div key={c.id} className="flex flex-col">
                   {renderComment(c, c)}
                   {(c.replies.length > 0 || replyTarget?.parentId === c.id) && (
-                    <div className="flex flex-col pl-14">
+                    <div className="flex flex-col">
                       {c.replies.map((r) => renderComment(r, c))}
                       {replyTarget?.parentId === c.id && (
-                        <div className="flex flex-col gap-2 p-4 border border-line rounded-lg">
-                          {replyTarget.replyTo && (
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-zinc-500"><span className="text-main font-semibold">@{replyTarget.replyTo.username}</span>에게 답글</span>
-                              <button onClick={() => setReplyTarget({ ...replyTarget, replyTo: undefined })} className="text-xs text-zinc-400 hover:text-zinc-600 cursor-pointer">멘션 취소</button>
+                        <div className="pl-14">
+                          <div className="flex flex-col gap-2 p-4 border border-line rounded-lg">
+                            {replyTarget.replyTo && (
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-zinc-500"><span className="text-main font-semibold">@{replyTarget.replyTo.username}</span>에게 답글</span>
+                                <button onClick={() => setReplyTarget({ ...replyTarget, replyTo: undefined })} className="text-xs text-zinc-400 hover:text-zinc-600 cursor-pointer">멘션 취소</button>
+                              </div>
+                            )}
+                            <textarea
+                              autoFocus
+                              placeholder="답글을 입력하세요..."
+                              className="w-full h-16 text-sm focus:outline-none resize-none"
+                              value={replyTarget.text}
+                              onChange={(e) => setReplyTarget({ ...replyTarget, text: e.target.value })}
+                            />
+                            <div className="flex gap-2 self-end">
+                              <button onClick={() => setReplyTarget(null)} className="px-3 py-1.5 text-sm text-zinc-400 hover:text-zinc-600 cursor-pointer">취소</button>
+                              <button
+                                onClick={handleReplySubmit}
+                                disabled={submitting || !replyTarget.text.trim()}
+                                className="px-3 py-1.5 bg-main text-white text-sm font-semibold rounded-xl transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
+                              >
+                                {submitting ? "등록 중..." : "등록"}
+                              </button>
                             </div>
-                          )}
-                          <textarea
-                            autoFocus
-                            placeholder="답글을 입력하세요..."
-                            className="w-full h-16 text-sm focus:outline-none resize-none"
-                            value={replyTarget.text}
-                            onChange={(e) => setReplyTarget({ ...replyTarget, text: e.target.value })}
-                          />
-                          <div className="flex gap-2 self-end">
-                            <button onClick={() => setReplyTarget(null)} className="px-3 py-1.5 text-sm text-zinc-400 hover:text-zinc-600 cursor-pointer">취소</button>
-                            <button
-                              onClick={handleReplySubmit}
-                              disabled={submitting || !replyTarget.text.trim()}
-                              className="px-3 py-1.5 bg-main text-white text-sm font-semibold rounded-xl transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
-                            >
-                              {submitting ? "등록 중..." : "등록"}
-                            </button>
                           </div>
                         </div>
                       )}
