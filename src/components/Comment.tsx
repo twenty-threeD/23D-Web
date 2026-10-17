@@ -7,12 +7,15 @@ interface CommentProps {
   createdAt: string
   profileImage?: string
   edited?: boolean
+  // 답글이 남은 원댓글을 지우면 자리만 남으므로 흐리게 보이고 손댈 수 없게 한다
+  deleted?: boolean
   isOwner?: boolean
+  onReply?: () => void
   onEdit?: (content: string) => Promise<void> | void
   onDelete?: () => Promise<void> | void
 }
 
-export default function Comment({ authorName, content, createdAt, profileImage, edited, isOwner, onEdit, onDelete }: CommentProps) {
+export default function Comment({ authorName, content, createdAt, profileImage, edited, deleted, isOwner, onReply, onEdit, onDelete }: CommentProps) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(content)
   const [submitting, setSubmitting] = useState(false)
@@ -32,7 +35,7 @@ export default function Comment({ authorName, content, createdAt, profileImage, 
     <div className="flex gap-2 py-2">
       <div className="w-12 h-12 bg-zinc-400 rounded-full overflow-hidden border border-line shrink-0">
         <Image
-          src={profileImage ?? "/profile.webp"}
+          src={(!deleted && profileImage) || "/profile.webp"}
           alt="프로필사진"
           className="object-cover"
           width={48}
@@ -41,8 +44,8 @@ export default function Comment({ authorName, content, createdAt, profileImage, 
       </div>
       <div className="flex flex-col gap-1 flex-1">
         <div className="flex items-center justify-between">
-          <h3 className="text-md font-bold">{authorName}</h3>
-          {isOwner && !editing && (
+          {!deleted && <h3 className="text-md font-bold">{authorName}</h3>}
+          {isOwner && !deleted && !editing && (
             <div className="flex gap-2">
               <button onClick={() => { setDraft(content); setEditing(true) }} className="text-xs text-zinc-400 hover:text-zinc-600 cursor-pointer">수정</button>
               <button onClick={() => onDelete?.()} className="text-xs text-red-400 hover:text-red-600 cursor-pointer">삭제</button>
@@ -72,14 +75,18 @@ export default function Comment({ authorName, content, createdAt, profileImage, 
             </div>
           </div>
         ) : (
-          <p className="text-sm font-medium">{content}</p>
+          <p className={`text-sm font-medium ${deleted ? "text-zinc-400" : ""}`}>{content}</p>
         )}
 
-        <div className="flex gap-2">
-          <span className="text-sm font-medium text-zinc-400">{createdAt}</span>
-          {edited && <span className="text-xs text-zinc-400">(수정됨)</span>}
-          <span className="text-sm font-medium text-zinc-400 cursor-pointer hover:text-zinc-600">답글 쓰기</span>
-        </div>
+        {!deleted && (
+          <div className="flex gap-2">
+            <span className="text-sm font-medium text-zinc-400">{createdAt}</span>
+            {edited && <span className="text-xs text-zinc-400">(수정됨)</span>}
+            {onReply && (
+              <button onClick={onReply} className="text-sm font-medium text-zinc-400 cursor-pointer hover:text-zinc-600">답글 쓰기</button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

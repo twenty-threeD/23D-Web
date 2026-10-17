@@ -226,20 +226,53 @@ export async function deletePost(token: string, postId: number) {
 
 // ── 댓글 ──────────────────────────────────────────
 
-export async function getComments(postId: number, token?: string | null, page = 0, size = 20) {
+export interface CommunityComment {
+  id: number
+  postId: number
+  // 답글이면 원댓글 id. 답글의 답글은 서버가 받지 않아 항상 원댓글을 가리킨다
+  parentId: number | null
+  username: string
+  imageUrl: string | null
+  content: string
+  isEdited: boolean
+  // 답글이 남아 있는 원댓글을 지우면 자리만 남는다. 이때 content·username 은 "삭제된 댓글입니다" 로 온다
+  isDeleted: boolean
+  createdAt: string
+  updatedAt: string
+  // 최상위 댓글에만 채워진다
+  replies: CommunityComment[]
+}
+
+export interface CommentPage {
+  // 최상위 댓글만 들어 있다. totalElements 도 답글을 세지 않으므로 댓글 수 표시는 게시글의 commentCount 를 쓴다
+  content: CommunityComment[]
+  page: number
+  totalElements: number
+  last: boolean
+}
+
+export async function getComments(postId: number, token?: string | null, page = 0, size = 20): Promise<CommentPage> {
   const params = new URLSearchParams({ postId: String(postId), page: String(page), size: String(size) })
   const res = await fetch(`/api/community/comment?${params}`, {
     headers: authHeaders(token),
   })
   if (!res.ok) await throwApiError(res)
-  return res.json()
+  const json = await res.json()
+  const raw = json?.data ?? json
+  return {
+    content: raw?.content ?? [],
+    page: raw?.page ?? page,
+    totalElements: raw?.totalElements ?? 0,
+    last: raw?.last ?? true,
+  }
 }
 
-export async function createComment(token: string, postId: number, content: string) {
+// parentId 에는 답글에 답글을 달 때도 원댓글 id 를 넣어야 한다. 답글 id 를 넣으면 서버가 400 을 낸다
+export async function createComment(token: string, postId: number, content: string, parentId?: number) {
   const res = await fetch(`/api/community/comment`, {
     method: 'POST',
     headers: authHeaders(token),
-    body: JSON.stringify({ postId, content }),
+    body: JSON.stringify(parentId ? { postId, content, parentId } : { postId, content }),
   })
   if (!res.ok) await throwApiError(res)
   invalidateCommunity()
