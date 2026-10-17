@@ -15,6 +15,12 @@ function invalidatePosts() {
   invalidate(FAVORITES_KEY)
 }
 
+// 상세 캐시는 로그인 여부별로 나뉘어 있어 둘 다 버린다
+function invalidatePostDetail(postId: number) {
+  invalidate(`${POST_KEY}detail:auth:${postId}`)
+  invalidate(`${POST_KEY}detail:anon:${postId}`)
+}
+
 function authHeaders(token?: string | null) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
@@ -92,7 +98,10 @@ export function getPosts(token?: string | null) {
 // 서비스 상세·채팅방(이 방의 글 작성자 확인)·결제 화면이 같은 글을 본다.
 // 서버의 조회수는 같은 회원이 하루 한 번만 세므로 여기서 덜 불러도 조회수는 그대로다
 export function getPost(postId: number, token?: string | null) {
-  return cached(`${POST_KEY}detail:${postId}`, DETAIL_TTL, async () => {
+  // 익명 응답과 로그인 응답을 한 키에 두면, 비로그인으로 먼저 받은 결과가 캐시에 남아
+  // 로그인 후에도 토큰 실린 요청이 나가지 않아 조회수가 안 오른다
+  const scope = token ? 'auth' : 'anon'
+  return cached(`${POST_KEY}detail:${scope}:${postId}`, DETAIL_TTL, async () => {
     const res = await fetch(`/api/post/${postId}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
@@ -225,7 +234,7 @@ export async function favoritePost(token: string, postId: number) {
   if (!res.ok) await throwApiError(res)
   // 찜 목록과 이 글의 찜 수가 바뀐다
   invalidate(FAVORITES_KEY)
-  invalidate(`${POST_KEY}detail:${postId}`)
+  invalidatePostDetail(postId)
   const json = await res.json()
   return json.data as FavoriteResult
 }
@@ -238,7 +247,7 @@ export async function unfavoritePost(token: string, postId: number) {
   if (!res.ok) await throwApiError(res)
   // 찜 목록과 이 글의 찜 수가 바뀐다
   invalidate(FAVORITES_KEY)
-  invalidate(`${POST_KEY}detail:${postId}`)
+  invalidatePostDetail(postId)
   const json = await res.json()
   return json.data as FavoriteResult
 }
