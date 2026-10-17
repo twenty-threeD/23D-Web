@@ -80,6 +80,7 @@ export default function Page() {
   const router = useRouter()
   const postId = Number(Array.isArray(params.id) ? params.id[0] : params.id)
   const token = useAuthStore((s) => s.accessToken)
+  const hydrated = useAuthStore((s) => s.hydrated)
   const myUsername = useAuthStore((s) => s.username ?? (s.accessToken ? decodeJwtUsername(s.accessToken) : null))
 
   const handleError = useHandleError()
@@ -145,11 +146,13 @@ export default function Page() {
     }
   }, [postId, postCategory, token, myCtprvnCd, myUsername])
 
+  // 서버는 토큰 없는 요청을 익명 조회로 보고 조회수를 세지 않는다.
+  // persist 가 localStorage 의 토큰을 되살리기 전에 부르면 로그인 사용자도 익명으로 잡히므로 복원을 기다린다
   useEffect(() => {
-    if (!locationLoaded) return
+    if (!locationLoaded || !hydrated) return
     fetchPost()
     fetchComments()
-  }, [fetchPost, fetchComments, locationLoaded])
+  }, [fetchPost, fetchComments, locationLoaded, hydrated])
 
   useEffect(() => {
     if (!locationLoaded) return
