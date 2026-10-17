@@ -6,7 +6,7 @@ import Link from "next/link";
 import { SearchIcon } from "@/src/components/main/icons";
 import AdCard, { AdCardSkeleton } from "@/src/components/main/AdCard";
 import ServiceSection, { CardRow, MoreLink, Empty, SECTION_INSET } from "@/src/components/main/ServiceSection";
-import { getPosts, searchPosts, getPostCategories, CATEGORIES, type Post, type PostCategory } from "@/src/lib/post";
+import { getPosts, searchPosts, searchPostsPaged, getPostCategories, CATEGORIES, type Post, type PostCategory } from "@/src/lib/post";
 import { useAuthStore } from "@/src/store/authStore";
 import { PAGE_Y } from "@/src/lib/layout";
 
@@ -19,6 +19,7 @@ function MainContent() {
   const categoryIds = categoryParam ? categoryParam.split(",").map(Number) : null;
   const [searchValue, setSearchValue] = useState(keyword);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [popularPosts, setPopularPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<PostCategory[]>([]);
 
@@ -35,6 +36,17 @@ function MainContent() {
       .finally(() => setLoading(false));
   }, [token, keyword, categoryParam]);
 
+  // 기본 목록은 최신 20개뿐이라 그 안에서 조회수로 줄 세우면 전체에서 많이 본 글이 빠진다.
+  // 서버가 조회수 정렬을 지원하므로 따로 받아 전체 기준 상위를 보여준다
+  useEffect(() => {
+    searchPostsPaged({ title: keyword, sort: "viewCount,desc", page: 0, size: 20 })
+      .then(({ posts: list }) => {
+        const filtered = categoryIds ? list.filter((p) => p.category && categoryIds.includes(p.category.id)) : list;
+        setPopularPosts(filtered.slice(0, 10));
+      })
+      .catch(() => setPopularPosts([]));
+  }, [keyword, categoryParam]);
+
   function categoryHref(name: string): string {
     const match = categories.find((c) => c.name === name);
     return match ? `/search?categoryId=${match.id}` : "/search";
@@ -48,7 +60,6 @@ function MainContent() {
   // 시안처럼 카드 줄이 화면 오른쪽 밖으로 이어져야 넘길 거리가 생긴다.
   // 3~4장만 두면 화면에 거의 다 들어와 좌우 이동이 사실상 안 되므로 줄마다 넉넉히 채운다
   const adPosts = posts.slice(0, 8);
-  const popularPosts = posts.slice(0, 10);
   const revisitPosts = [...posts.slice(4), ...posts.slice(0, 4)].slice(0, 10);
 
   return (
