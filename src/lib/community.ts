@@ -231,6 +231,9 @@ export interface CommunityComment {
   postId: number
   // 답글이면 원댓글 id. 답글의 답글은 서버가 받지 않아 항상 원댓글을 가리킨다
   parentId: number | null
+  // 답글에 답한 경우 그 답글 id. 본문에 @이름을 넣지 않고 이 값으로 멘션 칩을 그린다
+  replyToCommentId: number | null
+  replyToUsername: string | null
   username: string
   imageUrl: string | null
   content: string
@@ -267,12 +270,18 @@ export async function getComments(postId: number, token?: string | null, page = 
   }
 }
 
-// parentId 에는 답글에 답글을 달 때도 원댓글 id 를 넣어야 한다. 답글 id 를 넣으면 서버가 400 을 낸다
-export async function createComment(token: string, postId: number, content: string, parentId?: number) {
+// parentId 에는 답글에 답글을 달 때도 원댓글 id 를 넣어야 한다. 답글 id 를 넣으면 서버가 400 을 낸다.
+// 답글에 답할 때는 그 답글 id 를 replyToCommentId 로 따로 보낸다
+export async function createComment(
+  token: string,
+  postId: number,
+  content: string,
+  reply?: { parentId: number; replyToCommentId?: number },
+) {
   const res = await fetch(`/api/community/comment`, {
     method: 'POST',
     headers: authHeaders(token),
-    body: JSON.stringify(parentId ? { postId, content, parentId } : { postId, content }),
+    body: JSON.stringify({ postId, content, ...reply }),
   })
   if (!res.ok) await throwApiError(res)
   invalidateCommunity()
