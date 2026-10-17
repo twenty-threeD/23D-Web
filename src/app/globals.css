@@ -11,6 +11,8 @@
      진하게 보여야 하는 외곽선 버튼('○○ 관련 더보기' 등)만 ink-muted·ink-hint 를 따로 쓴다 */
   --color-line: #d4d4d8;
   --color-ink-hint: #838383;
+  /* 멘션으로 이동한 댓글 강조. 브랜드 오렌지는 버튼·칩에 이미 써서 배경까지 칠하면 경고처럼 보인다 */
+  --color-highlight: #e6f0ff;
   /* 프로젝트 폰트는 Pretendard 로 통일한다. 기본 sans 를 덮어써서 클래스 없이도 전역에 적용되게 한다 */
   --font-sans: var(--font-pretendard-local), system-ui, sans-serif;
 }
@@ -89,9 +91,9 @@ body { margin: 0; }
   	animation: contract-sweep 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-/* 멘션 칩으로 이동한 댓글이 어느 것인지 알아보도록 잠깐 칠했다가 서서히 걷어낸다 */
+/* 멘션 칩으로 이동한 댓글이 어느 것인지 알아보도록 연한 파란색으로 잠깐 칠했다가 서서히 걷어낸다 */
 @keyframes comment-highlight {
-	0%, 40% { background-color: color-mix(in srgb, var(--color-main) 15%, transparent); }
+	0%, 40% { background-color: var(--color-highlight); }
 	100% { background-color: transparent; }
 }
 
