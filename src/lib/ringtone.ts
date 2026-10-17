@@ -22,8 +22,12 @@ function ensureAudio() {
   hangup ??= createAudio(HANGUP_SRC, false)
 }
 
-// 0.1초 무음 WAV. 풀어둘 때 실제 벨소리 대신 이걸 소리 켠 채로 재생한다
+// 0.1초 무음 WAV. 풀어둘 때 실제 벨소리 대신 이걸 소리 켠 채로 재생한다.
+// blob URL 로 만들면 재생을 마치고 원래 src 로 되돌린 뒤 해제해도 크롬이 해제된 blob 을 한 번 더 읽으려다
+// ERR_FILE_NOT_FOUND 를 콘솔에 남긴다(첫 클릭마다 audio 요소 수만큼). 해제할 필요가 없는 data URL 로 만든다
+let silentUrl: string | null = null
 function silentWavUrl() {
+  if (silentUrl) return silentUrl
   const samples = 4410
   const buffer = new ArrayBuffer(44 + samples * 2)
   const view = new DataView(buffer)
@@ -32,7 +36,10 @@ function silentWavUrl() {
   text(12, "fmt "); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true)
   view.setUint32(24, 44100, true); view.setUint32(28, 88200, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true)
   text(36, "data"); view.setUint32(40, samples * 2, true)
-  return URL.createObjectURL(new Blob([buffer], { type: "audio/wav" }))
+  let binary = ""
+  new Uint8Array(buffer).forEach((byte) => { binary += String.fromCharCode(byte) })
+  silentUrl = `data:audio/wav;base64,${btoa(binary)}`
+  return silentUrl
 }
 
 // 브라우저(특히 iOS 사파리)는 사용자가 누른 동작 안에서 한 번 재생된 audio 요소만 나중에 스크립트로 재생할 수 있다.
@@ -70,7 +77,6 @@ export async function primeRingtone(): Promise<boolean> {
       }
     }),
   )
-  URL.revokeObjectURL(silent)
   unlocked = results.every(Boolean)
   return unlocked
 }
