@@ -20,6 +20,7 @@ function MainContent() {
   const [searchValue, setSearchValue] = useState(keyword);
   const [posts, setPosts] = useState<Post[]>([]);
   const [popularPosts, setPopularPosts] = useState<Post[]>([]);
+  const [revisitPosts, setRevisitPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<PostCategory[]>([]);
 
@@ -36,15 +37,21 @@ function MainContent() {
       .finally(() => setLoading(false));
   }, [token, keyword, categoryParam]);
 
-  // 기본 목록은 최신 20개뿐이라 그 안에서 조회수로 줄 세우면 전체에서 많이 본 글이 빠진다.
-  // 서버가 조회수 정렬을 지원하므로 따로 받아 전체 기준 상위를 보여준다
+  // 기본 목록은 최신 20개뿐이라 그 안에서 줄 세우면 전체에서 상위인 글이 빠진다.
+  // 서버 정렬로 따로 받아 전체 기준 상위를 보여준다
   useEffect(() => {
-    searchPostsPaged({ title: keyword, sort: "viewCount,desc", page: 0, size: 20 })
-      .then(({ posts: list }) => {
-        const filtered = categoryIds ? list.filter((p) => p.category && categoryIds.includes(p.category.id)) : list;
-        setPopularPosts(filtered.slice(0, 10));
-      })
-      .catch(() => setPopularPosts([]));
+    const fetchTop = (sort: string, set: (list: Post[]) => void) =>
+      searchPostsPaged({ title: keyword, sort, page: 0, size: 20 })
+        .then(({ posts: list }) => {
+          const filtered = categoryIds ? list.filter((p) => p.category && categoryIds.includes(p.category.id)) : list;
+          set(filtered.slice(0, 10));
+        })
+        .catch(() => set([]));
+
+    fetchTop("viewCount,desc", setPopularPosts);
+    // 재구매율(같은 갑이 두 번 이상 결제한 비율) 순. 구매자가 적은 글의 왜곡 보정과
+    // 동률 시 조회수 순 정렬은 서버가 맡는다
+    fetchTop("repeatRate,desc", setRevisitPosts);
   }, [keyword, categoryParam]);
 
   function categoryHref(name: string): string {
@@ -60,7 +67,6 @@ function MainContent() {
   // 시안처럼 카드 줄이 화면 오른쪽 밖으로 이어져야 넘길 거리가 생긴다.
   // 3~4장만 두면 화면에 거의 다 들어와 좌우 이동이 사실상 안 되므로 줄마다 넉넉히 채운다
   const adPosts = posts.slice(0, 8);
-  const revisitPosts = [...posts.slice(4), ...posts.slice(0, 4)].slice(0, 10);
 
   return (
     <div className={`flex flex-col items-center gap-14 md:gap-20 ${PAGE_Y} overflow-x-hidden`}>
