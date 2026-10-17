@@ -13,6 +13,9 @@ interface InputProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  // 브라우저 비밀번호 관리자가 어느 칸이 아이디·비밀번호인지 알도록 넘긴다
+  name?: string;
+  autoComplete?: string;
 }
 
 export const InputField = ({
@@ -24,6 +27,8 @@ export const InputField = ({
   isError = false,
   onChange,
   onKeyDown,
+  name,
+  autoComplete,
 }: InputProps) => {
   const [inputType, setInputType] = useState(type);
 
@@ -41,6 +46,8 @@ export const InputField = ({
             value={value}
             onChange={onChange}
             onKeyDown={onKeyDown}
+            name={name}
+            autoComplete={autoComplete}
             className={`peer w-full border-b-2 ${isError ? "border-[#FF0000]" : "border-line"} 
                   outline-none p-2 pt-3 bg-transparent
                   ${isError ? "text-[#FF0000]" : "text-black"} 

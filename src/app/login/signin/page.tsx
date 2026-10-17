@@ -56,10 +56,10 @@ export default function Page() {
     window.location.href = `${apiUrl}/oauth2/authorization/${provider}?redirect_uri=${redirectUri}`;
   };
 
-  const enterLogin = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && canLogin) {
-      handleLogin();
-    }
+  // 입력칸을 form 으로 묶어야 브라우저가 로그인 폼으로 알아보고 비밀번호 저장을 제안한다. 엔터 제출도 form 이 맡는다
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    handleLogin();
   };
 
   return (
@@ -83,6 +83,8 @@ export default function Page() {
             />
           </Link>
 
+          {/* contents 로 두어 form 이 끼어도 부모 flex 의 간격·정렬이 그대로 적용되게 한다 */}
+          <form onSubmit={handleSubmit} className="contents">
           {/* 인풋 필드 영역 */}
           <div className="mt-13">
             <InputField
@@ -92,7 +94,8 @@ export default function Page() {
               isEssential={true}
               value={formData.email}
               onChange={(e) => handleChange("email", e.target.value)}
-              onKeyDown={enterLogin}
+              name="email"
+              autoComplete="username"
             />
             <InputField
               label="비밀번호 입력"
@@ -102,13 +105,14 @@ export default function Page() {
               isEssential={true}
               value={formData.password}
               onChange={(e) => handleChange("password", e.target.value)}
-              onKeyDown={enterLogin}
+              name="password"
+              autoComplete="current-password"
             />
           </div>
 
           {/* 로그인 버튼: 조건에 따라 스타일과 활성화 상태 변경 */}
           <button
-            onClick={handleLogin}
+            type="submit"
             disabled={!canLogin}
             className={`w-75 h-10 rounded-lg text-lg font-bold transition-colors cursor-pointer
             ${
@@ -119,6 +123,7 @@ export default function Page() {
           >
             로그인
           </button>
+          </form>
 
           <div className="flex justify-between w-75">
             <Link href="/login/reset-password" className="text-[10px] text-zinc-500 underline underline-offset-2  hover:text-main transition-colors duration-100">
