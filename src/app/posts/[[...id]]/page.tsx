@@ -358,6 +358,8 @@ export default function Page() {
         domId={commentDomId(c.id)}
         highlighted={highlightedCommentId === c.id}
         indented={c.parentId !== null}
+        // 댓글 목록을 감싼 카드의 패딩(p-5 md:p-8)과 맞춘다. 카드 패딩을 바꾸면 같이 바꿔야 한다
+        highlightBleedClassName="-inset-x-5 md:-inset-x-8"
         // 원댓글에 다는 답글은 멘션 없이, 답글에 다는 답글은 그 답글을 대상으로 둔다
         onReply={() => openReply(root.id, c.parentId ? { id: c.id, username: c.username } : undefined)}
         // 대상이 지워져 목록에서 빠졌으면 칩은 남기되 이동은 막는다. 삭제 표시로 남아 있으면 이동은 된다

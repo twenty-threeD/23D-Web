@@ -19,11 +19,13 @@ interface CommentProps {
   // 답글 들여쓰기를 바깥 컨테이너가 아니라 이 박스 안쪽 패딩으로 준다.
   // 그래야 멘션으로 이동했을 때 강조 배경이 들여쓴 자리부터가 아니라 댓글 영역 끝에서 끝까지 칠해진다
   indented?: boolean
+  // 강조 배경을 댓글 박스 밖으로 얼마나 넓힐지. 댓글 목록을 감싼 카드의 좌우 패딩만큼 넓혀야 카드 테두리 끝까지 닿는다
+  highlightBleedClassName?: string
   onEdit?: (content: string) => Promise<void> | void
   onDelete?: () => Promise<void> | void
 }
 
-export default function Comment({ authorName, content, createdAt, profileImage, edited, deleted, isOwner, onReply, mention, domId, highlighted, indented, onEdit, onDelete }: CommentProps) {
+export default function Comment({ authorName, content, createdAt, profileImage, edited, deleted, isOwner, onReply, mention, domId, highlighted, indented, highlightBleedClassName = "inset-x-0", onEdit, onDelete }: CommentProps) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(content)
   const [submitting, setSubmitting] = useState(false)
@@ -40,7 +42,9 @@ export default function Comment({ authorName, content, createdAt, profileImage, 
   }
 
   return (
-    <div id={domId} className={`flex gap-2 py-2 rounded-lg ${indented ? "pl-14" : ""} ${highlighted ? "animate-comment-highlight" : ""}`}>
+    <div id={domId} className={`relative isolate flex gap-2 py-2 ${indented ? "pl-14" : ""}`}>
+      {/* 마진 없이 박스 밖까지 칠하려고 절대 위치 레이어를 깐다. isolate 로 이 박스 안에서만 내용 뒤로 보낸다 */}
+      {highlighted && <span aria-hidden className={`absolute inset-y-0 -z-10 animate-comment-highlight ${highlightBleedClassName}`} />}
       <div className="w-12 h-12 bg-zinc-400 rounded-full overflow-hidden border border-line shrink-0">
         <Image
           src={(!deleted && profileImage) || "/profile.webp"}
