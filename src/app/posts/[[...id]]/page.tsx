@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, isValidElement, Children } from "react"
+import { useState, useEffect, useCallback, useRef, isValidElement, Children } from "react"
 import { useParams, useRouter } from "next/navigation"
 import CommunityMenu from "@/src/components/CommunitySideBar"
 import Comment from "@/src/components/Comment"
@@ -26,10 +26,12 @@ import {
   sortByLatest,
   communityListHref,
   fetchAllPages,
+  type CommunityComment,
   COMMUNITY_PAGE_SIZE,
 } from "@/src/lib/community"
 import CommunityPagination from "@/src/components/CommunityPagination"
 import { useMyLocation } from "@/src/hooks/useMyLocation"
+import { useInfiniteScroll } from "@/src/hooks/useInfiniteScroll"
 import { useAuthStore, decodeJwtUsername } from "@/src/store/authStore"
 import { toRelativeUrl } from "@/src/lib/file"
 import { useLikeStore } from "@/src/store/likeStore"
@@ -66,13 +68,12 @@ interface PostListItem {
   updatedAt: string
 }
 
-interface CommentData {
-  id: number
-  username: string
-  content: string
-  updatedAt: string
-  edited?: boolean
-  imageUrl?: string | null
+const COMMENT_PAGE_SIZE = 20
+
+// 답글 입력창은 원댓글 아래 하나만 연다. 답글의 답글도 같은 원댓글에 붙으므로 원댓글 id 만 들고 있으면 된다
+interface ReplyTarget {
+  parentId: number
+  text: string
 }
 
 export default function Page() {
@@ -89,7 +90,10 @@ export default function Page() {
   // 커뮤니티 응답에 작성자 이미지가 없어 서비스 게시글에서 모아둔 매핑으로 채운다
   const likeStore = useLikeStore()
   const [post, setPost] = useState<Post | null>(null)
-  const [comments, setComments] = useState<CommentData[]>([])
+  const [comments, setComments] = useState<CommunityComment[]>([])
+  const [commentsLast, setCommentsLast] = useState(true)
+  const [loadingMoreComments, setLoadingMoreComments] = useState(false)
+  const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null)
   const [relatedPosts, setRelatedPosts] = useState<PostListItem[]>([])
   const [relatedPage, setRelatedPage] = useState(1)
   const [commentText, setCommentText] = useState("")
@@ -116,15 +120,73 @@ export default function Page() {
     }
   }, [postId, token, router])
 
+  // 작성·수정·삭제 뒤 다시 받을 때 첫 페이지만 받으면 펼쳐 둔 댓글이 접혀 스크롤이 튄다.
+  // 지금까지 펼친 페이지 수만큼 다시 받아 같은 범위를 유지한다
+  const loadedCommentPagesRef = useRef(1)
+  const loadingMoreCommentsRef = useRef(false)
+
   const fetchComments = useCallback(async () => {
     if (!postId) return
     try {
-      const res = await getComments(postId, token)
-      setComments(res.data ?? [])
+      const list: CommunityComment[] = []
+      let last = true
+      for (let page = 0; page < loadedCommentPagesRef.current; page++) {
+        const res = await getComments(postId, token, page, COMMENT_PAGE_SIZE)
+        list.push(...res.content)
+        last = res.last
+        if (last) break
+      }
+      setComments(list)
+      setCommentsLast(last)
     } catch {
       setComments([])
+      setCommentsLast(true)
     }
   }, [postId, token])
+
+  async function loadMoreComments() {
+    if (loadingMoreCommentsRef.current || commentsLast) return
+    loadingMoreCommentsRef.current = true
+    setLoadingMoreComments(true)
+    try {
+      const res = await getComments(postId, token, loadedCommentPagesRef.current, COMMENT_PAGE_SIZE)
+      loadedCommentPagesRef.current += 1
+      // 다음 페이지를 받는 사이 새 댓글이 앞 페이지로 밀려 들어오면 같은 댓글이 두 번 올 수 있다
+      setComments((prev) => {
+        const seen = new Set(prev.map((c) => c.id))
+        return [...prev, ...res.content.filter((c) => !seen.has(c.id))]
+      })
+      setCommentsLast(res.last)
+    } catch {
+      // 실패한 채로 두면 끝 표시가 계속 보여 같은 요청을 끝없이 반복하므로 더 부르지 않는다
+      setCommentsLast(true)
+    } finally {
+      loadingMoreCommentsRef.current = false
+      setLoadingMoreComments(false)
+    }
+  }
+
+  const commentSentinelRef = useInfiniteScroll({
+    enabled: !commentsLast,
+    itemCount: comments.length,
+    onLoadMore: loadMoreComments,
+  })
+
+  // 댓글 수는 답글까지 센 게시글의 commentCount 를 쓴다. 본문을 다시 그리지 않도록 수만 갱신한다
+  const refreshCommentCount = useCallback(async () => {
+    try {
+      const res = await getPost(postId, token)
+      const data: Post | undefined = Array.isArray(res.data) ? res.data.find((p: Post) => p.id === postId) : res.data
+      if (data) setPost((prev) => (prev ? { ...prev, commentCount: data.commentCount } : prev))
+    } catch {
+      // 수가 잠시 어긋날 뿐이라 화면을 막지 않는다
+    }
+  }, [postId, token])
+
+  const refreshAfterCommentChange = useCallback(
+    () => Promise.all([fetchComments(), refreshCommentCount()]),
+    [fetchComments, refreshCommentCount],
+  )
 
   // 관련 게시물은 목록과 같은 기준(최신순·페이지 크기)으로 자른, 지금 글이 속한 페이지를 보여준다.
   // 페이지 번호를 누르면 글 밖으로 나가 목록의 그 페이지로 가므로, 번호가 목록과 맞도록
@@ -150,6 +212,9 @@ export default function Page() {
   // persist 가 localStorage 의 토큰을 되살리기 전에 부르면 로그인 사용자도 익명으로 잡히므로 복원을 기다린다
   useEffect(() => {
     if (!locationLoaded || !hydrated) return
+    // 다른 글로 넘어오면 이전 글에서 펼친 페이지 수를 이어받지 않는다.
+    // 답글 입력창은 댓글 id 가 글마다 달라 새 글의 어느 댓글에도 열리지 않으므로 따로 닫지 않는다
+    loadedCommentPagesRef.current = 1
     fetchPost()
     fetchComments()
   }, [fetchPost, fetchComments, locationLoaded, hydrated])
@@ -192,7 +257,7 @@ export default function Page() {
     if (!token) return
     try {
       await updateComment(token, commentId, content)
-      await fetchComments()
+      await refreshAfterCommentChange()
     } catch (e) {
       handleError(e)
     }
@@ -203,7 +268,7 @@ export default function Page() {
     if (!confirm("댓글을 삭제하시겠습니까?")) return
     try {
       await deleteComment(token, commentId)
-      await fetchComments()
+      await refreshAfterCommentChange()
     } catch (e) {
       handleError(e)
     }
@@ -216,12 +281,58 @@ export default function Page() {
     try {
       await createComment(token, postId, commentText)
       setCommentText("")
-      await fetchComments()
+      await refreshAfterCommentChange()
     } catch (e) {
       handleError(e)
     } finally {
       setSubmitting(false)
     }
+  }
+
+  function openReply(parentId: number, mention?: string) {
+    if (!token) { router.push(signinPath()); return }
+    // 답글에 답할 때는 누구에게 한 말인지 보이도록 작성자를 멘션해 둔다
+    setReplyTarget({ parentId, text: mention ? `@${mention} ` : "" })
+  }
+
+  async function handleReplySubmit() {
+    if (!token || !replyTarget || !replyTarget.text.trim()) return
+    setSubmitting(true)
+    try {
+      await createComment(token, postId, replyTarget.text, replyTarget.parentId)
+      setReplyTarget(null)
+      await refreshAfterCommentChange()
+    } catch (e) {
+      handleError(e)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  function formatCommentDate(value: string) {
+    return new Date(value).toLocaleString("ko-KR", {
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit",
+    })
+  }
+
+  function renderComment(c: CommunityComment, rootId: number) {
+    return (
+      <Comment
+        key={c.id}
+        authorName={c.username}
+        profileImage={c.imageUrl ? toRelativeUrl(c.imageUrl) : undefined}
+        content={c.content}
+        edited={c.isEdited}
+        deleted={c.isDeleted}
+        isOwner={myUsername === c.username}
+        // 답글의 답글도 원댓글에 붙여야 서버가 받는다
+        onReply={() => openReply(rootId, c.parentId ? c.username : undefined)}
+        onEdit={(content) => handleCommentEdit(c.id, content)}
+        onDelete={() => handleCommentDelete(c.id)}
+        createdAt={formatCommentDate(c.createdAt)}
+      />
+    )
   }
 
   // 주소로 직접 들어와도 다른 시·도의 동네 주민 글은 내용을 보여주지 않는다
@@ -350,7 +461,7 @@ export default function Page() {
                 <div className="flex items-center gap-1">
                   <IoChatboxOutline className="text-xl" />
                   <span className="text-zinc-500 text-sm font-semibold">댓글</span>
-                  <p className="text-sm font-semibold">{comments.length}</p>
+                  <p className="text-sm font-semibold">{post.commentCount ?? 0}</p>
                 </div>
               </div>
             </div>
@@ -360,21 +471,41 @@ export default function Page() {
             {/* 댓글 목록 */}
             <div className="flex flex-col gap-2 divide-line divide-y">
               {comments.map((c) => (
-                <Comment
-                  key={c.id}
-                  authorName={c.username}
-                  profileImage={c.imageUrl ? toRelativeUrl(c.imageUrl) : undefined}
-                  content={c.content}
-                  edited={c.edited}
-                  isOwner={myUsername === c.username}
-                  onEdit={(content) => handleCommentEdit(c.id, content)}
-                  onDelete={() => handleCommentDelete(c.id)}
-                  createdAt={new Date(c.updatedAt).toLocaleString("ko-KR", {
-                    year: "numeric", month: "2-digit", day: "2-digit",
-                    hour: "2-digit", minute: "2-digit",
-                  })}
-                />
+                <div key={c.id} className="flex flex-col">
+                  {renderComment(c, c.id)}
+                  {(c.replies.length > 0 || replyTarget?.parentId === c.id) && (
+                    <div className="flex flex-col pl-14">
+                      {c.replies.map((r) => renderComment(r, c.id))}
+                      {replyTarget?.parentId === c.id && (
+                        <div className="flex flex-col gap-2 p-4 border border-line rounded-lg">
+                          <textarea
+                            autoFocus
+                            placeholder="답글을 입력하세요..."
+                            className="w-full h-16 text-sm focus:outline-none resize-none"
+                            value={replyTarget.text}
+                            onChange={(e) => setReplyTarget({ ...replyTarget, text: e.target.value })}
+                          />
+                          <div className="flex gap-2 self-end">
+                            <button onClick={() => setReplyTarget(null)} className="px-3 py-1.5 text-sm text-zinc-400 hover:text-zinc-600 cursor-pointer">취소</button>
+                            <button
+                              onClick={handleReplySubmit}
+                              disabled={submitting || !replyTarget.text.trim()}
+                              className="px-3 py-1.5 bg-main text-white text-sm font-semibold rounded-xl transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
+                            >
+                              {submitting ? "등록 중..." : "등록"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               ))}
+              {!commentsLast && (
+                <div ref={commentSentinelRef} className="flex h-9 items-center justify-center text-sm text-ink-muted">
+                  {loadingMoreComments && "불러오는 중..."}
+                </div>
+              )}
               {/* 댓글 달기 */}
               <div className="flex items-start gap-4 pt-4">
                 <div className="flex flex-col gap-2 w-full p-6 border border-line rounded-lg">
