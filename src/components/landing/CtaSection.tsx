@@ -6,7 +6,7 @@ import Link from "next/link"
 import gsap from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 import { useGSAP } from "@gsap/react"
-import PhoneFrame, { PhoneShadow } from "./PhoneFrame"
+import { PhoneShadow } from "./PhoneFrame"
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
@@ -14,18 +14,48 @@ gsap.registerPlugin(useGSAP, ScrollTrigger)
 // 주소가 나오면 여기만 채우면 된다
 const ONESTORE_URL = ""
 
-// 휴대폰이 바로 서고 문구가 다 올라오는 데 쓰는 스크롤 길이(px)와, 그 뒤 머무는 길이
-const ENTER_LENGTH = 800
+// 휴대폰이 한 바퀴 돌며 떠오르고 문구가 다 올라오는 데 쓰는 스크롤 길이(px)와, 그 뒤 머무는 길이
+const ENTER_LENGTH = 1200
 const HOLD_LENGTH = 300
 
+// 휴대폰이 세로축으로 한 바퀴 도는 장면을 Blender(Cycles)로 렌더한 연속 프레임. 6도 간격 60장이고 1번이 정면이다.
+// 조명은 그대로 두고 휴대폰만 돌려서, 도는 동안 반사광이 테두리·뒷면을 따라 흐른다
+const TURN_FRAME_COUNT = 60
+const TURN_WIDTH = 560
+const TURN_HEIGHT = 1144
+const turnFrameUrl = (index: number) => `/landing/turn/${String(index).padStart(3, "0")}.webp`
+
 // 랜딩의 마지막 안내. 첫 화면의 "사람과 사람을 잇다" 를 다시 받아 행동으로 이어지게 한다.
-// 비스듬히 누워 있던 휴대폰이 스크롤에 따라 일어나 떠오르고, 문구가 아래에서 차례로 올라온다.
+// 휴대폰이 스크롤에 따라 한 바퀴 돌며 떠오르고, 문구가 아래에서 차례로 올라온다.
 // 고정이 풀리면 이 화면이 위로 올라가며, 밑에 깔린 푸터가 끌려 나온다. 그래서 이 화면을 푸터보다 위(z-10)에 둔다
 export default function CtaSection() {
   const sectionRef = useRef<HTMLElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useGSAP(
     () => {
+      // 스크롤 도중에 받으면 프레임이 비어 지나가므로 처음에 전부 받아 둔다
+      const frames = Array.from({ length: TURN_FRAME_COUNT }, (_, i) => {
+        // next/image 의 Image 와 이름이 겹쳐 브라우저 생성자를 직접 가리킨다
+        const image = new window.Image()
+        image.src = turnFrameUrl(i + 1)
+        return image
+      })
+      let shown = -1
+      const draw = (index: number) => {
+        const canvas = canvasRef.current
+        const frame = frames[index]
+        if (!canvas || !frame.complete || index === shown) return
+        const context = canvas.getContext("2d")
+        if (!context) return
+        context.clearRect(0, 0, canvas.width, canvas.height)
+        context.drawImage(frame, 0, 0, canvas.width, canvas.height)
+        shown = index
+      }
+      // 정면 프레임이 도착하면 바로 그려 둔다 (움직임 줄이기 설정이면 이 장면에서 멈춘다)
+      frames[0].onload = () => draw(0)
+      draw(0)
+
       const mm = gsap.matchMedia()
       mm.add("(prefers-reduced-motion: no-preference)", () => {
         const tl = gsap.timeline({
@@ -39,8 +69,21 @@ export default function CtaSection() {
         })
         tl.fromTo(
           "[data-cta-phone]",
-          { yPercent: 28, rotationX: 38, rotationY: -18, rotationZ: -10, opacity: 0 },
-          { yPercent: 0, rotationX: 0, rotationY: 0, rotationZ: 0, opacity: 1, duration: ENTER_LENGTH, ease: "power2.out" },
+          { yPercent: 18, opacity: 0 },
+          { yPercent: 0, opacity: 1, duration: ENTER_LENGTH * 0.5, ease: "power2.out" },
+          0
+        )
+        // 한 바퀴 돌아 다시 정면에서 멈춘다. 마지막 칸(60)은 첫 칸(정면)과 같은 자리라 0 으로 접는다
+        const turn = { frame: 0 }
+        shown = -1
+        tl.to(
+          turn,
+          {
+            frame: TURN_FRAME_COUNT,
+            duration: ENTER_LENGTH,
+            ease: "power1.inOut",
+            onUpdate: () => draw(Math.round(turn.frame) % TURN_FRAME_COUNT),
+          },
           0
         )
         tl.fromTo(
@@ -99,12 +142,18 @@ export default function CtaSection() {
           </div>
         </div>
 
-        {/* 휴대폰이 앞뒤로 눕고 일어나는 모습이 보이도록 원근을 준다 */}
-        <div className="flex min-h-0 items-center justify-center [perspective:1400px]">
+        <div className="flex min-h-0 items-center justify-center">
           <div data-cta-phone className="w-[min(42vw,22svh)] md:w-[min(300px,32svh)]">
             <div className="flex flex-col items-center gap-6 md:gap-10">
               <div className="w-full animate-phone-float">
-                <PhoneFrame src="/landing/mobile/app-main-cta.webp" alt="잇다 앱 메인 화면" />
+                <canvas
+                  ref={canvasRef}
+                  width={TURN_WIDTH}
+                  height={TURN_HEIGHT}
+                  role="img"
+                  aria-label="잇다 앱 메인 화면이 켜진 휴대폰"
+                  className="h-auto w-full"
+                />
               </div>
               <PhoneShadow className="animate-phone-float-shadow" />
             </div>
