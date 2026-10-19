@@ -71,6 +71,7 @@ const ITEM_LENGTH = 700
 export default function ShowcaseSection() {
   const sectionRef = useRef<HTMLElement>(null)
   const [active, setActive] = useState(0)
+  const fillRefs = useRef<(HTMLSpanElement | null)[]>([])
 
   useGSAP(
     () => {
@@ -80,7 +81,14 @@ export default function ShowcaseSection() {
         // 항목마다 같은 길이를 준다. 마지막 항목도 나오자마자 풀리지 않고 한 칸만큼 머문 뒤에 고정이 풀린다
         end: `+=${ITEM_LENGTH * SHOWCASES.length}`,
         pin: true,
-        onUpdate: (self) => setActive(Math.min(SHOWCASES.length - 1, Math.floor(self.progress * SHOWCASES.length))),
+        onUpdate: (self) => {
+          const position = self.progress * SHOWCASES.length
+          setActive(Math.min(SHOWCASES.length - 1, Math.floor(position)))
+          // 막대마다 자기 항목 구간을 지난 만큼 차오른다. 스크롤마다 바뀌어 리렌더 대신 스타일만 고친다
+          fillRefs.current.forEach((fill, i) => {
+            if (fill) fill.style.transform = `scaleX(${Math.min(1, Math.max(0, position - i))})`
+          })
+        },
       })
     },
     { scope: sectionRef }
@@ -97,12 +105,13 @@ export default function ShowcaseSection() {
               <div
                 key={item.label}
                 aria-hidden={i !== active}
-                className={`col-start-1 row-start-1 flex flex-col gap-4 transition-all duration-500 ease-out md:gap-5 ${
-                  i === active ? "translate-y-0 opacity-100" : i < active ? "-translate-y-4 opacity-0" : "translate-y-4 opacity-0"
+                // 움직이거나 크기를 바꾸지 않고 제자리에서 겹쳐 흐려지며 바뀐다
+                className={`col-start-1 row-start-1 flex flex-col gap-4 transition-opacity duration-500 ease-out md:gap-5 ${
+                  i === active ? "opacity-100" : "opacity-0"
                 }`}
               >
                 <p className="text-sm font-semibold text-main">{item.label}</p>
-                <h3 className="text-3xl font-extrabold leading-[1.3] tracking-tight text-ink md:text-5xl">
+                <h3 className="text-3xl font-extrabold leading-[1.3] text-ink md:text-5xl">
                   {item.title[0]}
                   <br />
                   <span className="text-main">{item.title[1]}</span>
@@ -112,13 +121,20 @@ export default function ShowcaseSection() {
             ))}
           </div>
 
-          {/* 몇 번째인지: 지금 항목만 길게 늘어난다 */}
-          <div className="flex gap-2">
+          {/* 몇 번째인지: 같은 길이의 막대를 나란히 두고, 스크롤하는 만큼 지금 항목 막대가 차오른다.
+              막대 길이가 바뀌면 옆 막대가 밀려 어색해서 길이는 고정한다 */}
+          <div className="flex gap-1.5">
             {SHOWCASES.map((item, i) => (
-              <span
-                key={item.label}
-                className={`h-1.5 rounded-full transition-all duration-500 ${i === active ? "w-8 bg-main" : "w-1.5 bg-zinc-300"}`}
-              />
+              <span key={item.label} className="h-1 w-8 overflow-hidden rounded-full bg-zinc-200 md:w-10">
+                {/* Tailwind 의 scale-x-* 는 transform 이 아닌 scale 속성이라, 위에서 고치는 transform 과 섞이지 않게 처음 값도 transform 으로 준다 */}
+                <span
+                  ref={(el) => {
+                    fillRefs.current[i] = el
+                  }}
+                  className="block size-full origin-left rounded-full bg-main"
+                  style={{ transform: "scaleX(0)" }}
+                />
+              </span>
             ))}
           </div>
         </div>
@@ -135,9 +151,7 @@ export default function ShowcaseSection() {
                 <div
                   key={item.label}
                   aria-hidden={i !== active}
-                  className={`absolute inset-0 transition-all duration-700 ease-out ${
-                    i === active ? "scale-100 opacity-100" : "scale-[1.03] opacity-0"
-                  }`}
+                  className={`absolute inset-0 transition-opacity duration-700 ease-out ${i === active ? "opacity-100" : "opacity-0"}`}
                 >
                   {item.media}
                 </div>

@@ -5,7 +5,7 @@ import Image from "next/image"
 import gsap from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 import { useGSAP } from "@gsap/react"
-import { PaymentMock, ReviewMock, VerifyMock } from "./mocks"
+import { PaymentMock, ReviewMock } from "./mocks"
 
 interface DifferenceCard {
   title: [string, string]
@@ -23,20 +23,26 @@ function Chip({ children }: { children: ReactNode }) {
   )
 }
 
-// 사진은 첫 화면 영상의 프레임을 세로로 잘라 썼다. 영상과 같은 현장이라 랜딩 전체가 한 이야기로 이어진다
+// 실제 잇다 화면(idta.store)에서 잘라 낸 조각. 화면이 바뀌면 다시 찍는다
+function Capture({ src, alt, width, height }: { src: string; alt: string; width: number; height: number }) {
+  return <Image src={src} alt={alt} width={width} height={height} sizes="360px" className="w-full rounded-2xl shadow-sm" />
+}
+
+// 배경 사진은 잇다에 실제로 올라온 서비스 사진을 카드 비율(400x520)로 잘라 썼다. 카드 문장과 어울리는 서비스를 골랐다
 const CARDS: DifferenceCard[] = [
   {
     title: ["후기를 다 읽지 않아도,", "핵심만 한눈에."],
-    photo: "/landing/photos/laptop.webp",
+    photo: "/landing/photos/card-review.webp",
     overlay: <ReviewMock />,
   },
   {
     title: ["대금은 안전하게,", "정산은 투명하게."],
+    photo: "/landing/photos/card-payment.webp",
     overlay: <PaymentMock />,
   },
   {
     title: ["누군가의 거래가,", "나의 신뢰가 됩니다."],
-    photo: "/landing/photos/hammer.webp",
+    photo: "/landing/photos/card-trust.webp",
     overlay: (
       <div className="flex flex-wrap gap-2">
         <Chip>일정 준수</Chip>
@@ -47,17 +53,13 @@ const CARDS: DifferenceCard[] = [
   },
   {
     title: ["기록은 남고,", "위조는 남지 않습니다."],
-    overlay: <VerifyMock />,
+    photo: "/landing/photos/card-record.webp",
+    overlay: <Capture src="/landing/cards/blocks.webp" alt="잇다 블록체인 검증 화면의 최근 블록 목록" width={760} height={458} />,
   },
   {
     title: ["필요한 순간,", "가까운 능력자와."],
-    photo: "/landing/photos/workshop.webp",
-    overlay: (
-      <div className="flex flex-col gap-1 rounded-2xl bg-white/95 p-4 text-sm shadow-sm">
-        <p className="text-xs font-semibold text-main">이웃들이 많이 찾아요</p>
-        <p className="font-bold text-ink">설치 · 수리 · 인테리어</p>
-      </div>
-    ),
+    photo: "/landing/photos/card-nearby.webp",
+    overlay: <Capture src="/landing/cards/search.webp" alt="잇다 능력자 찾기 화면의 서비스 카드" width={760} height={503} />,
   },
 ]
 
@@ -96,7 +98,7 @@ export default function DifferenceSection() {
       <div className="flex h-full w-full flex-col justify-center gap-8 pt-16 md:gap-14 md:pt-0">
         <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-4 px-5 md:px-10 xl:px-20">
           <p className="text-sm font-semibold text-main">잇다만의 차이</p>
-          <h2 className="text-3xl font-extrabold leading-[1.3] tracking-tight text-ink md:text-5xl">
+          <h2 className="text-3xl font-extrabold leading-[1.3] text-ink md:text-5xl">
             믿을 수 있는 능력자가,
             <br />
             좋은 결과로 이어지도록.
@@ -120,7 +122,7 @@ export default function DifferenceSection() {
                 </>
               )}
               <div className="relative">{card.overlay}</div>
-              <p className="relative text-2xl font-extrabold leading-snug tracking-tight text-white md:text-[26px]">
+              <p className="relative text-2xl font-extrabold leading-snug text-white md:text-[26px]">
                 {card.title[0]}
                 <br />
                 {card.title[1]}

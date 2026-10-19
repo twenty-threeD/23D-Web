@@ -1,10 +1,9 @@
-// 랜딩 첫 화면의 레터박스는 두 조각으로 나뉘어 있다.
-// 위 띠는 LandingHeader, 아래 띠(+문구)는 ImageSequence 가 그린다.
-// 둘이 같은 순간에 같이 물러나야 해서, 영상 섹션이 이 이벤트로 상태를 알린다.
+// 랜딩 첫 화면(이미지 시퀀스)이 화면을 차지하는 동안에는 위아래를 검은 레터박스로만 두고 헤더를 숨긴다.
+// 헤더는 시퀀스가 끝나야 나와야 해서, 영상 섹션이 이 이벤트로 지금 첫 화면 구간인지 알린다.
 export const LETTERBOX_EVENT = "itda:letterbox"
 
 export interface LetterboxDetail {
-  /** true 면 레터박스가 펼쳐진 상태(첫 화면), false 면 물러난 상태 */
+  /** true 면 아직 첫 화면 구간(헤더 숨김), false 면 시퀀스가 끝난 뒤 */
   active: boolean
 }
 

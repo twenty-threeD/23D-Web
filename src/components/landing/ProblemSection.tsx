@@ -17,8 +17,8 @@ const PROBLEMS = [
     description: "구두 합의와 고쳐 쓴 문서가 섞이면서, 무엇이 원본인지 아무도 확인할 수 없게 됩니다.",
   },
   {
-    title: "검증 안 된 상대",
-    description: "이력도 평판도 확인하기 어려운 채로, 매번 처음부터 상대를 믿고 시작해야 합니다.",
+    title: "흩어지는 거래 기록",
+    description: "견적은 메신저에, 계약은 파일로 흩어져 무엇이 오갔는지 다시 찾기 어렵습니다.",
   },
 ]
 
@@ -51,8 +51,8 @@ export default function ProblemSection() {
     <section ref={sectionRef} className="h-svh overflow-hidden bg-night text-white">
       <div className="mx-auto flex h-full w-full max-w-[1280px] flex-col justify-center gap-10 px-5 pt-16 md:gap-16 md:px-10 md:pt-0 xl:px-20">
         <div className="flex flex-col gap-4 md:gap-5">
-          <p className="text-sm font-semibold tracking-[0.2em] text-main">PROBLEM</p>
-          <h2 className="text-3xl font-extrabold leading-[1.25] tracking-tight md:text-6xl">
+          <p className="text-sm font-semibold text-main">문제</p>
+          <h2 className="text-3xl font-extrabold leading-[1.25] md:text-6xl">
             프리랜서 거래를 막는 것은
             <br />
             실력이 아니라 <span className="text-main">불신</span>입니다
@@ -65,7 +65,7 @@ export default function ProblemSection() {
               key={problem.title}
               data-active={i === active}
               // 지금 카드만 선명하게 키우고 테두리·번호를 브랜드 색으로 밝힌다. 나머지는 흐리게(블러) 물러나 있다
-              className="group flex origin-center flex-col gap-3 rounded-3xl border border-white/10 bg-white/[0.03] p-5 opacity-40 blur-[3px] transition-all duration-500 ease-out data-[active=true]:border-main/60 data-[active=true]:blur-none data-[active=true]:bg-white/[0.07] data-[active=true]:opacity-100 data-[active=true]:shadow-[0_30px_80px_-20px_rgba(254,106,76,.35)] md:scale-95 md:gap-10 md:p-8 md:data-[active=true]:scale-105"
+              className="group flex origin-center flex-col gap-3 rounded-3xl border border-white/10 bg-white/[0.03] p-5 opacity-40 blur-[3px] transition-all duration-500 ease-out data-[active=true]:border-main/60 data-[active=true]:blur-none data-[active=true]:bg-white/[0.07] data-[active=true]:opacity-100 md:scale-95 md:gap-10 md:p-8 md:data-[active=true]:scale-105"
             >
               <span className="text-4xl font-extrabold leading-none text-white/15 transition-colors duration-500 group-data-[active=true]:text-main md:text-6xl">
                 {String(i + 1).padStart(2, "0")}

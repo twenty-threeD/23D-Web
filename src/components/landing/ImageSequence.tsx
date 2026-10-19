@@ -80,7 +80,7 @@ const MOBILE_BREAKPOINT = 768
 // 세로 화면에서 노트북이 화면 폭의 이 비율 안에 들어오도록 줌아웃한다
 const MOBILE_LAPTOP_FILL = 0.9
 
-const DARK = "#13110F"
+const DARK = "#111111"
 const LIGHT = "#FFFFFF"
 
 // 걷히기 시작하면 배경은 곧바로 흰색이 된다.
@@ -92,8 +92,8 @@ const RADIUS_TURN = 0.15
 const PHOTO_FADE_START = 0.65
 // 카드로 앉았을 때 모서리 반경
 const SETTLED_RADIUS = 28
-// 아래 레터박스 높이. 위 레터박스인 헤더(h-16)와 같은 두께로 맞춘다.
-const LETTERBOX_HEIGHT = "h-16"
+// 위아래 레터박스 두께. 영화 화면처럼 보이도록 두껍게 둔다
+const LETTERBOX_HEIGHT = "h-[13svh]"
 
 
 // 스크롤에 맞춰 낱장 프레임을 canvas 로 갈아 끼우는 시퀀스 뷰어.
@@ -118,9 +118,11 @@ export default function ImageSequence({
   const screenRef = useRef<HTMLDivElement>(null)
   const screenClipRef = useRef<HTMLDivElement>(null)
   const captionRef = useRef<HTMLDivElement>(null)
+  const topBarRef = useRef<HTMLDivElement>(null)
   const wordRefs = useRef<(HTMLSpanElement | null)[]>([])
   const finaleRef = useRef<HTMLDivElement>(null)
   const baseRef = useRef<HTMLImageElement>(null)
+  const pageRef = useRef<HTMLDivElement>(null)
   const itemRefs = useRef<(HTMLLIElement | null)[]>([])
   const pieceRefs = useRef<(HTMLImageElement | null)[]>([])
 
@@ -155,7 +157,6 @@ export default function ImageSequence({
       const zoomEase = gsap.parseEase("power1.inOut")
       let progress = 0
       let activeStep = -1
-      let letterboxGone = false
 
       // 프레임을 화면 어디에 얼마나 크게 그릴지. 캔버스와 노트북 화면 위치가 같은 계산을 써야 어긋나지 않는다.
       //
@@ -333,6 +334,29 @@ export default function ImageSequence({
 
           box.style.width = `${SCREEN_BASE_WIDTH}px`
           box.style.height = `${baseHeight}px`
+
+          // 카드에는 페이지 위쪽만 들어가 아래 조각이 잘린다. 조각을 하나씩 짚는 동안 페이지를 스크롤에 맞춰 위로 밀어
+          // 지금 짚는 조각이 카드 가운데 오게 한다. 조각 사이에서는 부드럽게 이어진다
+          if (pageRef.current) {
+            const page = pageRef.current
+            const maxOffset = Math.max(0, page.offsetHeight - baseHeight)
+            const centerOf = (piece: HTMLImageElement | null) =>
+              piece ? gsap.utils.clamp(0, maxOffset, piece.offsetTop + piece.offsetHeight / 2 - baseHeight / 2) : 0
+            // 짚기 전(구간 0)에는 맨 위, 조각 i 는 자기 구간 한가운데(i + 0.5)에서 카드 가운데 온다
+            const centers = pieceRefs.current.map(centerOf)
+            const at = gsap.utils.clamp(0, stepCount, ((progress - settleEnd) / (1 - settleEnd)) * stepCount)
+            let offset = 0
+            if (stepCount > 0) {
+              if (at < 0.5) {
+                offset = gsap.utils.interpolate(0, centers[0], settleEase(at / 0.5))
+              } else {
+                const i = Math.min(Math.floor(at - 0.5), stepCount - 1)
+                const next = Math.min(i + 1, stepCount - 1)
+                offset = gsap.utils.interpolate(centers[i], centers[next], settleEase(gsap.utils.clamp(0, 1, at - 0.5 - i)))
+              }
+            }
+            page.style.transform = `translateY(${-offset}px)`
+          }
           box.style.transform = quadTransform(SCREEN_BASE_WIDTH, baseHeight, quad)
           box.style.opacity = String(screenAlpha)
           // 노트북 화면일 때는 각진 채로, 카드가 되면서 모서리가 둥글어진다.
@@ -356,17 +380,10 @@ export default function ImageSequence({
           )
         }
 
-        // 문구·레터박스는 스크롤에 물려 끌려가는 대신, 헤더와 똑같이 한 번에 물러난다.
-        // (헤더는 opacity + translate 를 300ms 에 걸쳐 바꾼다. 같은 전환을 아래 띠에도 건다)
-        if (captionRef.current) {
-          const gone = progress > CAPTION_EXIT_TRIGGER / scrollLength
-          captionRef.current.dataset.gone = String(gone)
-          // 위 띠인 헤더도 같은 순간에 같이 물러나야 한다.
-          if (gone !== letterboxGone) {
-            letterboxGone = gone
-            emitLetterbox(!gone)
-          }
-        }
+        // 문구·레터박스는 스크롤에 물려 끌려가는 대신, 정해진 지점에서 위아래 띠가 한 번에 물러난다
+        const gone = String(progress > CAPTION_EXIT_TRIGGER / scrollLength)
+        if (captionRef.current) captionRef.current.dataset.gone = gone
+        if (topBarRef.current) topBarRef.current.dataset.gone = gone
         if (finaleRef.current) finaleRef.current.style.opacity = String(settle)
 
         if (stepCount > 0) {
@@ -411,6 +428,9 @@ export default function ImageSequence({
           end: `+=${scrollLength}`,
           pin: true,
           scrub: 0.5,
+          // 헤더는 시퀀스가 끝나 고정이 풀린 뒤에 나오고, 다시 거슬러 올라오면 숨는다
+          onLeave: () => emitLetterbox(false),
+          onEnterBack: () => emitLetterbox(true),
         },
         onUpdate: () => {
           progress = state.value
@@ -418,7 +438,7 @@ export default function ImageSequence({
         },
       })
 
-      // 첫 화면에서는 헤더가 위 띠 역할을 하도록 켜둔 상태로 시작한다.
+      // 첫 화면 구간에서 시작한다. 새로고침으로 시퀀스 아래에서 열리면 ScrollTrigger 가 곧바로 onLeave 를 부른다
       emitLetterbox(true)
 
       window.addEventListener("resize", resize)
@@ -434,15 +454,22 @@ export default function ImageSequence({
     <div ref={sectionRef} className="relative h-screen w-full overflow-hidden bg-night">
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
+      {/* 위 레터박스. 아래 띠와 같은 순간에 위로 물러난다 */}
+      <div
+        ref={topBarRef}
+        data-gone="false"
+        className={`pointer-events-none absolute inset-x-0 top-0 z-10 ${LETTERBOX_HEIGHT} bg-black transition-all duration-300 data-[gone=true]:-translate-y-full data-[gone=true]:opacity-0`}
+      />
+
       {caption?.length ? (
         <div
           ref={captionRef}
           data-gone="false"
           // 문구는 레터박스 바로 위에 얹고, 둘이 한 덩어리로 같이 빠져나간다.
-          // 사라지는 방식은 헤더와 같다 — 같은 300ms 동안 아래로 밀리며 흐려진다.
+          // 위 띠와 같은 300ms 동안 아래로 밀리며 흐려진다.
           className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col transition-all duration-300 data-[gone=true]:translate-y-full data-[gone=true]:opacity-0"
         >
-          <div className="flex items-end justify-between px-5 pb-6 text-4xl font-extrabold tracking-tight text-white md:px-20 md:pb-8 md:text-7xl">
+          <div className="flex items-end justify-between px-5 pb-6 text-4xl font-extrabold text-white md:px-20 md:pb-8 md:text-7xl">
             {/* 글자가 아래에서 솟아오르게 보이도록 한 낱말씩 가려둔다 */}
             {caption.map((word, i) => (
               <span key={word + i} className="block overflow-hidden pb-1">
@@ -458,8 +485,8 @@ export default function ImageSequence({
             ))}
           </div>
 
-          {/* 아래 레터박스. 블러만 건다 */}
-          <div className={`${LETTERBOX_HEIGHT} backdrop-blur-lg`} />
+          {/* 아래 레터박스 */}
+          <div className={`${LETTERBOX_HEIGHT} bg-black`} />
         </div>
       ) : null}
 
@@ -506,7 +533,7 @@ export default function ImageSequence({
           className="pointer-events-none absolute top-0 left-0 origin-top-left shadow-lg overflow-hidden opacity-0"
         >
           {/* 세로로 긴 페이지를 위에서부터 보여준다. 조각 좌표를 %로 쓰기 위한 기준 상자이기도 하다 */}
-          <div className="relative w-full" style={{ aspectRatio: `${PAGE_WIDTH} / ${PAGE_HEIGHT}` }}>
+          <div ref={pageRef} className="relative w-full" style={{ aspectRatio: `${PAGE_WIDTH} / ${PAGE_HEIGHT}` }}>
             {/* 원근 변환(matrix3d) 상자 안에서 % 좌표로 겹쳐 놓는 그림이라 고정 크기를 받는 next/image 와 맞지 않는다 */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
