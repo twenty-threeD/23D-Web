@@ -1,9 +1,8 @@
 "use client"
 
-import Image from "next/image"
+import PostImage from "@/src/components/PostImage"
 import Link from "next/link"
 import { IoChatbubbleOutline, IoChevronForward, IoImageOutline } from "react-icons/io5"
-import { toRelativeUrl } from "@/src/lib/file"
 
 interface ChatStartCardProps {
   postId?: number | null
@@ -45,7 +44,7 @@ export default function ChatStartCard({
       <div className="flex gap-4 px-4 py-4.5">
         {imageUrl ? (
           <div className="relative size-22 shrink-0 overflow-hidden rounded-xl border border-line bg-zinc-200">
-            <Image src={toRelativeUrl(imageUrl)} alt="" fill sizes="88px" className="object-cover" />
+            <PostImage src={imageUrl} alt="" fill sizes="88px" className="object-cover" />
           </div>
         ) : (
           <div className="flex size-22 shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-line bg-zinc-100">

@@ -1,7 +1,6 @@
-import Image from "next/image"
+import PostImage from "@/src/components/PostImage"
 import { StarIcon } from "@/src/components/main/icons";
 import Link from "next/link";
-import { toRelativeUrl } from "@/src/lib/file";
 import { getPostMainImage, type Post } from "@/src/lib/post";
 import { parsePostContent } from "@/src/types/priceCard";
 import PostRating from "@/src/components/main/PostRating";
@@ -70,8 +69,8 @@ export default function ServiceCard({ post, inGrid = false }: { post: Post; inGr
       <Link href={`/item/${post.id}`} className="flex flex-col gap-4 group">
         <div className={`relative ${c.image} rounded-xl bg-zinc-200 overflow-hidden`}>
           {image && (
-            <Image
-              src={toRelativeUrl(image)}
+            <PostImage
+              src={image}
               alt={post.title}
               fill
               sizes={c.sizes}

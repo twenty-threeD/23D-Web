@@ -1,7 +1,6 @@
-import Image from "next/image"
+import PostImage from "@/src/components/PostImage"
 import Link from "next/link";
 import { FaStar } from "react-icons/fa"
-import { toRelativeUrl } from "@/src/lib/file"
 import { parsePostContent } from "@/src/types/priceCard"
 import { cardClasses } from "@/src/components/main/ServiceCard"
 import PostRating from "@/src/components/main/PostRating"
@@ -38,8 +37,8 @@ export default function NormalCard({ id, title, content, fileUrl, price, categor
       <Link href={`/item/${id}`} className="flex flex-col gap-4 group">
         <div className={`relative ${c.image} rounded-xl bg-zinc-200 overflow-hidden`}>
           {fileUrl && (
-            <Image
-              src={toRelativeUrl(fileUrl)}
+            <PostImage
+              src={fileUrl}
               alt={title}
               fill
               sizes={c.sizes}

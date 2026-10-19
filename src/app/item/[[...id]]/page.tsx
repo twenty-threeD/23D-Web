@@ -19,6 +19,7 @@ import { useToast } from "@/src/hooks/useToast";
 import { ApiError } from "@/src/lib/apiError";
 import { toRelativeUrl } from "@/src/lib/file"
 import ImageLightbox from "@/src/components/ImageLightbox"
+import PostImage from "@/src/components/PostImage"
 import ReviewAnalysis from "@/src/components/item/ReviewAnalysis"
 import { createReview, getReviews, getReviewableContracts, summarizePostReviews, type Review as ReviewData, type ReviewableContract } from "@/src/lib/review"
 import { signinPath } from "@/src/lib/navigation"
@@ -200,16 +201,17 @@ export default function Page() {
       <div className="flex flex-col gap-10">
         {/* 좌우 여백은 /main 과 같은 규칙(SECTION_INSET)을 써서 두 화면의 본문 시작선을 맞춘다 */}
         <div className={`flex flex-col gap-[52px] w-full ${SECTION_INSET}`}>
-        {/* 대체 이미지 양옆이 비므로 그 이미지 바탕색(#f4f4f4)과 거의 같은 neutral-100 으로 이어 붙인다 */}
-        <div className={`relative w-full h-[180px] md:h-[260px] rounded-2xl overflow-hidden ${headerImage === NO_POST_IMAGE ? "bg-neutral-100" : "bg-zinc-200"}`}>
-          {/* 대체 이미지는 가운데 아이콘·문구가 있어 가로로 긴 칸에 꽉 채우면 잘린다. 원본 비율대로 가운데 둔다 */}
-          <Image
-            src={toRelativeUrl(headerImage)}
+        <div className="relative w-full h-[180px] md:h-[260px] rounded-2xl overflow-hidden bg-zinc-200">
+          {/* 대체 이미지는 가운데 아이콘·문구가 있어 가로로 긴 칸에 꽉 채우면 잘린다. 원본 비율대로 가운데 두고,
+              비는 양옆은 그 이미지 바탕색(#f4f4f4)과 거의 같은 neutral-100 으로 이어 붙인다 */}
+          <PostImage
+            src={headerImage}
             alt="서비스 헤더 이미지"
             fill
             sizes="(max-width: 768px) 100vw, 1200px"
             priority
-            className={headerImage === NO_POST_IMAGE ? "object-contain" : "object-cover"}
+            className="object-cover"
+            fallbackClassName="object-contain bg-neutral-100"
           />
         </div>
 
