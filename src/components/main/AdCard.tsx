@@ -1,7 +1,6 @@
-import Image from "next/image"
+import PostImage from "@/src/components/PostImage"
 import { StarIcon } from "@/src/components/main/icons";
 import Link from "next/link";
-import { toRelativeUrl } from "@/src/lib/file";
 import { getPostMainImage, type Post } from "@/src/lib/post";
 import { parsePostContent } from "@/src/types/priceCard";
 import PostRating from "@/src/components/main/PostRating";
@@ -30,7 +29,7 @@ export default function AdCard({ post }: { post: Post }) {
     >
       <div className="relative h-40 bg-zinc-200">
         {image && (
-          <Image src={toRelativeUrl(image)} alt={post.title} fill sizes="360px" className="object-cover" />
+          <PostImage src={image} alt={post.title} fill sizes="360px" className="object-cover" />
         )}
       </div>
       <div className="flex flex-col gap-2 p-4">
