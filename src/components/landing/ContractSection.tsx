@@ -26,9 +26,10 @@ const TAMPERED_AMOUNT = "12,000,000원"
 const HASH = "8f3a91c4e07b2d56a1f0c9e3b74d8a2c"
 const HEX = "0123456789abcdef"
 
-// 장면은 이 크기로 그리고, 들어갈 칸에 맞춰 통째로 줄인다. 휴대폰처럼 칸이 작아도 배치가 깨지지 않는다
+// 장면은 이 크기로 그리고, 들어갈 칸에 맞춰 통째로 줄인다. 휴대폰처럼 칸이 작아도 배치가 깨지지 않는다.
+// 높이는 안의 내용(계약서·해시·블록·검증 칸)이 다 들어가는 크기여야 한다. 모자라면 칸이 눌려 글씨가 겹치므로 칸마다 shrink-0 을 준다
 const STAGE_WIDTH = 440
-const STAGE_HEIGHT = 560
+const STAGE_HEIGHT = 640
 // 단계 하나에 쓰는 스크롤 길이(px)
 const STEP_LENGTH = 650
 
@@ -99,7 +100,8 @@ export default function ContractSection() {
           .to(hash, { revealed: 1, duration: 1, ease: "none", onUpdate: paintHash })
           // 3) 블록이 이어지고 마지막 블록에 해시가 담긴다
           .to("[data-scene=chain]", { autoAlpha: 1, y: 0 }, "+=0.3")
-          .fromTo("[data-scene=block]", { autoAlpha: 0, x: 30 }, { autoAlpha: 1, x: 0, stagger: 0.15 }, "<")
+          // 블록은 옆에서 들어온다. 위에서 모든 장면을 24px 내려 둔 것까지 함께 되돌려야 아래 문구와 겹치지 않는다
+          .fromTo("[data-scene=block]", { autoAlpha: 0, x: 30, y: 0 }, { autoAlpha: 1, x: 0, y: 0, stagger: 0.15 }, "<")
           .to("[data-scene=recorded]", { autoAlpha: 1, y: 0, ease: "back.out(2)" })
           // 4) 누군가 금액을 고치면 지문이 달라져 검증이 실패하고, 원본으로 돌아오면 통과한다
           .to("[data-scene=verify]", { autoAlpha: 1, y: 0 }, "+=0.3")
@@ -126,8 +128,8 @@ export default function ContractSection() {
         {/* 글: 넓은 화면은 단계 목록을 모두, 휴대폰은 지금 단계만 보여준다 */}
         <div className="flex shrink-0 flex-col gap-5 md:w-[42%] md:gap-10">
           <div className="flex flex-col gap-3 md:gap-5">
-            <p className="text-sm font-semibold tracking-[0.2em] text-main">SOLUTION</p>
-            <h2 className="text-2xl font-extrabold leading-[1.3] tracking-tight text-ink md:text-5xl">
+            <p className="text-sm font-semibold text-main">해결</p>
+            <h2 className="text-2xl font-extrabold leading-[1.3] text-ink md:text-5xl">
               계약서는 한 번 기록되면
               <br />
               누구도 바꿀 수 없습니다
@@ -191,7 +193,7 @@ function Stage({ hashRef }: { hashRef: React.RefObject<HTMLSpanElement | null> }
   return (
     <div className="flex h-full w-full flex-col items-center gap-4 rounded-[32px] bg-zinc-50 p-6">
       {/* 계약서 */}
-      <div data-scene="contract" className="flex w-full flex-col gap-4 rounded-2xl border border-line bg-white p-5 shadow-sm">
+      <div data-scene="contract" className="flex w-full shrink-0 flex-col gap-4 rounded-2xl border border-line bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between">
           <p className="text-base font-bold text-contract">용역 계약서</p>
           <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-semibold text-ink-sub">No. 2026-1020</span>
@@ -225,7 +227,7 @@ function Stage({ hashRef }: { hashRef: React.RefObject<HTMLSpanElement | null> }
       </div>
 
       {/* 해시 */}
-      <div data-scene="hash" className="flex w-full flex-col items-center gap-2">
+      <div data-scene="hash" className="flex w-full shrink-0 flex-col items-center gap-2">
         <ArrowDown />
         <div className="flex w-full items-center gap-3 rounded-xl bg-ink px-4 py-3">
           <span className="shrink-0 rounded-md bg-white/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-white/70">SHA-256</span>
@@ -234,7 +236,7 @@ function Stage({ hashRef }: { hashRef: React.RefObject<HTMLSpanElement | null> }
       </div>
 
       {/* 블록 */}
-      <div data-scene="chain" className="flex w-full flex-col items-center gap-2">
+      <div data-scene="chain" className="flex w-full shrink-0 flex-col items-center gap-2">
         <ArrowDown />
         <div className="flex w-full items-center">
           {[1024, 1025, 1026].map((height, i) => (
@@ -261,7 +263,7 @@ function Stage({ hashRef }: { hashRef: React.RefObject<HTMLSpanElement | null> }
       </div>
 
       {/* 검증 결과. 실패·통과를 같은 자리에 겹쳐 둔다 */}
-      <div data-scene="verify" className="relative h-12 w-full">
+      <div data-scene="verify" className="relative h-12 w-full shrink-0">
         <div data-scene="fail" className="absolute inset-0 flex items-center justify-center gap-2 rounded-xl bg-red-50 text-sm font-bold text-red-500">
           <XIcon className="size-4" /> 해시 불일치 · 위조된 계약서
         </div>

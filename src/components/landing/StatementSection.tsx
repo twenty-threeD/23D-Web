@@ -25,7 +25,13 @@ export default function StatementSection() {
         const tl = gsap.timeline({
           scrollTrigger: { trigger: sectionRef.current, start: "top top", end: `+=${total}`, pin: true, scrub: 0.4 },
         })
-        tl.fromTo("[data-char]", { opacity: 0, y: 24 }, { opacity: 1, y: 0, stagger: 0.06, ease: "power2.out", duration: 0.4 })
+        // 글자가 살짝 크게 흐릿하게 나타났다가 제자리 크기로 또렷해지며 한 글자씩 넘어간다.
+        // 너무 크게 키우면 옆 글자와 겹쳐 어색해서 조금만 키우고, 바닥선을 기준으로 줄어들게 한다
+        tl.fromTo(
+          "[data-char]",
+          { opacity: 0, scale: 1.25, filter: "blur(6px)", transformOrigin: "50% 100%" },
+          { opacity: 1, scale: 1, filter: "blur(0px)", stagger: 0.06, ease: "power2.out", duration: 0.35 }
+        )
         // 글자가 다 나온 뒤 머무는 구간. 타임라인 길이 비율을 스크롤 길이 비율과 맞춘다
         tl.to({}, { duration: tl.duration() * (HOLD_LENGTH / REVEAL_LENGTH) })
       })
@@ -37,12 +43,13 @@ export default function StatementSection() {
   return (
     <section ref={sectionRef} className="h-svh bg-white">
       <div className="mx-auto flex h-svh w-full max-w-[1280px] items-center justify-center px-5 md:px-10 xl:px-20">
-        <h2 className="text-center text-4xl font-extrabold leading-[1.25] tracking-tight text-ink md:text-7xl">
+        <h2 className="text-center text-4xl font-extrabold leading-[1.25] text-ink md:text-7xl">
           {LINES.map((line, i) => (
             <span key={line} className="block">
-              {/* 글자마다 따로 진해지도록 한 글자씩 나눈다. 띄어쓰기는 그대로 둬야 줄바꿈 위치가 바뀌지 않는다 */}
+              {/* 글자마다 따로 움직이도록 한 글자씩 나눈다. 크기를 바꾸려면 inline-block 이어야 하고,
+                  그러면 띄어쓰기 칸이 0 폭으로 접히므로 whitespace-pre 로 공백 폭을 지킨다 */}
               {[...line].map((char, j) => (
-                <span key={j} data-char className={i === 1 && j < 3 ? "text-main" : undefined}>
+                <span key={j} data-char className={`inline-block whitespace-pre ${i === 1 && j < 3 ? "text-main" : ""}`}>
                   {char}
                 </span>
               ))}

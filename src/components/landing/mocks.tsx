@@ -70,22 +70,3 @@ export function ReviewMock() {
     </div>
   )
 }
-
-export function VerifyMock() {
-  return (
-    <div className="flex w-full flex-col gap-3 rounded-2xl bg-night p-4 font-mono text-xs text-white/70 md:p-5 md:text-sm">
-      <div className="flex items-center justify-between font-sans">
-        <span className="font-semibold text-white">거래 기록 검증</span>
-        <span className="flex items-center gap-1.5 rounded-full bg-emerald-400/15 px-2.5 py-1 text-xs font-semibold text-emerald-300">
-          <span className="size-1.5 rounded-full bg-emerald-300" />
-          원장과 일치
-        </span>
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <p className="flex justify-between gap-4"><span className="text-white/40">order</span><span className="truncate">order-20261020-k3x9</span></p>
-        <p className="flex justify-between gap-4"><span className="text-white/40">block</span><span>#1,026</span></p>
-        <p className="flex justify-between gap-4"><span className="text-white/40">hash</span><span className="truncate text-main">0x8f3a91c4e07b…74d8a2c</span></p>
-      </div>
-    </div>
-  )
-}

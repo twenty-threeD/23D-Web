@@ -13,8 +13,8 @@
   --color-ink-hint: #838383;
   /* 멘션으로 이동한 댓글 강조. 브랜드 오렌지는 버튼·칩에 이미 써서 배경까지 칠하면 경고처럼 보인다 */
   --color-highlight: #e6f0ff;
-  /* 랜딩의 어두운 섹션 바탕. 첫 화면 영상·문제 섹션·마지막 안내가 같은 색으로 이어진다 */
-  --color-night: #13110f;
+  /* 랜딩의 어두운 섹션 바탕(첫 화면·통화·문제). 갈색이 섞인 검정은 꾸민 티가 나서 무채색 검정으로 둔다 */
+  --color-night: #111111;
   /* 프로젝트 폰트는 Pretendard 로 통일한다. 기본 sans 를 덮어써서 클래스 없이도 전역에 적용되게 한다 */
   --font-sans: var(--font-pretendard-local), system-ui, sans-serif;
 }
@@ -127,9 +127,30 @@ body { margin: 0; }
   	animation: block-height-rise 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* 랜딩의 휴대폰이 제자리에서 천천히 떠오르고 가라앉는다. 그림자는 휴대폰이 뜰 때 작고 옅어져 거리감을 만든다 */
+@keyframes phone-float {
+	0%, 100% { transform: translateY(0); }
+	50% { transform: translateY(-3%); }
+}
+
+@keyframes phone-float-shadow {
+	0%, 100% { transform: scale(1); opacity: 1; }
+	50% { transform: scale(0.86); opacity: 0.6; }
+}
+
+.animate-phone-float {
+	animation: phone-float 5s ease-in-out infinite;
+}
+
+.animate-phone-float-shadow {
+	animation: phone-float-shadow 5s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.block-height-rise,
-	.animate-call-pulse {
+	.animate-call-pulse,
+	.animate-phone-float,
+	.animate-phone-float-shadow {
 		animation: none;
 	}
 }

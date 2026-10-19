@@ -8,6 +8,9 @@ import StatementSection from "@/src/components/landing/StatementSection";
 import ShowcaseSection from "@/src/components/landing/ShowcaseSection";
 import DifferenceSection from "@/src/components/landing/DifferenceSection";
 import CtaSection from "@/src/components/landing/CtaSection";
+import MobileSection from "@/src/components/landing/MobileSection";
+import CallSection from "@/src/components/landing/CallSection";
+import LandingNav, { LandingSection, type LandingSectionInfo } from "@/src/components/landing/LandingNav";
 import type { Quad } from "@/src/lib/perspective";
 import { useRedirectIfAuthed } from "@/src/hooks/useRedirectIfAuthed";
 
@@ -86,21 +89,34 @@ const SHOWCASE_STEPS: ShowcaseStep[] = [
   {
     title: "눈에 띄는 서비스부터",
     description: "지금 주목받는 서비스를 맨 위에서 바로 만나봅니다.",
-    src: "/landing/web/card1.webp",
+    src: "/landing/web/main-ad.webp",
     rect: { x: 0, y: 436, width: 1512 },
   },
   {
     title: "이웃들이 많이 찾는 일",
     description: "조회수가 많은 서비스를 모아서 보여줍니다.",
-    src: "/landing/web/card2.webp",
+    src: "/landing/web/main-popular.webp",
     rect: { x: 0, y: 864, width: 1512 },
   },
   {
     title: "다시 찾는 데는 이유가 있어요",
     description: "재구매가 많은 능력자를 따로 추려서 보여줍니다.",
-    src: "/landing/web/card3.webp",
+    src: "/landing/web/main-revisit.webp",
     rect: { x: 0, y: 1340, width: 1512 },
   },
+];
+
+// 왼쪽 진행 바가 바탕색을 맞추려고 재는 섹션. 아래 화면에 놓인 순서와 같게 둔다
+const LANDING_SECTIONS: LandingSectionInfo[] = [
+  { id: "hero", tone: "dark" },
+  { id: "statement" },
+  { id: "showcase" },
+  { id: "call", tone: "dark" },
+  { id: "difference" },
+  { id: "problem", tone: "dark" },
+  { id: "contract" },
+  { id: "mobile" },
+  { id: "cta" },
 ];
 
 export default function Page() {
@@ -112,26 +128,47 @@ export default function Page() {
     // 다음 섹션이 고정된 화면 위로 겹쳐 올라온다
     <div>
       <LandingHeader />
-      <ImageSequence
-        frameUrl={sequenceFrameUrl}
-        frameCount={SEQUENCE_FRAME_COUNT}
-        screen={{ base: "/landing/web/blank_main.webp", corners: LAPTOP_SCREEN_CORNERS, track: LAPTOP_SCREEN_TRACK }}
-        steps={SHOWCASE_STEPS}
-        caption={["사람과", "사람을", "잇다"]}
-        finale={
-          <div className="flex flex-col gap-1 text-3xl font-extrabold leading-tight text-ink md:gap-2 md:text-5xl">
-            <h2>용역을 안전하게</h2>
-            <h2><span className="text-main">잇다</span>로</h2>
-          </div>
-        }
-      />
-      {/* 첫 화면 → 한 문장 → 실제 화면 → 차이 → 왜 안전한가(문제·해결) → 시작하기 순으로 읽힌다 */}
-      <StatementSection />
-      <ShowcaseSection />
-      <DifferenceSection />
-      <ProblemSection />
-      <ContractSection />
-      <CtaSection />
+      <LandingNav sections={LANDING_SECTIONS} />
+      <LandingSection id="hero">
+        <ImageSequence
+          frameUrl={sequenceFrameUrl}
+          frameCount={SEQUENCE_FRAME_COUNT}
+          screen={{ base: "/landing/web/main-blank.webp", corners: LAPTOP_SCREEN_CORNERS, track: LAPTOP_SCREEN_TRACK }}
+          steps={SHOWCASE_STEPS}
+          caption={["사람과", "사람을", "잇다"]}
+          finale={
+            <div className="flex flex-col gap-1 text-3xl font-extrabold leading-tight text-ink md:gap-2 md:text-5xl">
+              <h2>믿을 만한 능력자를</h2>
+              <h2><span className="text-main">잇다</span>에서 한눈에</h2>
+            </div>
+          }
+        />
+      </LandingSection>
+      {/* 첫 화면 → 한 문장 → 실제 화면 → 통화 → 차이 → 왜 안전한가(문제·해결) → 모바일 → 시작하기 순으로 읽힌다 */}
+      <LandingSection id="statement">
+        <StatementSection />
+      </LandingSection>
+      <LandingSection id="showcase">
+        <ShowcaseSection />
+      </LandingSection>
+      <LandingSection id="call">
+        <CallSection />
+      </LandingSection>
+      <LandingSection id="difference">
+        <DifferenceSection />
+      </LandingSection>
+      <LandingSection id="problem">
+        <ProblemSection />
+      </LandingSection>
+      <LandingSection id="contract">
+        <ContractSection />
+      </LandingSection>
+      <LandingSection id="mobile">
+        <MobileSection />
+      </LandingSection>
+      <LandingSection id="cta">
+        <CtaSection />
+      </LandingSection>
     </div>
   );
 }
