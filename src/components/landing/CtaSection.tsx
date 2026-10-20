@@ -1,18 +1,14 @@
 "use client"
 
 import { useRef } from "react"
-import Image from "next/image"
 import Link from "next/link"
 import gsap from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 import { useGSAP } from "@gsap/react"
 import { PhoneShadow } from "./PhoneFrame"
+import StoreButton from "./StoreButton"
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
-
-// 원스토어 상세 페이지 주소. 주소를 받기 전까지 비워 두며, 비어 있는 동안 버튼은 누를 수 없다.
-// 주소가 나오면 여기만 채우면 된다
-const ONESTORE_URL = ""
 
 // 휴대폰이 한 바퀴 돌며 떠오르고 문구가 다 올라오는 데 쓰는 스크롤 길이(px)와, 그 뒤 머무는 길이
 const ENTER_LENGTH = 1200
@@ -36,8 +32,7 @@ export default function CtaSection() {
     () => {
       // 스크롤 도중에 받으면 프레임이 비어 지나가므로 처음에 전부 받아 둔다
       const frames = Array.from({ length: TURN_FRAME_COUNT }, (_, i) => {
-        // next/image 의 Image 와 이름이 겹쳐 브라우저 생성자를 직접 가리킨다
-        const image = new window.Image()
+        const image = new Image()
         image.src = turnFrameUrl(i + 1)
         return image
       })
@@ -161,33 +156,5 @@ export default function CtaSection() {
         </div>
       </div>
     </section>
-  )
-}
-
-// 스토어 배지처럼 생긴 원스토어 다운로드 버튼. 주소가 없으면 누를 수 없게 둔다
-function StoreButton() {
-  const className = "flex h-16 items-center gap-3 rounded-2xl bg-night pr-6 pl-4 text-white"
-  const content = (
-    <>
-      {/* 원스토어 공식 사이트(onestore.co.kr)의 앱 아이콘 */}
-      <Image src="/landing/onestore.webp" alt="" width={36} height={36} className="size-9" />
-      <span className="flex flex-col leading-tight">
-        <span className="text-xs text-white/60">다운로드</span>
-        <span className="text-lg font-bold">원스토어</span>
-      </span>
-    </>
-  )
-
-  if (!ONESTORE_URL) {
-    return (
-      <span aria-disabled className={className}>
-        {content}
-      </span>
-    )
-  }
-  return (
-    <a href={ONESTORE_URL} target="_blank" rel="noreferrer" className={`${className} transition-colors hover:bg-ink`}>
-      {content}
-    </a>
   )
 }
