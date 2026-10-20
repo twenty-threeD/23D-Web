@@ -20,19 +20,19 @@ interface Phone {
 // 가운데(메인)를 맨 앞에 두고, 양옆은 뒤에서 비스듬히 빠져나온다. 배열 순서가 곧 쌓이는 순서다
 const PHONES: Phone[] = [
   {
-    src: "/landing/mobile/app-search.webp",
+    src: "/landing/mobile/iphone16-search.webp",
     alt: "잇다 앱 능력자 찾기 화면",
     spread: { xPercent: -66, yPercent: 7, rotation: -9, scale: 0.84 },
     floatDelay: "-1.6s",
   },
   {
-    src: "/landing/mobile/app-service.webp",
+    src: "/landing/mobile/iphone16-service.webp",
     alt: "잇다 앱 서비스 상세 화면",
     spread: { xPercent: 66, yPercent: 7, rotation: 9, scale: 0.84 },
     floatDelay: "-3.2s",
   },
   {
-    src: "/landing/mobile/app-main.webp",
+    src: "/landing/mobile/iphone16-main.webp",
     alt: "잇다 앱 메인 화면",
     spread: { xPercent: 0, yPercent: 0, rotation: 0, scale: 1 },
     floatDelay: "0s",
