@@ -3,58 +3,7 @@
 import { useState } from "react";
 import { IoChevronDownOutline } from "react-icons/io5";
 import { PAGE_PADDING } from "@/src/lib/layout";
-
-const faqItems = [
-  {
-    question: "잇다는 어떤 서비스인가요?",
-    answer:
-      "잇다는 자신의 경험과 능력을 서비스로 등록하고, 필요한 능력자를 찾아 연결될 수 있는 플랫폼입니다. 서비스 탐색부터 문의, 채팅, 거래까지 한 곳에서 이용할 수 있습니다.",
-  },
-  {
-    question: "서비스를 이용하려면 회원가입이 필요한가요?",
-    answer:
-      "서비스를 둘러보는 것은 회원가입 없이도 가능합니다. 다만 채팅, 서비스 등록, 결제 등 일부 기능은 회원가입과 로그인이 필요합니다.",
-  },
-  {
-    question: "서비스를 등록하려면 어떻게 해야 하나요?",
-    answer:
-      "로그인 후 상단 메뉴의 ‘서비스 등록’을 선택해 서비스 제목, 설명, 가격과 관련 이미지를 입력하면 됩니다. 등록한 서비스는 검토 후 다른 이용자에게 공개됩니다.",
-  },
-  {
-    question: "등록된 능력자에게 어떻게 문의하나요?",
-    answer:
-      "관심 있는 서비스 상세 페이지에서 문의를 시작할 수 있습니다. 채팅을 통해 작업 범위, 일정, 비용 등을 충분히 협의한 뒤 거래를 진행해 주세요.",
-  },
-  {
-    question: "결제와 환불은 어떻게 진행되나요?",
-    answer:
-      "결제는 서비스 상세 내용과 결제 화면에 안내된 절차에 따라 진행됩니다. 환불이 필요한 경우 거래 상대방과 먼저 내용을 확인한 뒤 결제 관련 문의처로 접수해 주세요.",
-  },
-  {
-    question: "계정이나 개인정보를 수정하고 싶어요.",
-    answer:
-      "로그인 후 프로필 메뉴에서 수정할 수 있습니다. 개인정보처리방침에 따라 개인정보 관련 열람·수정·삭제 요청은 문의 이메일로 접수할 수 있습니다.",
-  },
-  {
-    question: "이름(실명)은 어떻게 변경하나요?",
-    answer: "고객센터에 문의해주세요.",
-  },
-  {
-    question: "서비스 이용 중 문제가 생기면 어디로 문의하나요?",
-    answer: (
-      <>
-        이용 중 불편한 점이나 제휴 문의는 아래 이메일로 보내주세요. 문의 내용을
-        자세히 남겨주시면 확인 후 답변드리겠습니다.
-        <a
-          href="mailto:itda23d@gmail.com"
-          className="mt-3 block font-semibold text-main hover:text-orange-600"
-        >
-          itda23d@gmail.com
-        </a>
-      </>
-    ),
-  },
-];
+import { FAQ_ITEMS as faqItems } from "@/src/lib/faq";
 
 export default function Page() {
   const [openIndex, setOpenIndex] = useState(0);
@@ -107,8 +56,13 @@ export default function Page() {
                       />
                     </button>
                     {isOpen && (
-                      <div className="border-t border-main/10 bg-main/2 px-5 py-5 text-sm leading-7 text-zinc-600 lg:px-6">
-                        {item.answer}
+                      <div className="flex flex-col gap-3 border-t border-main/10 bg-main/2 px-5 py-5 text-sm leading-7 text-zinc-600 lg:px-6">
+                        <p>{item.answer}</p>
+                        {item.email && (
+                          <a href={`mailto:${item.email}`} className="block font-semibold text-main hover:text-orange-600">
+                            {item.email}
+                          </a>
+                        )}
                       </div>
                     )}
                   </div>
