@@ -22,7 +22,7 @@ const HOLD_LENGTH = 300
 // 조명은 그대로 두고 휴대폰만 돌려서, 도는 동안 반사광이 테두리·뒷면을 따라 흐른다
 const TURN_FRAME_COUNT = 60
 const TURN_WIDTH = 560
-const TURN_HEIGHT = 1144
+const TURN_HEIGHT = 1146
 const turnFrameUrl = (index: number) => `/landing/turn/${String(index).padStart(3, "0")}.webp`
 
 // 랜딩의 마지막 안내. 첫 화면의 "사람과 사람을 잇다" 를 다시 받아 행동으로 이어지게 한다.

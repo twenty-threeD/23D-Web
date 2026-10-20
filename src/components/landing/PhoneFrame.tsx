@@ -1,8 +1,8 @@
 import Image from "next/image"
 
 // Blender 로 렌더한 휴대폰 이미지 크기. 세 장 모두 같은 범위로 잘라 크기·위치가 같다
-export const PHONE_RENDER_WIDTH = 488
-export const PHONE_RENDER_HEIGHT = 1014
+export const PHONE_RENDER_WIDTH = 486
+export const PHONE_RENDER_HEIGHT = 1012
 
 interface PhoneFrameProps {
   /** 휴대폰을 통째로 렌더한 투명 배경 이미지 */
