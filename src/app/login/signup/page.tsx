@@ -10,6 +10,7 @@ import InputPhone from "@/src/components/login/InputPhone";
 import Link from "next/link";
 
 import { signup } from '@/src/lib/auth'
+import { ApiError } from '@/src/lib/apiError'
 import BackButton from "@/src/components/BackButton";
 
 
@@ -59,26 +60,31 @@ export default function Page() {
             addToast(
                 { message: e instanceof Error ? `회원가입에 실패하였습니다. ${e.message}` : '회원가입에 실패했습니다.', type: "error" },
             );
+            // 이메일 인증은 가입 한 번에 소비되고 30분이 지나면 만료되므로, 가입이 실패하면 인증부터 다시 받아야 한다.
+            // 인증이 문제면 인증 단계로, 그 밖의 실패(아이디 중복 등)는 입력부터 고치도록 정보 입력 단계로 돌려보낸다.
+            // 어느 쪽이든 이메일 인증 단계를 다시 지나가게 된다
+            setFormData((prev) => ({ ...prev, emailVerification: "" }))
+            setStep(e instanceof ApiError && e.code === "EMAIL_NOT_VERIFIED" ? 3 : 2)
         } finally {
             setIsWaiting(false)
         }
     }
 
     return (
-        <div className="flex justify-center items-center bg-zinc-100 h-full">
+        <div className="flex justify-center items-center bg-zinc-100 flex-1 px-4">
             <div className="flex fixed left-4 top-4 px-4 py-4">
                 <BackButton />
             </div>
             <main 
                 style={{ height: getHeight() }}
                 className={`
-                    w-106 py-16 rounded-3xl border border-zinc-300 bg-white 
+                    w-full max-w-106 py-16 rounded-3xl border border-line bg-white 
                     flex flex-col items-center justify-center
                     transition-[height] duration-500 ease-in-out overflow-hidden
                 `}
             >
                 <Link href="/main">
-                    <Image src="/logo.svg" alt="Logo" width={80} height={40} className="mb-5 bg-black" />
+                    <Image src="/icon.png" alt="Logo" width={80} height={40} />
                 </Link>
                 <div className="w-full flex flex-col gap-3 items-center transition-opacity duration-300">
                     {step === 1 && (

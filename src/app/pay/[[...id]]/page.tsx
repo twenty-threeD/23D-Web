@@ -1,175 +1,244 @@
 "use client";
-import { useState, useEffect, Suspense } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useState, useEffect, Suspense, type ReactNode } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { LuChevronLeft, LuCircleAlert } from "react-icons/lu";
 
-import Header from "@/src/components/Header";
-import Footer from "@/src/components/Footer";
-
-import { Estimate } from "@/src/components/pay/Estimate";
-import { FinalBill } from "@/src/components/pay/FinalBill";
-import { ApplyPay } from "@/src/components/pay/ApplyPay";
 import { OnClickPay } from "@/src/components/pay/OnClickPay";
+import { ContractPreview } from "@/src/components/pay/ContractPreview";
+import HelpTooltip from "@/src/components/blockchain/HelpTooltip";
 
-import PriceCard from "@/src/components/PriceCard";
-import { getPost, getPostMainImage, type Post } from "@/src/lib/post";
+import { getPost, type Post } from "@/src/lib/post";
 import { useAuthStore } from "@/src/store/authStore";
 import { parsePostContent } from "@/src/types/priceCard";
-import { getEstimates, type Estimate as EstimateData } from "@/src/lib/estimate";
-import { useHandleError } from "@/src/hooks/useHandleError";
-import { getReviewSummary, type ReviewSummary } from "@/src/lib/review";
+import { getContract } from "@/src/lib/contract";
+import { useToast } from "@/src/hooks/useToast";
+import { getChatRooms, unwrap } from "@/src/lib/chat";
+import { getMyProfile } from "@/src/lib/profile";
+import { signinPath } from "@/src/lib/navigation";
+import type { ChatRoom } from "@/src/store/chatRoomsStore";
+import { calculatePaymentFee } from "@/src/lib/paymentFee";
+import { PAGE_PADDING } from "@/src/lib/layout";
+
+type Contract = Awaited<ReturnType<typeof getContract>>;
+
+function toPositiveInt(value: string | null | undefined) {
+  const n = Number(value);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
 
 const PayContent = () => {
   const params = useParams();
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const postId = params.id ? Number(Array.isArray(params.id) ? params.id[0] : params.id) : null;
+  const { addToast } = useToast();
   const token = useAuthStore((s) => s.accessToken);
+  const hydrated = useAuthStore((s) => s.hydrated);
   const username = useAuthStore((s) => s.username);
-  const handleError = useHandleError();
 
-  const [isAgree, setIsAgree] = useState(false);
-  const [post, setPost] = useState<Post | null>(null);
-  const [estimate, setEstimate] = useState<EstimateData | null>(null);
-  // 조회를 끝낸 게시글 번호. 로딩 여부는 이 값으로 파생시킨다
-  // (effect 안에서 동기적으로 setState 하지 않기 위함).
-  const [loadedPostId, setLoadedPostId] = useState<number | null>(null);
-  const [reviewSummary, setReviewSummary] = useState<ReviewSummary | null>(null);
-  // 결제를 이미 마친 건인지. 결제 후 이 페이지로 되돌아왔을 때 안내가 달라진다.
-  const [alreadyPaid, setAlreadyPaid] = useState(false);
-
-  useEffect(() => {
-    if (!postId) return;
-    getPost(postId, token).then((res) => setPost(res.data ?? null)).catch(() => {});
-  }, [postId, token]);
-
-  // 평점은 게시글 응답에 없어 요약 API 로 따로 받는다
-  useEffect(() => {
-    if (!postId) return;
-    getReviewSummary(postId, token)
-      .then(setReviewSummary)
-      .catch(() => setReviewSummary(null));
-  }, [postId, token]);
-
-  // 결제 대상 견적서를 찾는다. 아직 결제되지 않은 것 중 가장 최근 것을 사용한다.
-  useEffect(() => {
-    if (!token || !postId) return;
-    getEstimates(token, postId)
-      .then((list) => {
-        const target = list
-          .filter((e) => e.status !== "PAID")
-          .sort((a, b) => b.id - a.id)[0];
-        setEstimate(target ?? null);
-        setAlreadyPaid(list.some((e) => e.status === "PAID"));
-      })
-      .catch(handleError)
-      .finally(() => setLoadedPostId(postId));
-  }, [token, postId]);
-
-  const estimateLoading = Boolean(token && postId) && loadedPostId !== postId;
-
-  const { plans } = post ? parsePostContent(post.content) : { plans: [] };
-
-  // 채팅 계약서 플로우(갑↔을 서명 완료)에서 넘어온 경우, 그 쪽 price/contractUrl을 우선 사용한다.
-  // 없으면 기존처럼 견적서 하나를 근거로 삼는다 (게시글 플랜 가격은 결제에 절대 쓰지 않는다).
-  const queryPrice = searchParams.get("price");
-  const queryContractUrl = searchParams.get("contractUrl");
+  const postId = toPositiveInt(Array.isArray(params.id) ? params.id[0] : params.id);
+  const contractId = toPositiveInt(searchParams.get("contractId"));
+  // 결제 승인 후 이 방으로 돌아가 결제 완료 메시지를 보낸다
+  const roomId = toPositiveInt(searchParams.get("roomId"));
   // 문의 시작 때 고른 플랜. 결제 화면에서는 선택이 끝났으므로 이 플랜만 보여준다.
   const selectedPlanName = searchParams.get("plan");
-  // 결제 승인 후 이 방으로 돌아가 결제 완료 메시지를 보낸다
-  const roomId = searchParams.get("roomId");
-  const hasContractQuery = queryPrice !== null && queryContractUrl !== null;
 
-  const price = hasContractQuery ? Number(queryPrice) : (estimate?.totalPay ?? 0);
-  const contractUrl = hasContractQuery ? queryContractUrl : estimate?.url;
+  const [post, setPost] = useState<Post | null>(null);
+  const [contract, setContract] = useState<Contract | null>(null);
 
-  // post를 올린 사람이 을(파는 쪽, 대금을 받는 "능력자")이다. 문의해서 들어온 사람이 갑(결제하는 쪽).
-  const expertName = post?.member?.name ?? post?.member?.username ?? "";
-  const postAuthorUsername = post?.member?.username;
-  const imgPath = getPostMainImage(post?.fileUrls) ?? "/profile.png";
+  // URL 의 postId·contractId·roomId·plan 은 누구나 고쳐 칠 수 있다.
+  // 서버 prepare 도 계약 금액을 검증하지만 그건 결제하기를 눌러야 드러나므로,
+  // 진입 시점에 서로가 한 건으로 맞물리는지 확인하고 하나라도 어긋나면 화면을 보여주지 않고 돌려보낸다.
+  useEffect(() => {
+    if (!hydrated) return;
+    let cancelled = false;
+
+    const reject = (message: string) => {
+      if (cancelled) return;
+      addToast({ message, type: "error" });
+      router.replace(roomId ? `/chat/${roomId}` : "/chat");
+    };
+
+    if (!token) {
+      router.replace(signinPath());
+      return;
+    }
+    // 계약 체결 없이(쿼리 없이) 들어오는 경로 자체를 막는다
+    if (!postId || !contractId || !roomId) {
+      reject("잘못된 결제 경로입니다. 채팅방에서 계약을 체결한 뒤 결제해주세요.");
+      return;
+    }
+
+    (async () => {
+      try {
+        const [postRes, contractData, roomsJson, profileRes] = await Promise.all([
+          getPost(postId, token),
+          getContract(token, contractId),
+          getChatRooms(token),
+          getMyProfile(token),
+        ]);
+        if (cancelled) return;
+
+        const targetPost: Post | null = postRes.data ?? null;
+        const rooms = unwrap<ChatRoom[]>(roomsJson) ?? [];
+        const room = Array.isArray(rooms) ? rooms.find((r) => r.roomId === roomId) : undefined;
+        const myMemberId = profileRes.data?.memberId;
+        const myUsername = profileRes.data?.username;
+        const seller = targetPost?.member?.username;
+
+        const plans = targetPost ? parsePostContent(targetPost.content).plans : [];
+        const planMatches = !selectedPlanName || plans.some((p) => p.planName === selectedPlanName);
+
+        const valid =
+          targetPost !== null &&
+          room !== undefined &&
+          // 방이 이 게시글에서 시작된 것이어야 한다
+          room.postId === postId &&
+          // 갑/을은 방마다 정해진다: 글 작성자가 을, 나는 갑이어야 결제할 수 있다
+          !!seller && seller !== myUsername && seller === room.participantUsername &&
+          // 계약서 당사자가 정확히 이 방의 나(갑)와 상대(을)여야 한다
+          !!myMemberId && contractData.clientId === myMemberId &&
+          !!room.participantId && contractData.professionalId === room.participantId &&
+          planMatches;
+
+        if (!valid) {
+          reject("결제 정보가 일치하지 않습니다. 채팅방의 결제하기 버튼으로 다시 시도해주세요.");
+          return;
+        }
+        setPost(targetPost);
+        setContract(contractData);
+      } catch {
+        // 남의 계약서·없는 게시글 등은 서버가 403/404 로 거절한다
+        reject("결제 정보를 확인할 수 없습니다. 채팅방의 결제하기 버튼으로 다시 시도해주세요.");
+      }
+    })();
+
+    return () => { cancelled = true };
+    // addToast·router 는 매 렌더 새로 만들어져 넣으면 검증이 반복 실행된다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, token, postId, contractId, roomId, selectedPlanName]);
+
+  // 검증을 통과하기 전에는 아무것도 그리지 않는다 (금액·버튼이 잠깐이라도 보이지 않게)
+  if (!post || !contract || !contractId) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-zinc-400">결제 정보를 확인하는 중...</p>
+      </div>
+    );
+  }
+
+  // 수수료 구간과 비율은 안내용이며, 최종 금액·수수료·정산액은 서버 prepare 응답과 대조한다.
+  const price = contract.price;
+  const paymentFee = calculatePaymentFee(price);
+  const contractUrl = contract.contractUrl;
+
+  // 오른쪽 항목은 계약서 PDF 의 내용을 서버에 저장된 값으로 다시 보여주는 것이다.
+  // PDF 는 클라이언트가 그려 올린 파일이라, 둘이 다르면 사용자가 알아채고 신고할 수 있게 나란히 둔다.
+  const fields: { label: string; value: string; suffix?: string }[] = [
+    { label: "갑", value: contract.clientName },
+    { label: "을", value: contract.professionalName },
+    { label: "용역 시작일", value: formatDate(contract.startedAt) },
+    { label: "용역 종료일", value: formatDate(contract.endedAt) },
+    { label: "검수기간", value: String(contract.inspectionPeriod ?? ""), suffix: "일" },
+    { label: "계약서 작성일", value: formatDate(contract.createdAt) },
+  ];
 
   return (
-    <div>
-      <Header />
-      <main className="flex flex-col gap-4 justify-center py-8 px-20">
-        <div className="w-full">
-          <h1 className="text-[24px] font-bold">견적서 확인</h1>
-        </div>
+    // 넓은 화면에서도 시안의 1280px 콘텐츠 폭을 유지한 채 가운데에 둔다 (마진 대신 부모 정렬로)
+    <main className={`flex flex-col items-center ${PAGE_PADDING}`}>
+      <div className="flex w-full max-w-320 flex-col gap-9">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="flex items-center gap-1 self-start text-[14px] font-medium text-ink-hint cursor-pointer"
+        >
+          <LuChevronLeft className="size-6" />
+          뒤로가기
+        </button>
 
-        <div className="flex items-start gap-10 justify-between">
-          <div className="flex-1 min-w-0">
-          <Estimate
-            imgPath={imgPath}
-            title={post?.title ?? ""}
-            expertName={expertName}
-            serviceCategory={post?.category?.fullName ?? undefined}
-            avgRating={reviewSummary?.averageRating}
-            reviewCount={reviewSummary?.reviewCount}
-          />
-          </div>
-          <div className="pr-25">
-            <FinalBill
-              defaultAmount={price}
-            />
-          </div>
-        </div>
+        <div className="flex flex-col gap-12">
+          <h1 className="text-[20px] font-semibold text-black">계약서 확인</h1>
 
-        <div className="flex items-start gap-10 justify-between">
-          <div className="flex-1 min-w-0">
-            <PriceCard
-              username={postAuthorUsername}
-              plans={plans}
-              postId={postId ?? undefined}
-              showInquiry={false}
-              selectedPlanName={selectedPlanName}
-            />
-          </div>
-          <div className="pr-25">
-            <ApplyPay isAgree={isAgree} setIsAgree={setIsAgree} />
-            {hasContractQuery ? (
-              <OnClickPay
-                isAgree={isAgree}
-                price={price}
-                orderName={post?.title ?? "잇다 서비스"}
-                orderCustomerName={username ?? ""}
-                postId={postId ?? undefined}
-                roomId={roomId}
-                contractUrl={contractUrl}
-              />
-            ) : estimateLoading ? (
-              <p className="w-87.5 mt-5 py-3 text-center text-sm text-zinc-400">
-                견적서를 불러오는 중입니다...
-              </p>
-            ) : estimate ? (
-              <OnClickPay
-                isAgree={isAgree}
-                price={price}
-                orderName={post?.title ?? "잇다 서비스"}
-                orderCustomerName={username ?? ""}
-                postId={postId ?? undefined}
-                roomId={roomId}
-                contractUrl={contractUrl}
-                estimateId={estimate.id}
-              />
-            ) : alreadyPaid ? (
-              // 결제가 끝난 건을 다시 열었을 때 "견적서가 없다"고 안내하면 오해를 부른다
-              <p className="w-87.5 mt-5 py-3 text-center text-sm text-emerald-700">
-                이미 결제가 완료된 건입니다.
-                <br />
-                후기는 서비스 상세페이지에서 남길 수 있어요.
-              </p>
-            ) : (
-              <p className="w-87.5 mt-5 py-3 text-center text-sm text-zinc-500">
-                견적서가 아직 발행되지 않았습니다.
-                <br />
-                전문가에게 견적서를 요청해주세요.
-              </p>
-            )}
+          {/* 계약서 미리보기(795px)와 결제 칸이 나란히 들어가는 건 넓은 화면뿐이라, 그보다 좁으면 결제 칸을 아래로 내린다 */}
+          <div className="flex flex-col xl:flex-row xl:items-start gap-8 xl:gap-12">
+            <div className="w-full xl:flex-1 xl:min-w-0">
+              <ContractPreview contractUrl={contractUrl} token={token} />
+            </div>
+
+            <div className="flex w-full xl:w-109.25 xl:shrink-0 flex-col gap-14 xl:pt-5">
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-6">
+                  {fields.map((field) => (
+                    <div key={field.label} className="flex flex-col gap-3.5">
+                      <p className="text-[18px] font-semibold text-ink">{field.label}</p>
+                      <div className="flex h-9.5 items-center justify-between rounded-[10px] border border-line px-2.75 text-[12px] font-medium text-ink-hint">
+                        <span>{field.value || "-"}</span>
+                        {field.suffix && <span>{field.suffix}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <Notice>위 표시되는 내용과 계약서의 내용이 다른 경우 고객센터로 신고 바랍니다.</Notice>
+              </div>
+
+              <div className="flex flex-col gap-2.5">
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-2">
+                    <p className="text-[14px] font-medium text-ink-hint">최종 결제 금액</p>
+                    <p className="text-[28px] font-semibold text-ink">{price.toLocaleString("ko-KR")}원</p>
+                  </div>
+
+                  <OnClickPay
+                    amount={price}
+                    feeAmount={paymentFee.fee}
+                    settlementAmount={paymentFee.settlement}
+                    orderName={post.title ?? "잇다 서비스"}
+                    orderCustomerName={username ?? ""}
+                    postId={post.id}
+                    roomId={String(roomId)}
+                    contractUrl={contractUrl}
+                    contractId={contractId}
+                  />
+                </div>
+                <FeeNotice
+                  rate={paymentFee.rate}
+                  fee={paymentFee.fee}
+                  settlement={paymentFee.settlement}
+                />
+              </div>
+            </div>
           </div>
         </div>
-      </main>
-      <Footer />
-    </div>
+      </div>
+    </main>
   );
 };
+
+function Notice({ children }: { children: ReactNode }) {
+  return (
+    <p className="flex items-center gap-2 text-[12px] font-medium text-ink-hint">
+      <LuCircleAlert className="size-3 shrink-0" />
+      {children}
+    </p>
+  );
+}
+
+function FeeNotice({ rate, fee, settlement }: { rate: number; fee: number; settlement: number }) {
+  return (
+    <p className="flex items-center gap-2 text-[12px] font-medium text-ink-hint">
+      <HelpTooltip title="플랫폼 수수료" marker={<LuCircleAlert className="size-3" />}>
+        계약 금액의 {rate}% ({fee.toLocaleString("ko-KR")}원)가 수수료로 차감되어 을에게 {settlement.toLocaleString("ko-KR")}원이 정산됩니다.
+      </HelpTooltip>
+      <span>수수료는 을의 정산액에서 차감됩니다.</span>
+    </p>
+  );
+}
+
+// 서버는 LocalDateTime 을 주지만 화면에는 날짜만 필요하다
+function formatDate(value: string | null | undefined) {
+  if (!value) return "";
+  const [y, m, d] = value.slice(0, 10).split("-");
+  return `${y}년 ${Number(m)}월 ${Number(d)}일`;
+}
 
 export default function Page() {
   return (

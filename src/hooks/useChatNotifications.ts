@@ -10,8 +10,9 @@ import {
   readAllNotifications,
   type NotificationResponse,
 } from "@/src/lib/notifications"
+import { previewOf } from "@/src/lib/chatPreview"
 
-export type NotificationType = "chat" | "notice"
+export type NotificationType = "chat" | "notice" | "call"
 
 export interface Notification {
   id: number
@@ -20,16 +21,35 @@ export interface Notification {
   message: string
   createdAt: string
   roomId: number | null
+  /** 클릭 시 이동할 경로. 채팅방 이동이 아닌 알림(비밀번호 설정 안내 등)에 쓴다 */
+  link?: string
 }
 
+// 서버 NOTICE 에는 이동 경로가 없어서, 비밀번호 설정 안내만 문구로 알아보고 프로필로 보낸다
+const PASSWORD_NOTICE_PREFIX = "비밀번호가 설정되지 않았어요"
+
 function toNotification(n: NotificationResponse): Notification {
+  if (n.type === "CALL_MISSED") {
+    return {
+      id: n.notificationId ?? -Date.now(),
+      type: "call",
+      senderName: n.senderName ?? "부재중 전화",
+      message: n.message || "부재중 전화가 있어요.",
+      createdAt: n.sentAt,
+      roomId: n.roomId,
+      // 누르면 전화가 걸려온 채팅방으로 보낸다. 채팅 알림과 달리 같은 방이어도 묶지 않아 따로 경로를 둔다
+      link: n.roomId != null ? `/chat/${n.roomId}` : undefined,
+    }
+  }
   return {
     id: n.notificationId ?? -Date.now(),
     type: n.type === "NOTICE" ? "notice" : "chat",
     senderName: n.senderName ?? "공지",
-    message: n.message,
+    // 카드형 메시지는 "[접두사]\nJSON" 원문이라 채팅 목록과 같은 요약 문구로 바꿔 보여준다.
+    message: n.type === "NOTICE" ? n.message : previewOf(n.message),
     createdAt: n.sentAt,
     roomId: n.roomId,
+    link: n.type === "NOTICE" && n.message.startsWith(PASSWORD_NOTICE_PREFIX) ? "/profile" : undefined,
   }
 }
 
@@ -95,7 +115,8 @@ export function useChatNotifications() {
             if (n.id > 0) readNotification(token, n.id).catch(() => {})
             return
           }
-          markRoomUnread(n.roomId, n.message)
+          // 채팅 목록은 원문의 대괄호 접두사로 거래 완료·취소를 가르므로, 요약 문구가 아닌 원문을 넘긴다
+          markRoomUnread(n.roomId, raw.message, raw.sentAt)
         }
 
         setNotifications((prev) => {

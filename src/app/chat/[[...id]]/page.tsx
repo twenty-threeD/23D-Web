@@ -2,32 +2,50 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
-import Header from "@/src/components/Header"
 import Image from "next/image"
-import { IoClose, IoSend, IoAdd } from "react-icons/io5"
+import { IoClose, IoSend, IoAdd, IoChevronBack } from "react-icons/io5"
 import Search from "@/src/components/Search"
 import { HiDotsHorizontal } from "react-icons/hi"
-import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment, MdOutlineReceiptLong } from "react-icons/md"
-import { useAuthStore, setWsAuthCookie } from "@/src/store/authStore"
-import { useChatRoomsStore, type ChatRoom } from "@/src/store/chatRoomsStore"
-import { getChatRooms, loadChatMessages, deleteChatRoom } from "@/src/lib/chat"
+import { MdOutlineImage, MdOutlineDescription, MdOutlineAssignment, MdCall, MdVideocam, MdOutlineCancel } from "react-icons/md"
+import { useCallStore } from "@/src/store/callStore"
+import { useAuthStore, setWsAuthCookie, wsStompUrl, decodeJwtUsername } from "@/src/store/authStore"
+import { useChatRoomsStore, type ChatRoom, type TradeStatus } from "@/src/store/chatRoomsStore"
+import {
+  getChatRooms,
+  cancelTrade,
+  deleteChatRoom,
+  getChatMessages,
+  unwrap,
+  loadCachedChatMessages,
+  syncChatMessages,
+  loadOlderChatMessages,
+  mergeMessages,
+} from "@/src/lib/chat"
 import { cacheMessages } from "@/src/lib/chatDb"
 import { toRelativeUrl, uploadFile } from "@/src/lib/file"
+import { HeifConversionError } from "@/src/lib/imageCompress"
 import { useHandleError } from "@/src/hooks/useHandleError"
 import { useToast } from "@/src/hooks/useToast"
 import { Client } from "@stomp/stompjs"
 import SockJS from "sockjs-client"
 import ContractWizardModal, { type ContractData } from "@/src/components/chat/ContractWizardModal"
-import EstimateModal from "@/src/components/chat/EstimateModal"
-import { createEstimate, getEstimates, type Estimate as EstimateData } from "@/src/lib/estimate"
-import { createContract } from "@/src/lib/contract"
+import { createContract, toContractDateTime } from "@/src/lib/contract"
+import { MIN_AMOUNT_MESSAGE, isAmountRejected } from "@/src/lib/amount"
 import { getMyProfile } from "@/src/lib/profile"
 import { getPost, getPostMainImage, type Post } from "@/src/lib/post"
 import ChatStartCard from "@/src/components/chat/ChatStartCard"
 import ContractCard from "@/src/components/chat/ContractCard"
 import PaymentCard, { type ChatPayment } from "@/src/components/chat/PaymentCard"
+import CallLogCard from "@/src/components/chat/CallLogCard"
+import CallSessionBubble from "@/src/components/chat/CallSessionBubble"
+import { parseCallLog, previewCallLog, type ChatCall } from "@/src/lib/callLog"
 import { pdfBlobToFile } from "@/src/lib/contractPdf"
 import ImageLightbox from "@/src/components/ImageLightbox"
+import { parseChatStart } from "@/src/lib/chatPreview"
+import DealCard from "@/src/components/chat/DealCard"
+import { formatDealCancel, parseDealEnd, parseDealRequest } from "@/src/lib/deal"
+import { ApiError, isPayloadTooLarge } from "@/src/lib/apiError"
+import { PAGE_X } from "@/src/lib/layout";
 
 function isImageUrl(url: string) {
   return /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(url)
@@ -61,24 +79,22 @@ interface Message {
   message: string
   createdAt: string
   attachedFileUrls: string[]
-  // 백엔드가 결제 승인 시 PAYMENT 타입 메시지를 직접 만들어 넣어준다
-  type?: "TEXT" | "PAYMENT"
+  // 백엔드가 결제 승인 시 PAYMENT, 통화 종료 시 CALL 타입 메시지를 직접 만들어 넣어준다
+  type?: "TEXT" | "PAYMENT" | "CALL"
   payment?: ChatPayment | null
+  call?: ChatCall | null
 }
+
+// 미리보기가 "새 메시지" 로만 남은 옛 방을 이미 원문으로 채웠는지.
+// 이 페이지는 방을 바꿀 때마다 새로 마운트돼서, 컴포넌트 ref 에 두면 방을 옮길 때마다 그 방들의 메시지 전체를 다시 받는다
+const legacyCheckedRooms = new Set<number>()
 
 export default function Page() {
   const params = useParams()
   const router = useRouter()
   const token = useAuthStore((s) => s.accessToken)
-  const myUsername = useAuthStore((s) => {
-    if (s.username) return s.username
-    if (!s.accessToken) return null
-    try {
-      const p = JSON.parse(atob(s.accessToken.split('.')[1]))
-      return p.username ?? p.sub ?? null
-    } catch { return null }
-  })
-  const myRole = useAuthStore((s) => s.role)
+  const hasToken = !!token
+  const myUsername = useAuthStore((s) => s.username ?? (s.accessToken ? decodeJwtUsername(s.accessToken) : null))
   const selectedId = params.id ? Number(Array.isArray(params.id) ? params.id[0] : params.id) : null
 
   const [tab, setTab] = useState<Tab>("all")
@@ -89,9 +105,10 @@ export default function Page() {
   const [contractBusy, setContractBusy] = useState(false)
   const [phoneVerified, setPhoneVerified] = useState<boolean | undefined>(undefined)
   const [myMemberId, setMyMemberId] = useState<number | undefined>(undefined)
-  const [showEstimate, setShowEstimate] = useState(false)
-  const [estimateBusy, setEstimateBusy] = useState(false)
-  const [estimates, setEstimates] = useState<EstimateData[]>([])
+  // 통화 UI 자체는 전역(CallProvider)이 그린다. 여기서는 거는 것만 맡는다.
+  const startCall = useCallStore((s) => s.start)
+  const callPhase = useCallStore((s) => s.phase)
+  const activeCall = useCallStore((s) => s.call)
   const rooms = useChatRoomsStore((s) => s.rooms)
   const setRoomsInStore = useChatRoomsStore((s) => s.setRooms)
   const unreadRoomIds = useChatRoomsStore((s) => s.unreadRoomIds)
@@ -111,23 +128,59 @@ export default function Page() {
   const [messages, setMessages] = useState<Message[]>([])
   const [loadingRooms, setLoadingRooms] = useState(() => !useChatRoomsStore.getState().loaded)
   const [loadingMessages, setLoadingMessages] = useState(false)
-  const [pendingImageUrls, setPendingImageUrls] = useState<string[]>([])
-  const [pendingPreviews, setPendingPreviews] = useState<string[]>([])
+  // 미리보기와 업로드 결과를 한 항목으로 묶는다. 배열 두 개로 따로 들면 일부만 실패하거나
+  // 업로드 중에 하나를 지울 때 순서가 어긋나 엉뚱한 사진이 보내지거나 지워졌다
+  const [pendingImages, setPendingImages] = useState<{ preview: string; url: string | null }[]>([])
+  const uploadedImageUrls = pendingImages.flatMap((img) => (img.url ? [img.url] : []))
   const [pendingDocUrl, setPendingDocUrl] = useState<string | null>(null)
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
+  // 방금 복사한 트랜잭션 해시. 해시 줄에 잠깐 "복사됨"을 띄우는 데만 쓴다
+  const [copiedHash, setCopiedHash] = useState<string | null>(null)
   const [pendingDocName, setPendingDocName] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const stompClientRef = useRef<Client | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesBoxRef = useRef<HTMLDivElement>(null)
+  // 위로 스크롤 페이지네이션 상태. 빈 배열이 오면 더 이상 과거가 없다.
+  const [hasOlder, setHasOlder] = useState(true)
+  const loadingOlderRef = useRef(false)
+  // 과거 페이지를 앞에 붙일 때 보던 위치가 튀지 않게 붙이기 전 scrollHeight 를 기억한다
+  const prependScrollHeightRef = useRef<number | null>(null)
+  const lastMessageIdRef = useRef<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const docInputRef = useRef<HTMLInputElement>(null)
   const chatInputRef = useRef<HTMLInputElement>(null)
   const handleError = useHandleError()
+  // useHandleError 는 매 렌더 새 함수를 돌려줘서 useCallback 의존성에 넣으면 동기화가 무한 반복된다
+  const handleErrorRef = useRef(handleError)
+  useEffect(() => { handleErrorRef.current = handleError })
+  // 소켓 재연결 콜백은 연결 시점의 클로저라 최신 목록을 ref 로 읽는다
+  const messagesRef = useRef<Message[]>([])
+  useEffect(() => { messagesRef.current = messages }, [messages])
+  // 방을 빠르게 바꾸면 이전 방 응답이 늦게 도착해 섞이므로 현재 방인지 확인한다
+  const currentRoomRef = useRef<number | null>(null)
   const { addToast } = useToast()
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    const box = messagesBoxRef.current
+    if (prependScrollHeightRef.current != null && box) {
+      box.scrollTop += box.scrollHeight - prependScrollHeightRef.current
+      prependScrollHeightRef.current = null
+    }
+    // 과거 페이지를 앞에 붙인 경우엔 맨 아래로 끌어내리면 안 된다. 마지막 메시지가 바뀔 때만 내린다.
+    const last = messages[messages.length - 1]
+    const lastKey = last ? (last.messageId ?? -messages.length) : null
+    if (lastKey !== lastMessageIdRef.current) {
+      lastMessageIdRef.current = lastKey
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    }
   }, [messages])
+
+  // 통화 카드는 메시지 목록 맨 끝에 붙는데, 전화가 왔다고 messages 가 바뀌지는 않는다.
+  // 그래서 대화가 길면 카드가 스크롤 밖에 남아 전화가 온 줄도 모르고 받지도 못했다.
+  useEffect(() => {
+    if (callPhase !== "idle") messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [callPhase])
 
   useEffect(() => {
     setActiveRoomId(selectedId)
@@ -135,31 +188,65 @@ export default function Page() {
   }, [selectedId, setActiveRoomId])
 
   useEffect(() => {
-    if (!selectedId || !token) return
+    if (!selectedId || !hasToken) return
+    // 토큰은 만료 전에 재발급된다. effect 가 토큰 값에 의존하면 재발급마다 소켓이 끊겼다 붙고 메시지를 다시 받아서,
+    // 연결은 로그인 여부(hasToken)로만 유지하고 실제 값은 쓸 때마다 스토어에서 최신으로 꺼낸다
+    const currentToken = () => useAuthStore.getState().accessToken ?? ""
 
     markRoomRead(selectedId)
 
     // 인증은 쿠키로 넘어간다(setWsAuthCookie). 백엔드가 ?token= 쿼리 인증을 막았고,
     // 토큰을 URL 에 실으면 브라우저 히스토리·프록시 로그에 남기 때문에 쿼리는 쓰지 않는다.
-    setWsAuthCookie(token)
-    const sockjsUrl = `${window.location.protocol}//${window.location.host}/ws-stomp`
+    setWsAuthCookie(currentToken())
+    const sockjsUrl = wsStompUrl()
+
+    // 첫 연결은 fetchMessages 가 동기화하므로, 재연결일 때만 끊긴 구간을 after 로 메운다
+    let connectedOnce = false
 
     const client = new Client({
       webSocketFactory: () => new SockJS(sockjsUrl),
-      connectHeaders: {
-        Authorization: `Bearer ${token}`,
+      // 재연결 때도 최신 토큰으로 붙도록 접속 직전마다 헤더·쿠키를 다시 채운다
+      beforeConnect: () => {
+        const latest = currentToken()
+        setWsAuthCookie(latest)
+        client.connectHeaders = { Authorization: `Bearer ${latest}` }
       },
       onConnect: () => {
         client.subscribe(`/topic/chat/rooms/${selectedId}`, (frame) => {
           try {
             const msg: Message = JSON.parse(frame.body)
-            setMessages((prev) => [...prev, msg])
-            // 서버는 3일치만 보관하므로 실시간 수신분도 로컬에 남겨둬야
-            // 나중에 과거 대화로 다시 볼 수 있다.
-            void cacheMessages([msg])
+            setMessages((prev) => mergeMessages(prev, [msg]))
+            // 서버는 거래 상태가 바뀌어도 따로 알려주지 않는다. 상태를 바꾸는 일과 같이 오는 메시지를 보고 맞춘다.
+            // 결제 승인 → 서버가 COMPLETED 로 바꾼 직후 PAYMENT 메시지를 보낸다
+            // 계약서 등록 → 서버가 IN_PROGRESS 로 되돌리고, 프론트가 이어서 [계약서 체결 완료]를 보낸다
+            const nextStatus: TradeStatus | null =
+              msg.type === "PAYMENT" ? "COMPLETED"
+              : msg.message?.startsWith("[계약서 체결 완료]") ? "IN_PROGRESS"
+              : parseDealEnd(msg.message ?? "")?.kind === "canceled" ? "CANCELED"
+              : null
+            if (nextStatus) useChatRoomsStore.getState().setRoomTradeStatus(selectedId, nextStatus)
+            // 보고 있는 방은 SSE 알림이 오지 않아, 내가 보낸 것·받은 것 모두 여기서 목록 미리보기에 반영한다
+            useChatRoomsStore.getState().applyLastMessage(
+              selectedId,
+              // 사진만 보낸 메시지는 본문이 비어 백엔드와 같은 문구로 채운다
+              msg.message || (msg.attachedFileUrls?.length ? "파일을 보냈습니다." : ""),
+              msg.createdAt
+            )
+            // 다음 진입 때 네트워크 없이 바로 그리기 위한 렌더 캐시
+            void cacheMessages([msg]).catch(() => {})
             markRoomRead(selectedId)
           } catch {}
         })
+
+        if (connectedOnce) {
+          void syncChatMessages(currentToken(), selectedId, messagesRef.current as never)
+            .then((list) => {
+              if (currentRoomRef.current !== selectedId) return
+              setMessages((cur) => mergeMessages(cur, list as unknown as Message[]))
+            })
+            .catch(() => {})
+        }
+        connectedOnce = true
 
         // 결제 승인 후 아직 못 보낸 결제 완료 알림이 있으면 여기서 보낸다.
         // 백엔드가 채팅 메시지를 만들어주지 않아 계약서와 같은 접두사 규약을 쓴다.
@@ -167,7 +254,7 @@ export default function Page() {
         if (paid) {
           client.publish({
             destination: "/app/chat.send",
-            headers: { Authorization: `Bearer ${token}` },
+            headers: { Authorization: `Bearer ${currentToken()}` },
             body: JSON.stringify({
               roomId: selectedId,
               message: `[결제 완료]\n${JSON.stringify(paid)}`,
@@ -188,7 +275,7 @@ export default function Page() {
           })}`
           client.publish({
             destination: "/app/chat.send",
-            headers: { Authorization: `Bearer ${token}` },
+            headers: { Authorization: `Bearer ${currentToken()}` },
             body: JSON.stringify({ roomId: selectedId, message: greeting, fileUrls: [] }),
           })
           clearPendingGreeting(selectedId)
@@ -203,7 +290,7 @@ export default function Page() {
       client.deactivate()
       stompClientRef.current = null
     }
-  }, [selectedId, token, myUsername, clearPendingGreeting, clearPendingPayment])
+  }, [selectedId, hasToken, myUsername, clearPendingGreeting, clearPendingPayment])
 
   const fetchRooms = useCallback(async () => {
     if (!token) return
@@ -218,38 +305,90 @@ export default function Page() {
     }
   }, [token, setRoomsInStore])
 
+  // 토큰 재발급으로 목록을 비우고 다시 받지 않도록 로그인 여부에만 의존하고, 값은 호출 시점의 최신 토큰을 쓴다
   const fetchMessages = useCallback(async () => {
+    const token = useAuthStore.getState().accessToken
     if (!token || !selectedId) return
+    const roomId = selectedId as number
+    currentRoomRef.current = roomId
+    setHasOlder(true)
+    setMessages([])
     setLoadingMessages(true)
     try {
-      // 서버는 최근 3일치만 갖고 있어서, 그보다 오래된 대화는 로컬 캐시에만 남는다.
-      // loadChatMessages 가 서버 응답을 캐시에 합친 뒤 clearBefore 이전 것만 걷어낸다.
-      const roomId = selectedId as number
+      // 캐시를 먼저 그려 네트워크를 기다리지 않게 하고, 서버에서 그 이후분만 받아 합친다
       const clearBefore =
         useChatRoomsStore.getState().rooms.find((r) => r.roomId === roomId)?.clearBefore ?? null
-      const list = (await loadChatMessages(token, roomId, clearBefore)) as unknown as Message[]
-      setMessages(list)
-    } catch {
-      setMessages([])
+      const cached = await loadCachedChatMessages(roomId, clearBefore)
+      if (currentRoomRef.current !== roomId) return
+      if (cached.length > 0) {
+        setMessages(cached as unknown as Message[])
+        setLoadingMessages(false)
+      }
+      const fresh = await syncChatMessages(token, roomId, cached)
+      if (currentRoomRef.current !== roomId) return
+      setMessages((prev) => mergeMessages(prev, fresh as unknown as Message[]))
+    } catch (e) {
+      if (currentRoomRef.current === roomId) void handleErrorRef.current(e)
     } finally {
-      setLoadingMessages(false)
+      if (currentRoomRef.current === roomId) setLoadingMessages(false)
     }
-  }, [token, selectedId])
+  }, [hasToken, selectedId])
 
-  // 받은 견적/보낸 견적/완료된 거래 탭을 postId 기준으로 나누기 위해 내가 관련된 견적서를 전부 가져온다.
-  const fetchEstimates = useCallback(async () => {
-    if (!token) return
+  const loadOlder = useCallback(async () => {
+    if (!token || !selectedId || !hasOlder || loadingOlderRef.current) return
+    const oldest = messages.find((m) => m.messageId != null)?.messageId
+    if (oldest == null) return
+    loadingOlderRef.current = true
     try {
-      const list = await getEstimates(token)
-      setEstimates(list)
-    } catch {
-      setEstimates([])
+      const page = await loadOlderChatMessages(token, selectedId, oldest)
+      if (currentRoomRef.current !== selectedId) return
+      if (page.length === 0) {
+        setHasOlder(false)
+        return
+      }
+      prependScrollHeightRef.current = messagesBoxRef.current?.scrollHeight ?? null
+      setMessages((prev) => mergeMessages(prev, page as unknown as Message[]))
+    } catch (e) {
+      void handleErrorRef.current(e)
+    } finally {
+      loadingOlderRef.current = false
     }
-  }, [token])
+  }, [token, selectedId, hasOlder, messages])
 
   useEffect(() => { fetchRooms() }, [fetchRooms])
+
+  // 백엔드가 예전에 미리보기를 전부 "새 메시지"로 저장해서, 그때 끝난 거래 방은 목록만 보고는 완료·취소를 알 수 없다.
+  // 끝난 방엔 새 메시지가 오지 않아 저절로 고쳐지지도 않으므로, 그런 방만 마지막 메시지를 한 번 받아 원문으로 채운다.
+  // 모든 방의 미리보기가 원문으로 바뀌면 이 보완은 걷어내도 된다.
+  useEffect(() => {
+    if (!token) return
+    for (const room of rooms) {
+      if (room.lastMessagePreview !== "새 메시지" || legacyCheckedRooms.has(room.roomId)) continue
+      legacyCheckedRooms.add(room.roomId)
+      getChatMessages(token, room.roomId)
+        .then((json) => {
+          const list = unwrap<{ message?: string }[] | { content?: { message?: string }[] }>(json)
+          const arr = Array.isArray(list) ? list : list?.content ?? []
+          const last = arr[arr.length - 1]?.message
+          if (!last) return
+          useChatRoomsStore.setState((st) =>
+            st.lastMessageOverride[room.roomId] != null
+              ? st
+              : { lastMessageOverride: { ...st.lastMessageOverride, [room.roomId]: last } }
+          )
+        })
+        .catch(() => {})
+    }
+  }, [rooms, token])
   useEffect(() => { fetchMessages() }, [fetchMessages])
-  useEffect(() => { fetchEstimates() }, [fetchEstimates])
+
+  // 스크롤 이벤트로만 과거를 불러오면, 받은 메시지가 목록 높이를 못 채울 때 스크롤이 안 생겨 영영 못 불러온다.
+  // 그래서 스크롤이 생기거나 더 없을 때까지 이어서 불러온다.
+  useEffect(() => {
+    const box = messagesBoxRef.current
+    if (!box || loadingMessages || !hasOlder || messages.length === 0) return
+    if (box.scrollHeight <= box.clientHeight) void loadOlder()
+  }, [messages, loadingMessages, hasOlder, loadOlder])
 
   // 전화번호 인증 여부(서명 가능 조건)와 내 회원 ID(계약서 등록에 필요)를 함께 받아둔다.
   useEffect(() => {
@@ -297,23 +436,50 @@ export default function Page() {
     { key: "done", label: "완료된 거래" },
   ]
 
-  // 채팅방(postId + 상대방)에 딱 맞는 견적서를 찾는다. 견적서는 postId·의뢰인·전문가 조합으로 유일하게 정해진다.
-  function estimateForRoom(room: ChatRoom) {
-    if (!room.postId || !room.participantId) return undefined
-    return estimates.find((e) => {
-      if (e.postId !== room.postId) return false
-      return myRole === "PROFESSIONAL" ? e.clientId === room.participantId : e.professionalId === room.participantId
-    })
-  }
 
-  // 결제까지 끝난 견적서만 완료된 거래로, 나머지(견적서를 못 받았거나 아직 결제 전인 것)는 모두 받은거래로 묶는다.
+  // 거래 상태는 서버가 관리한다. 값이 없으면(상태 컬럼 이전 방) 진행 중으로 본다
+  function tradeStatusOf(room?: ChatRoom): TradeStatus {
+    return room?.tradeStatus ?? "IN_PROGRESS"
+  }
+  const selectedTradeStatus = tradeStatusOf(selectedRoom)
   function roomTab(room: ChatRoom): "received" | "done" {
-    return estimateForRoom(room)?.status === "PAID" ? "done" : "received"
+    return tradeStatusOf(room) === "IN_PROGRESS" ? "received" : "done"
   }
 
-  const filteredRooms = rooms.filter(
-    (r) => r.participantName.includes(search) && (tab === "all" || roomTab(r) === tab)
-  )
+  // 거래가 끝난 방은 더 챙길 일이 없어 목록 맨 아래로 보낸다. 나머지 순서(최근 메시지 순)는 그대로 둔다
+  const filteredRooms = rooms
+    .filter((r) => r.participantName.includes(search) && (tab === "all" || roomTab(r) === tab))
+    // 취소도 끝난 거래라 완료와 함께 아래로 보낸다
+    .sort((a, b) => Number(tradeStatusOf(a) !== "IN_PROGRESS") - Number(tradeStatusOf(b) !== "IN_PROGRESS"))
+
+  const [dealBusy, setDealBusy] = useState(false)
+  // 상태는 서버에서 바꾸고, 상대도 알 수 있게 대화에 취소 카드를 남긴다
+  async function handleCancelTrade() {
+    const client = stompClientRef.current
+    if (!token || !client?.connected || !selectedId || !myUsername || dealBusy) return
+    if (!confirm("거래를 취소할까요?")) return
+    setDealBusy(true)
+    try {
+      await cancelTrade(token, selectedId)
+      useChatRoomsStore.getState().setRoomTradeStatus(selectedId, "CANCELED")
+      client.publish({
+        destination: "/app/chat.send",
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ roomId: selectedId, message: formatDealCancel(myUsername), fileUrls: [] }),
+      })
+      setShowAttach(false)
+    } catch (e) {
+      // 상대가 먼저 결제했거나 취소해서 이미 끝난 거래다. 화면이 늦게 반영된 경우라 목록을 다시 받아 맞춘다
+      if (e instanceof ApiError && e.code === "TRADE_NOT_CANCELABLE") {
+        addToast({ message: "이미 끝난 거래라 취소할 수 없어요. 결제된 거래는 결제 취소로 되돌려주세요.", type: "error" })
+        void fetchRooms()
+        return
+      }
+      handleError(e)
+    } finally {
+      setDealBusy(false)
+    }
+  }
 
   const MAX_CHAT_FILE_SIZE = 25 * 1024 * 1024
 
@@ -327,31 +493,40 @@ export default function Page() {
       return true
     })
     if (!files.length || !token) return
-    const previews = files.map((file) => URL.createObjectURL(file))
-    setPendingPreviews((prev) => [...prev, ...previews])
+    const added = files.map((file) => ({ file, preview: URL.createObjectURL(file) }))
+    setPendingImages((prev) => [...prev, ...added.map(({ preview }) => ({ preview, url: null }))])
     setShowAttach(false)
     setUploading(true)
+    let failed = 0
+    let failedHeifConversions = 0
     try {
-      const uploaded: string[] = []
-      for (const file of files) {
-        const { url } = await uploadFile(token, file)
-        uploaded.push(url)
+      for (const { file, preview } of added) {
+        try {
+          const { url } = await uploadFile(token, file)
+          setPendingImages((prev) => prev.map((img) => (img.preview === preview ? { ...img, url } : img)))
+        } catch (error) {
+          // 실패한 사진만 빼고 나머지는 그대로 보낼 수 있게 둔다
+          failed++
+          if (error instanceof HeifConversionError) failedHeifConversions++
+          URL.revokeObjectURL(preview)
+          setPendingImages((prev) => prev.filter((img) => img.preview !== preview))
+        }
       }
-      setPendingImageUrls((prev) => [...prev, ...uploaded])
-    } catch {
-      previews.forEach((p) => URL.revokeObjectURL(p))
-      setPendingPreviews((prev) => prev.filter((p) => !previews.includes(p)))
+      if (failed > 0) {
+        const message = failedHeifConversions > 0
+          ? `HEIF 사진 ${failedHeifConversions}장을 변환하지 못했어요. JPG, PNG 또는 WEBP로 저장한 뒤 다시 선택해주세요. (전체 실패 ${failed}장)`
+          : `사진 ${failed}장을 올리지 못했어요.`
+        addToast({ message, type: "error" })
+      }
     } finally {
       setUploading(false)
       e.target.value = ""
     }
   }
 
-  function clearPendingImage(index: number) {
-    const preview = pendingPreviews[index]
-    if (preview) URL.revokeObjectURL(preview)
-    setPendingPreviews((prev) => prev.filter((_, i) => i !== index))
-    setPendingImageUrls((prev) => prev.filter((_, i) => i !== index))
+  function clearPendingImage(preview: string) {
+    URL.revokeObjectURL(preview)
+    setPendingImages((prev) => prev.filter((img) => img.preview !== preview))
   }
 
   async function handleDocChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -363,8 +538,13 @@ export default function Page() {
     try {
       const { url } = await uploadFile(token, file)
       setPendingDocUrl(url)
-    } catch {
+    } catch (e) {
       setPendingDocName(null)
+      // 실패해도 첨부 표시만 사라져서 사용자는 왜 안 붙는지 알 수 없었다
+      addToast({
+        message: isPayloadTooLarge(e) ? `${file.name}: 파일이 너무 커요.` : `${file.name}: 문서를 올리지 못했어요. PDF 파일만 보낼 수 있어요.`,
+        type: "error",
+      })
     } finally {
       setUploading(false)
       e.target.value = ""
@@ -377,11 +557,12 @@ export default function Page() {
   }
 
   function handleSend() {
-    if (!message.trim() && pendingImageUrls.length === 0 && !pendingDocUrl) return
+    if (!message.trim() && uploadedImageUrls.length === 0 && !pendingDocUrl) return
     const client = stompClientRef.current
     if (!client?.connected || uploading) return
 
-    const fileUrls = pendingImageUrls.length > 0 ? pendingImageUrls : pendingDocUrl ? [pendingDocUrl] : []
+    // 사진과 문서를 함께 첨부했으면 같이 보낸다. 예전에는 사진만 보내고 문서 첨부는 지워서 문서가 조용히 사라졌다
+    const fileUrls = [...uploadedImageUrls, ...(pendingDocUrl ? [pendingDocUrl] : [])]
     const body = JSON.stringify({
       roomId: selectedId,
       message: message.trim() || "",
@@ -393,47 +574,9 @@ export default function Page() {
       body,
     })
     setMessage("")
-    pendingPreviews.forEach((p) => URL.revokeObjectURL(p))
-    setPendingPreviews([])
-    setPendingImageUrls([])
+    pendingImages.forEach((img) => URL.revokeObjectURL(img.preview))
+    setPendingImages([])
     clearPendingDoc()
-  }
-
-  // 견적서는 전문가(을)가 발행한다. 발행 후 채팅방에도 안내 메시지를 남긴다.
-  async function handleEstimateSubmit(data: { url: string; totalPay: number }) {
-    if (!token || !selectedId || !selectedRoom?.postId) return
-    if (!selectedRoom.participantId) {
-      addToast({ message: "상대방 정보를 불러오지 못했습니다.", type: "error" })
-      return
-    }
-    setEstimateBusy(true)
-    try {
-      await createEstimate(token, {
-        postId: selectedRoom.postId,
-        clientId: selectedRoom.participantId,
-        url: data.url,
-        totalPay: data.totalPay,
-      })
-
-      const client = stompClientRef.current
-      if (client?.connected) {
-        client.publish({
-          destination: "/app/chat.send",
-          headers: { Authorization: `Bearer ${token}` },
-          body: JSON.stringify({
-            roomId: selectedId,
-            message: `[견적서 발송]\n견적 금액: ${data.totalPay.toLocaleString()}원`,
-            fileUrls: [data.url],
-          }),
-        })
-      }
-      setShowEstimate(false)
-      fetchEstimates()
-    } catch (e) {
-      handleError(e)
-    } finally {
-      setEstimateBusy(false)
-    }
   }
 
   // 계약서 진행 순서: 을(글 올린 사람, 파는 쪽)이 [계약서 제안](propose) → 갑(문의한 사람, 사는 쪽)이
@@ -443,7 +586,9 @@ export default function Page() {
   // 서명은 PDF 안에 그림으로 이미 들어가므로 서버에 따로 서명하는 단계는 없다
   // (백엔드에서 /api/contract/sign 이 제거됨).
   //
-  // 등록하는 사람은 항상 갑이므로 clientId는 내 회원 ID, professionalId는 채팅 상대(을)의 ID다.
+  // 갑·을은 등록하는 사람이 아니라 게시글 작성자로 정한다. 작성자가 을(professionalId)이고 채팅의 다른 쪽이 갑(clientId)이다.
+  // 서버가 게시글 작성자와 professionalId 가 같은지 검사하므로, "등록자 = 갑"으로 두면 을이 등록할 때 400 이 나고
+  // postId 를 빼면 계약이 게시글에 묶이지 않아 리뷰를 쓸 수 없다.
   async function handleContractSubmit(data: ContractData, pdfBlob?: Blob) {
     if (!token || !selectedId || !contractModalState || !selectedRoom) return
     const client = stompClientRef.current
@@ -454,21 +599,37 @@ export default function Page() {
       if (contractModalState.mode === "review") {
         if (!pdfBlob) return
 
-        const professionalId = selectedRoom.participantId
-        if (!myMemberId || !professionalId) {
+        const postId = selectedRoom.postId ?? null
+        let clientId: number | null | undefined = myMemberId
+        let professionalId: number | null | undefined = selectedRoom.participantId
+        if (postId) {
+          // 방에 들어올 때 이미 받아둔 글이 있으면 다시 조회하지 않는다
+          const authorId =
+            selectedPost?.id === postId
+              ? selectedPost.member?.id
+              : (await getPost(postId, token)).data?.member?.id
+          professionalId = authorId
+          clientId = authorId != null && authorId === myMemberId ? selectedRoom.participantId : myMemberId
+        }
+        if (!clientId || !professionalId) {
           addToast({ message: "계약 당사자 정보를 확인하지 못했습니다.", type: "error" })
           return
         }
 
-        const price = Number(data.price.replace(/[^0-9]/g, "")) || 0
+        const price = data.price
         const pdfFile = pdfBlobToFile(pdfBlob, `contract-${Date.now()}.pdf`)
         const { url: contractUrl } = await uploadFile(token, pdfFile)
 
         const contract = await createContract(token, {
           contractUrl,
-          clientId: myMemberId,
+          clientId,
           professionalId,
+          postId,
+          startedAt: toContractDateTime(data.startDate),
+          endedAt: toContractDateTime(data.endDate, true),
+          inspectionPeriod: data.inspectionDays,
           price,
+          servicesDescription: data.serviceContent,
         })
 
         // 결제에 필요한 값(금액·PDF 경로)을 메시지에 같이 실어둔다.
@@ -491,7 +652,8 @@ export default function Page() {
       let myUploadedSig = myNewSig
       if (myNewSig && myNewSig.startsWith("data:")) {
         const file = dataUrlToFile(myNewSig, `contract-signature-${Date.now()}.png`)
-        const { url } = await uploadFile(token, file)
+        // 서명은 계약서 PDF 를 만들 때 pdf-lib 의 embedPng 로 다시 읽으므로 PNG 를 유지해야 한다.
+        const { url } = await uploadFile(token, file, { keepOriginal: true })
         myUploadedSig = url
       }
 
@@ -510,18 +672,22 @@ export default function Page() {
       })
       setContractModalState(null)
     } catch (e) {
+      if (isAmountRejected(e, "price")) {
+        addToast({ message: MIN_AMOUNT_MESSAGE, type: "error" })
+        return
+      }
       handleError(e)
     } finally {
       setContractBusy(false)
     }
   }
 
-  // 계약 체결 후 결제 페이지로 이동한다. 금액·PDF 경로는 체결 메시지에 담겨 있다.
+  // 계약 체결 후 결제 페이지로 이동한다.
+  // 금액은 조작될 수 있어 URL 에 싣지 않고, 결제 페이지가 contractId 로 서버에서 다시 조회한다.
   function handlePayNavigate(completed: CompletedContract) {
     if (!selectedRoom?.postId) return
     const qs = new URLSearchParams()
-    qs.set("price", String(completed.price))
-    qs.set("contractUrl", completed.contractUrl)
+    qs.set("contractId", String(completed.contractId))
     // 문의를 시작할 때 고른 서비스. 결제 화면에서 그 플랜만 보여주기 위해 넘긴다
     // (스토어는 새로고침하면 비므로 URL 로 실어 보낸다)
     const picked = selectedId ? useChatRoomsStore.getState().selectedService[selectedId] : undefined
@@ -541,36 +707,6 @@ export default function Page() {
     | { kind: "propose"; data: ContractData }
     | { kind: "completed"; data: CompletedContract }
 
-  interface ChatStartInfo {
-    starter: string
-    planName: string
-    price: string
-  }
-
-  // 문의하기로 방이 열릴 때 자동 발송되는 안내 메시지.
-  // 예전에는 평문이었고 지금은 JSON이라 둘 다 읽을 수 있어야 한다.
-  function parseChatStart(text: string): ChatStartInfo | null {
-    const PREFIX = "[채팅 시작]\n"
-    if (!text.startsWith(PREFIX)) return null
-    const body = text.slice(PREFIX.length)
-
-    try {
-      const parsed = JSON.parse(body)
-      return {
-        starter: parsed.starter ?? "",
-        planName: parsed.planName ?? "",
-        price: parsed.price ?? "",
-      }
-    } catch {
-      const lines = body.split("\n")
-      return {
-        starter: lines[0]?.replace(/님이 채팅을 시작했어요$/, "") ?? "",
-        planName: lines.find((l) => l.startsWith("선택한 서비스:"))?.replace("선택한 서비스:", "").trim() ?? "",
-        price: "",
-      }
-    }
-  }
-
   // 결제 완료 알림. 백엔드가 PAYMENT 타입 메시지를 만들어주지 않아
   // 계약서와 같은 대괄호 접두사 규약으로 프론트가 보낸다.
   function parsePaymentMessage(text: string): ChatPayment | null {
@@ -589,7 +725,26 @@ export default function Page() {
 
     if (text.startsWith(PROPOSE)) {
       try {
-        return { kind: "propose", data: JSON.parse(text.slice(PROPOSE.length)) as ContractData }
+        const parsed = JSON.parse(text.slice(PROPOSE.length)) as Record<string, unknown>
+        // 예전 채팅에는 문자열 금액과 검수일수가 저장되어 있어 읽을 때 숫자로 맞춘다.
+        const toNumber = (value: unknown) => {
+          let number = Number.NaN
+          if (typeof value === "number") number = value
+          else if (typeof value === "string") number = Number(value.replace(/,/g, "").trim())
+          return Number.isFinite(number) ? number : 0
+        }
+        const data: ContractData = {
+          clientName: typeof parsed.clientName === "string" ? parsed.clientName : "",
+          professionalName: typeof parsed.professionalName === "string" ? parsed.professionalName : "",
+          startDate: typeof parsed.startDate === "string" ? parsed.startDate : "",
+          endDate: typeof parsed.endDate === "string" ? parsed.endDate : "",
+          inspectionDays: toNumber(parsed.inspectionDays),
+          serviceContent: typeof parsed.serviceContent === "string" ? parsed.serviceContent : "",
+          price: toNumber(parsed.price),
+          clientSig: typeof parsed.clientSig === "string" ? parsed.clientSig : "",
+          professionalSig: typeof parsed.professionalSig === "string" ? parsed.professionalSig : "",
+        }
+        return { kind: "propose", data }
       } catch {
         return null
       }
@@ -610,10 +765,14 @@ export default function Page() {
   // (JSON 본문이 그대로 노출되거나 줄바꿈이 이어붙어 길어지는 걸 막는다).
   function previewOf(text: string) {
     if (!text) return ""
-    if (text.startsWith("[계약서 제안]")) return "📄 계약서를 보냈습니다."
-    if (text.startsWith("[계약서 체결 완료]")) return "✅ 계약이 체결됐습니다."
-    if (text.startsWith("[결제 완료]")) return "💳 결제가 완료됐습니다."
-    if (text.startsWith("[견적서 발송]")) return "🧾 견적서를 보냈습니다."
+    if (text.startsWith("[계약서 제안]")) return "계약서를 보냈습니다."
+    if (text.startsWith("[계약서 체결 완료]")) return "계약이 체결됐습니다."
+    if (text.startsWith("[결제 완료]")) return "결제가 완료됐습니다."
+    if (text.startsWith("[거래 완료 요청]")) return "거래 완료를 기다리고 있어요."
+    if (text.startsWith("[거래 완료]")) return "거래가 완료됐습니다."
+    if (text.startsWith("[거래 취소]")) return "거래가 취소됐습니다."
+    const callLog = parseCallLog(text)
+    if (callLog) return previewCallLog(callLog)
     const start = parseChatStart(text)
     if (start) return start.planName ? `선택한 서비스: ${start.planName}` : "채팅을 시작했어요"
     return text.replace(/\n+/g, " ")
@@ -641,26 +800,21 @@ export default function Page() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "/") {
-        e.preventDefault()
-        chatHotKey()
-      }
+      if (e.key !== "/") return
+      // 이미 무언가를 입력 중이면 '/' 는 글자다. 막으면 날짜(10/15)·URL 을 칠 수 없다
+      const target = e.target as HTMLElement | null
+      if (target && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return
+      e.preventDefault()
+      chatHotKey()
     }
     window.addEventListener("keydown", handleKeyDown)
+    // 방을 옮길 때마다 페이지가 새로 마운트돼서, 해제하지 않으면 리스너가 계속 쌓인다
+    return () => window.removeEventListener("keydown", handleKeyDown)
   }, [])
 
   return (
-    <div className="flex flex-col h-screen">
-      <Header />
-      {showEstimate && selectedRoom && token && (
-        <EstimateModal
-          token={token}
-          busy={estimateBusy}
-          onClose={() => setShowEstimate(false)}
-          onSubmit={handleEstimateSubmit}
-        />
-      )}
-
+    // 휴대폰은 주소창이 접혔다 펴져도 맞도록 dvh 를 쓰고, 목록 화면에서는 하단 메뉴(4rem)만큼 더 뺀다
+    <div className={`flex flex-col ${selectedId ? "h-[calc(100dvh-4rem)]" : "h-[calc(100dvh-8rem)]"} md:h-[calc(100vh-4rem)]`}>  
       {contractModalState && selectedRoom && myPartyRole && (
         <ContractWizardModal
           myRole={myPartyRole}
@@ -673,16 +827,18 @@ export default function Page() {
         />
       )}
 
-      <div className="flex flex-1 px-20 pt-8 overflow-hidden">
+      {/* 휴대폰 폭에서는 목록과 대화방을 나란히 둘 수 없어, 방을 고르기 전엔 목록만 · 고른 뒤엔 대화방만 보여준다 */}
+      {/* 채팅은 화면을 꽉 채우는 앱 화면이라 휴대폰에서는 위 여백을 거의 두지 않는다. 대화방 머리줄이 자체 여백을 갖는다 */}
+      <div className={`flex flex-1 ${PAGE_X} pt-2 md:pt-8 xl:pt-16 overflow-hidden`}>
         {/* 왼쪽 채팅 목록 */}
-        <div className="flex flex-col w-80 pr-4 shrink-0 border-r border-zinc-200">
+        <div className={`${selectedId ? "hidden md:flex" : "flex"} flex-col w-full md:w-64 lg:w-80 md:pr-4 shrink-0 md:border-r border-line`}>
           {/* 탭 */}
-          <div className="flex border-b border-zinc-200">
+          <div className="flex border-b border-line">
             {tabs.map((t) => (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`flex-1 py-4 text-lg font-semibold border-b-2 transition-colors cursor-pointer ${
+                className={`flex-1 whitespace-nowrap py-4 text-sm lg:text-lg font-semibold border-b-2 transition-colors cursor-pointer ${
                   tab === t.key
                     ? "border-zinc-800 text-zinc-800 font-bold"
                     : "border-transparent text-zinc-400"
@@ -702,7 +858,8 @@ export default function Page() {
           <div className="flex flex-col flex-1 overflow-y-auto rounded-md">
             {loadingRooms ? (
               Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-3 px-4 animate-pulse">
+                // 실제 방 줄과 같은 위아래 여백(py-3)을 둬야 불러온 뒤 목록 높이가 바뀌지 않는다
+                <div key={i} className="flex items-center gap-3 px-4 py-3 animate-pulse">
                   <div className="w-12 h-12 rounded-full bg-zinc-200 shrink-0" />
                   <div className="flex flex-col gap-2 flex-1">
                     <div className="h-3 w-24 bg-zinc-200 rounded" />
@@ -715,9 +872,9 @@ export default function Page() {
             ) : (
               filteredRooms.map((room) => {
                 const isUnread = !!unreadRoomIds[room.roomId]
-                const previewText = isUnread
-                  ? "새 메시지"
-                  : previewOf(lastMessageOverride[room.roomId] ?? room.lastMessagePreview)
+                const roomStatus = tradeStatusOf(room)
+                // 안 읽은 방도 내용을 보여준다. 안 읽음은 빨간 점과 굵은 글씨로 이미 구분된다
+                const previewText = previewOf(lastMessageOverride[room.roomId] ?? room.lastMessagePreview)
                 return (
                 <div
                   key={room.roomId}
@@ -731,7 +888,7 @@ export default function Page() {
                 >
                   <div className="relative w-12 h-12 shrink-0">
                     <Image
-                      src={room.participantImageUrl ? toRelativeUrl(room.participantImageUrl) : "/profile.png"}
+                      src={room.participantImageUrl ? toRelativeUrl(room.participantImageUrl) : "/profile.webp"}
                       alt={room.participantName}
                       width={48}
                       height={48}
@@ -740,8 +897,14 @@ export default function Page() {
                     {isUnread && <span className="absolute top-0 -right-1 w-2 h-2 rounded-full bg-red-500 shrink-0" />}
                   </div>
                   <div className="flex flex-col flex-1 min-w-0">
+                    {/* 거래가 끝나도 대화는 이어지므로 마지막 메시지는 그대로 보여주고, 결과는 이름 옆에 붙인다 */}
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-semibold">{room.participantName}</span>
+                      <span className="text-sm font-semibold truncate">{room.participantName}</span>
+                      {roomStatus !== "IN_PROGRESS" && (
+                        <span className={`shrink-0 whitespace-nowrap text-xs font-semibold ${roomStatus === "COMPLETED" ? "text-emerald-700" : "text-red-500"}`}>
+                          {roomStatus === "COMPLETED" ? "완료된 거래" : "취소된 거래"}
+                        </span>
+                      )}
                     </div>
                     <span className={`text-xs truncate ${isUnread ? "text-zinc-700 font-semibold" : "text-zinc-400"}`}>{previewText}</span>
                   </div>
@@ -765,28 +928,75 @@ export default function Page() {
         </div>
 
         {/* 오른쪽 채팅창 */}
-        <div className="flex flex-col flex-1 w-1/2 overflow-hidden">
+        <div className={`${selectedId ? "flex" : "hidden md:flex"} flex-col flex-1 min-w-0 overflow-hidden`}>
           {selectedRoom ? (
             <>
               {/* 채팅 헤더 */}
-              <div className="flex items-center gap-3 px-6 py-4 border-b border-zinc-200 shrink-0">
+              <div className="flex items-center gap-3 px-2 md:px-6 py-4 border-b border-line shrink-0">
+                {/* 휴대폰에서는 목록이 가려져 있어 목록으로 돌아갈 길이 필요하다 */}
+                <button
+                  type="button"
+                  aria-label="채팅 목록으로"
+                  onClick={() => router.push("/chat")}
+                  className="md:hidden flex size-8 shrink-0 items-center justify-center rounded-full text-xl text-zinc-600 hover:bg-zinc-100 cursor-pointer"
+                >
+                  <IoChevronBack />
+                </button>
                 <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-zinc-200">
                   <Image
-                    src={selectedRoom.participantImageUrl ? toRelativeUrl(selectedRoom.participantImageUrl) : "/profile.png"}
+                    src={selectedRoom.participantImageUrl ? toRelativeUrl(selectedRoom.participantImageUrl) : "/profile.webp"}
                     alt={selectedRoom.participantName}
                     width={40}
                     height={40}
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div className="flex flex-col">
+                <div className="flex flex-col flex-1 min-w-0">
                   <span className="font-semibold text-sm">{selectedRoom.participantName}</span>
                   <span className="text-xs text-zinc-400">@{selectedRoom.participantUsername}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    aria-label="음성 통화"
+                    disabled={callPhase !== "idle"}
+                    onClick={() =>
+                      token &&
+                      startCall(token, selectedRoom.roomId, "VOICE", {
+                        name: selectedRoom.participantName,
+                        imageUrl: selectedRoom.participantImageUrl,
+                      })
+                    }
+                    className="flex items-center justify-center w-9 h-9 rounded-full text-lg text-zinc-600 transition hover:bg-zinc-100 hover:text-main disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <MdCall />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="영상 통화"
+                    disabled={callPhase !== "idle"}
+                    onClick={() =>
+                      token &&
+                      startCall(token, selectedRoom.roomId, "VIDEO", {
+                        name: selectedRoom.participantName,
+                        imageUrl: selectedRoom.participantImageUrl,
+                      })
+                    }
+                    className="flex items-center justify-center w-9 h-9 rounded-full text-lg text-zinc-600 transition hover:bg-zinc-100 hover:text-main disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <MdVideocam />
+                  </button>
                 </div>
               </div>
 
               {/* 메시지 영역 */}
-              <div className="flex flex-col flex-1 overflow-y-auto px-6 py-6 gap-4">
+              <div
+                ref={messagesBoxRef}
+                onScroll={(e) => {
+                  if (e.currentTarget.scrollTop < 80) void loadOlder()
+                }}
+                className="flex flex-col flex-1 overflow-y-auto px-2 md:px-6 py-6 gap-4"
+              >
                 {loadingMessages ? (
                   <p className="text-center text-zinc-400 text-sm">불러오는 중...</p>
                 ) : (() => {
@@ -796,6 +1006,18 @@ export default function Page() {
                   const lastCompletedIdx = messages.reduce(
                     (acc, m, i) => (m.message?.startsWith("[계약서 체결 완료]") ? i : acc),
                     -1
+                  )
+                  // 같은 이유로 체결 카드도 결제 완료 메시지를 모른다. 결제 후에도 결제하기 버튼이
+                  // 남아 결제 페이지로 다시 들어가지므로, 마지막 결제보다 앞선 체결은 결제된 것으로 본다.
+                  const lastPaymentIdx = messages.reduce(
+                    (acc, m, i) =>
+                      (m.type === "PAYMENT" && m.payment) || m.message?.startsWith("[결제 완료]") ? i : acc,
+                    -1
+                  )
+                  // 서버가 만든 PAYMENT 메시지와 결제 성공 페이지가 보낸 [결제 완료] 메시지가 같은 주문을 가리킬 수 있다.
+                  // 둘 다 그리면 카드·해시가 두 번 보이므로, 서버 메시지가 있는 주문은 접두사 메시지를 건너뛴다
+                  const serverPaidOrderIds = new Set(
+                    messages.flatMap((m) => (m.type === "PAYMENT" && m.payment?.orderId ? [m.payment.orderId] : []))
                   )
                   return messages.map((msg, idx) => {
                   const prevMsg = messages[idx - 1]
@@ -815,14 +1037,14 @@ export default function Page() {
                   const attachment = attachedUrls.length > 0 ? (
                     <div className="flex flex-col gap-1">
                       {imageUrls.length > 0 && (
-                        <div className="flex flex-wrap gap-1 max-w-xs">
+                        <div className="flex flex-wrap gap-1 max-w-[min(20rem,62vw)]">
                           {imageUrls.map((url) => (
                             <div
                               key={url}
-                              className="w-24 h-24 rounded-xl overflow-hidden transition-opacity hover:opacity-90 cursor-pointer"
+                              className="relative w-24 h-24 rounded-xl overflow-hidden transition-opacity hover:opacity-90 cursor-pointer"
                               onClick={() => setLightboxSrc(toRelativeUrl(url))}
                             >
-                              <img src={toRelativeUrl(url)} alt="첨부 이미지" className="w-full h-full object-cover" />
+                              <Image src={toRelativeUrl(url)} alt="첨부 이미지" fill sizes="96px" className="object-cover" />
                             </div>
                           ))}
                         </div>
@@ -833,7 +1055,7 @@ export default function Page() {
                           href={toRelativeUrl(url)}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex items-center gap-2 bg-zinc-100 rounded-xl px-3 py-2 max-w-xs hover:bg-zinc-200"
+                          className="flex items-center gap-2 bg-zinc-100 rounded-xl px-3 py-2 max-w-[min(20rem,62vw)] hover:bg-zinc-200"
                         >
                           <MdOutlineDescription className="text-lg text-zinc-500 shrink-0" />
                           <span className="text-xs text-zinc-600 truncate">{fileNameFromUrl(url)}</span>
@@ -844,24 +1066,71 @@ export default function Page() {
 
                   // 백엔드가 만들어주는 결제 완료 메시지. 본문 대신 카드로 보여준다.
                   // 백엔드가 PAYMENT 타입으로 내려주면 그걸 쓰고, 아니면 접두사 메시지를 판다.
+                  const prefixedPayment = msg.type === "PAYMENT" ? null : parsePaymentMessage(msg.message)
                   const paymentInfo =
-                    (msg.type === "PAYMENT" ? msg.payment : null) ?? parsePaymentMessage(msg.message)
+                    (msg.type === "PAYMENT" ? msg.payment : null) ??
+                    (prefixedPayment && !serverPaidOrderIds.has(prefixedPayment.orderId) ? prefixedPayment : null)
                   const paymentCard = paymentInfo ? (
                     <PaymentCard payment={paymentInfo} isSent={isSent} paidAt={msg.createdAt} />
                   ) : null
+                  // 블록체인 트랜잭션 해시를 보여준다. 백엔드가 blockchainTxHash → txHash 로 이름을 옮기는 중이라 둘 다 본다
+                  const txHash = paymentInfo ? paymentInfo.txHash ?? paymentInfo.blockchainTxHash : null
 
                   const contractMsg = parseContractMessage(msg.message)
                   const chatStart = parseChatStart(msg.message)
+                  // 서버 CALL 메시지가 기준이다. 접두사 메시지는 프론트가 직접 보내던 시절의 기록이라 읽기만 하며,
+                  // 그때는 발신자만 보냈으므로 isSent 가 곧 "내가 건 전화"였다
+                  const serverCall = msg.type === "CALL" ? msg.call : null
+                  const callLog = serverCall ?? parseCallLog(msg.message)
+                  const iAmCaller = serverCall ? serverCall.callerUsername === myUsername : isSent
                   const displayText = msg.message
 
-                  const textBubble = msg.message && !contractMsg && !paymentCard ? (
-                    <div className={`rounded-2xl px-4 py-2 max-w-xs ${isSent ? "bg-main rounded-br-none" : "bg-zinc-100 rounded-bl-none"}`}>
-                      <p className={`text-sm whitespace-pre-line ${isSent ? "text-white" : ""}`}>{displayText}</p>
+                  // 통화 기록을 누르면 같은 종류로 다시 건다. 이미 통화 중이면 누를 수 없고, 실수로 누르는 걸 막으려고 한 번 묻는다
+                  const callCard = callLog ? (
+                    <CallLogCard
+                      log={callLog}
+                      isSent={isSent}
+                      iAmCaller={iAmCaller}
+                      onCall={
+                        token && callPhase === "idle"
+                          ? () => {
+                              const kind = callLog.callType === "VIDEO" ? "영상" : "음성"
+                              if (!confirm(`${selectedRoom.participantName}님에게 ${kind} 통화를 걸까요?`)) return
+                              void startCall(token, selectedRoom.roomId, callLog.callType, {
+                                name: selectedRoom.participantName,
+                                imageUrl: selectedRoom.participantImageUrl,
+                              })
+                            }
+                          : undefined
+                      }
+                    />
+                  ) : null
+
+                  const dealReq = parseDealRequest(msg.message)
+                  const dealEnd = parseDealEnd(msg.message)
+                  // 거래 완료 카드는 거래 완료 버튼이 보내는 [거래 완료] 메시지가 띄운다. 결제 메시지에도 붙이면 같은 카드가 두 번 보여서 여기서는 뺀다.
+                  const dealCard = msg.type === "PAYMENT" ? null : dealReq ? (
+                    <DealCard
+                      kind="request"
+                      orderName={dealReq.orderName}
+                      amount={dealReq.amount}
+                      ended={selectedTradeStatus === "CANCELED" ? "canceled" : "completed"}
+                    />
+                  ) : dealEnd ? (
+                    <DealCard kind={dealEnd.kind} isSent={isSent} endedAt={msg.createdAt} />
+                  ) : null
+
+                  const textBubble = msg.message && !contractMsg && !paymentCard && !prefixedPayment && !callCard && !dealCard ? (
+                    // 휴대폰에서는 아바타·시간과 한 줄에 놓여 320px 고정폭이면 화면을 넘는다. 화면 폭 비율로 줄이고,
+                    // 띄어쓰기 없는 긴 링크·단어도 말풍선 안에서 줄을 바꾼다
+                    <div className={`rounded-2xl px-4 py-2 max-w-[min(20rem,62vw)] ${isSent ? "bg-main rounded-br-none" : "bg-zinc-100 rounded-bl-none"}`}>
+                      <p className={`text-sm whitespace-pre-line [overflow-wrap:anywhere] ${isSent ? "text-white" : ""}`}>{displayText}</p>
                     </div>
                   ) : null
 
-                  // 계약서는 을(파는 사람)이 갑(사는 사람)에게만 제안하므로 받은 사람(=갑)만 검토·서명할 수 있고,
-                  // 체결 메시지는 갑이 서명하면서 보낸 것이라 보낸 사람(=갑)에게만 결제 버튼이 붙는다.
+                  // 계약서는 제안을 받은 쪽이 검토·서명한다.
+                  // 결제는 누가 체결 메시지를 보냈는지와 상관없이 갑(의뢰인 = 게시글 작성자가 아닌 쪽)만 한다.
+                  // 글 작성자를 아직 못 불러왔으면(myPartyRole 이 null) 결제 버튼을 띄우지 않는다
                   const contractCard = contractMsg ? (
                     contractMsg.kind === "propose" ? (
                       <ContractCard
@@ -882,13 +1151,14 @@ export default function Page() {
                         price={contractMsg.data.price}
                         contractUrl={contractMsg.data.contractUrl}
                         signedAt={msg.createdAt}
-                        onPay={isSent && selectedRoom.postId ? () => handlePayNavigate(contractMsg.data) : undefined}
+                        paid={idx < lastPaymentIdx}
+                        onPay={myPartyRole === "client" && selectedRoom.postId ? () => handlePayNavigate(contractMsg.data) : undefined}
                       />
                     )
                   ) : null
 
                   return (
-                    <div key={msg.messageId}>
+                    <div key={`${msg.messageId}-${msg.createdAt}-${idx}`}>
                       {showDateDivider && (
                         <div className="flex items-center justify-center py-2">
                           <span className="text-xs text-zinc-400 bg-zinc-100 rounded-full px-3 py-1">
@@ -909,7 +1179,7 @@ export default function Page() {
                         <div className="flex items-end gap-3">
                           <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 bg-zinc-200">
                             <Image
-                              src={selectedRoom.participantImageUrl ? toRelativeUrl(selectedRoom.participantImageUrl) : "/profile.png"}
+                              src={selectedRoom.participantImageUrl ? toRelativeUrl(selectedRoom.participantImageUrl) : "/profile.webp"}
                               alt=""
                               width={36}
                               height={36}
@@ -921,24 +1191,63 @@ export default function Page() {
                             {textBubble}
                             {contractCard}
                             {paymentCard}
+                            {callCard}
+                            {dealCard}
                           </div>
-                          {showTime && <span className="text-xs text-zinc-400 shrink-0">{formatTime(msg.createdAt)}</span>}
+                          {showTime && <span className="text-xs text-zinc-400 shrink-0 whitespace-nowrap">{formatTime(msg.createdAt)}</span>}
                         </div>
                       ) : (
                         <div className="flex justify-end items-end gap-3">
-                          {showTime && <span className="text-xs text-zinc-400">{formatTime(msg.createdAt)}</span>}
+                          {showTime && <span className="text-xs text-zinc-400 shrink-0 whitespace-nowrap">{formatTime(msg.createdAt)}</span>}
                           <div className="flex flex-col gap-1 items-end">
                             {attachment}
                             {textBubble}
                             {contractCard}
                             {paymentCard}
+                            {callCard}
+                            {dealCard}
                           </div>
+                        </div>
+                      )}
+                      {/* 결제 해시는 카드 안에 넣기엔 길어서, 카톡 시스템 안내처럼 대화 흐름 가운데에 한 줄로 남긴다.
+                          누가 보냈는지와 무관한 기록이라 좌우 정렬 없이 가운데에 둔다 */}
+                      {txHash && (
+                        <div className="flex justify-center py-2">
+                          {/* 해시 전체는 폭을 넘어 줄이 깨지므로 앞뒤만 보여주고, 원문은 클릭 복사로 가져가게 한다 */}
+                          <button
+                            type="button"
+                            title={txHash}
+                            onClick={() => {
+                              navigator.clipboard.writeText(txHash).then(() => {
+                                setCopiedHash(txHash)
+                                setTimeout(() => setCopiedHash((h) => (h === txHash ? null : h)), 1500)
+                              }).catch(() => {})
+                            }}
+                            className="cursor-pointer whitespace-nowrap rounded-full bg-zinc-100 px-3 py-1 text-xs text-zinc-400 transition-colors hover:bg-zinc-200 hover:text-zinc-500"
+                          >
+                            {copiedHash === txHash
+                              ? "해시가 복사됐어요"
+                              : `트랜잭션 해시 ${txHash.length > 20 ? `${txHash.slice(0, 10)}…${txHash.slice(-8)}` : txHash}`}
+                          </button>
                         </div>
                       )}
                     </div>
                   )
                   })
                 })()}
+                {/* 이 방에서 진행 중인 통화. 건 쪽·받는 쪽 모두에게 보이고,
+                    아직 통화 화면에 안 들어간 쪽은 이걸 눌러서 들어간다.
+                    끊기면 사라지고 그 자리에는 [통화] 기록 말풍선이 남는다. */}
+                {callPhase !== "idle" && activeCall?.roomId === selectedRoom.roomId && (
+                  // 하단에 고정한다. 대화를 위로 올려 보는 중에도 전화는 받을 수 있어야 한다.
+                  <div className="sticky bottom-0 z-10 flex flex-col bg-white pt-2">
+                    <CallSessionBubble
+                      peerName={selectedRoom.participantName}
+                      peerImageUrl={selectedRoom.participantImageUrl}
+                      isSent={activeCall.caller.username === myUsername}
+                    />
+                  </div>
+                )}
                 <div ref={messagesEndRef} />
               </div>
               {lightboxSrc && (
@@ -951,9 +1260,9 @@ export default function Page() {
             </div>
           )}
 
-          {/* 입력 영역 */}
+          {/* 입력 영역. 거래가 끝나도 대화는 막지 않는다 */}
           {selectedRoom && (
-            <div className="shrink-0 border-t border-zinc-200 px-6 py-4 flex flex-col gap-3">
+            <div className="shrink-0 border-t border-line px-2 md:px-6 py-4 flex flex-col gap-3">
               {showAttach && (
                 <div className="flex gap-6">
                   <div className="flex flex-col items-center gap-1">
@@ -996,32 +1305,36 @@ export default function Page() {
                       <span className="text-xs text-zinc-500">계약서</span>
                     </div>
                   )}
-                  {myRole === "PROFESSIONAL" && selectedRoom.postId && (
-                    <div className="flex flex-col items-center gap-1">
-                      <button
-                        onClick={() => { setShowAttach(false); setShowEstimate(true) }}
-                        className="w-12 h-12 rounded-full bg-emerald-400 flex items-center justify-center transition-opacity hover:opacity-85 cursor-pointer"
-                      >
-                        <MdOutlineReceiptLong className="text-white text-2xl" />
-                      </button>
-                      <span className="text-xs text-zinc-500">견적서</span>
-                    </div>
+                  {/* 갑·을 누구든 진행 중인 거래를 그만둘 수 있다. 끝난 거래는 서버가 취소를 받지 않아 버튼을 숨긴다 */}
+                  {selectedTradeStatus === "IN_PROGRESS" && (
+                  <div className="flex flex-col items-center gap-1">
+                    <button
+                      onClick={handleCancelTrade}
+                      disabled={dealBusy}
+                      className="w-12 h-12 rounded-full bg-zinc-500 flex items-center justify-center transition-opacity hover:opacity-85 cursor-pointer disabled:opacity-50"
+                    >
+                      <MdOutlineCancel className="text-white text-2xl" />
+                    </button>
+                    <span className="text-xs text-zinc-500">거래 취소</span>
+                  </div>
                   )}
                 </div>
               )}
 
-              {pendingPreviews.length > 0 && (
+              {pendingImages.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto pb-1">
-                  {pendingPreviews.map((preview, i) => (
+                  {pendingImages.map(({ preview, url }) => (
                     <div key={preview} className="relative w-24 h-24 rounded-lg overflow-hidden shrink-0">
-                      <img src={preview} alt="첨부 이미지" className="w-full h-full object-cover" />
-                      {uploading && !pendingImageUrls[i] ? (
+                      {/* blob: URL 이라 next/image 최적화 대상이 아니다. 보내기 전 로컬 미리보기일 뿐이다 */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url ? toRelativeUrl(url) : preview} alt="첨부 이미지" className="w-full h-full object-cover" />
+                      {!url ? (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                           <span className="text-white text-xs">업로드 중</span>
                         </div>
                       ) : (
                         <button
-                          onClick={() => clearPendingImage(i)}
+                          onClick={() => clearPendingImage(preview)}
                           className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center transition-colors hover:bg-black/70 cursor-pointer"
                         >
                           <IoClose className="text-white text-xs" />
@@ -1046,7 +1359,7 @@ export default function Page() {
                 </div>
               )}
 
-              <div className="flex items-center gap-3 p-2 rounded-lg border border-zinc-200">
+              <div className="flex items-center gap-3 p-2 rounded-lg border border-line">
                 <button
                   onClick={() => setShowAttach((v) => !v)}
                   className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-colors ${
@@ -1057,7 +1370,8 @@ export default function Page() {
                 </button>
                 <input
                   ref={chatInputRef}
-                  className="flex-1 h-full text-sm focus:outline-none"
+                  // input 은 기본 최소 폭(약 20자)이 있어 min-w-0 이 없으면 좁은 화면에서 줄지 못하고 보내기 버튼을 밖으로 밀어낸다
+                  className="flex-1 min-w-0 h-full text-sm focus:outline-none"
                   placeholder="메시지 입력"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
@@ -1076,7 +1390,7 @@ export default function Page() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,.heic,.heif"
                 multiple
                 className="hidden"
                 onChange={handleFileChange}
@@ -1084,7 +1398,8 @@ export default function Page() {
               <input
                 ref={docInputRef}
                 type="file"
-                accept=".pdf,.doc,.docx,.hwp,.hwpx,.xls,.xlsx,.ppt,.pptx,.zip,.txt"
+                // 백엔드가 이미지와 PDF 만 받아(Tika 로 MIME 검사) 다른 문서는 골라도 업로드가 거부된다
+                accept=".pdf,application/pdf"
                 className="hidden"
                 onChange={handleDocChange}
               />

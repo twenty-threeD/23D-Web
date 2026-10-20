@@ -1,4 +1,9 @@
 import { create } from 'zustand'
+import { invalidateChatRooms } from '@/src/lib/chat'
+
+// 서버(ChatRoom.tradeStatus)가 관리하는 거래 상태.
+// 결제가 체인 기록까지 끝나면 COMPLETED, 전액 환불·수동 취소면 CANCELED, 새 계약서가 등록되면 다시 IN_PROGRESS 가 된다
+export type TradeStatus = 'IN_PROGRESS' | 'COMPLETED' | 'CANCELED'
 
 export interface ChatRoom {
   roomId: number
@@ -12,6 +17,8 @@ export interface ChatRoom {
   // 나가기는 서버에서 소프트 삭제라 roomId 가 유지된다. 이 시각 이전 메시지는
   // 이 사용자에게 보이면 안 된다 (나간 적이 없으면 null). 로컬 캐시 정리 기준.
   clearBefore?: string | null
+  // 상태 컬럼이 생기기 전 방이나 배포 전 서버는 값을 주지 않는다. 그때는 진행 중으로 본다
+  tradeStatus?: TradeStatus | null
 }
 
 // 결제 승인 직후 채팅방에 알릴 내용.
@@ -46,9 +53,14 @@ interface ChatRoomsStore {
   // 채팅 페이지가 STOMP 연결되는 즉시 보내고 지운다 (pendingGreeting 과 같은 방식).
   pendingPayment: Record<number, PaymentNotice>
   setRooms: (rooms: ChatRoom[]) => void
-  markRoomUnread: (roomId: number, message: string) => void
+  markRoomUnread: (roomId: number, message: string, at?: string) => void
+  // 방 목록은 페이지 진입 때만 서버에서 받으므로, 실시간으로 오간 메시지는 여기서 직접 반영한다
+  applyLastMessage: (roomId: number, message: string, at?: string) => void
   markRoomRead: (roomId: number) => void
   setActiveRoomId: (roomId: number | null) => void
+  // 서버는 거래 상태가 바뀌어도 따로 알려주지 않는다. 방 목록은 진입 때만 받아오므로,
+  // 결제·계약·취소처럼 상태를 바꾸는 일을 화면에서 보면 여기서 바로 반영한다
+  setRoomTradeStatus: (roomId: number, status: TradeStatus) => void
   setSelectedService: (roomId: number, service: SelectedService, isNewRoom: boolean) => void
   clearPendingGreeting: (roomId: number) => void
   setPendingPayment: (roomId: number, notice: PaymentNotice) => void
@@ -88,14 +100,26 @@ export const useChatRoomsStore = create<ChatRoomsStore>((set, get) => ({
       delete next[roomId]
       return { pendingGreeting: next }
     }),
-  markRoomUnread: (roomId, message) => {
+  markRoomUnread: (roomId, message, at) => {
     // 지금 보고 있는 방이면 굳이 안읽음으로 표시하지 않는다 (SSE 알림과 STOMP 실시간 수신이
     // 동시에 도착할 때 markRoomRead 이후에 이게 실행돼서 다시 안읽음으로 덮어쓰는 걸 방지).
     if (get().activeRoomId === roomId) return
-    set((s) => ({
-      unreadRoomIds: { ...s.unreadRoomIds, [roomId]: true },
-      lastMessageOverride: { ...s.lastMessageOverride, [roomId]: message },
-    }))
+    get().applyLastMessage(roomId, message, at)
+    set((s) => ({ unreadRoomIds: { ...s.unreadRoomIds, [roomId]: true } }))
+  },
+  // 여기서 바뀐 순서·미리보기·거래 상태를 캐시된 옛 방 목록이 덮어쓰지 않도록, 반영할 때마다 목록 캐시를 버린다
+  applyLastMessage: (roomId, message, at) => {
+    invalidateChatRooms()
+    set((s) => {
+      const target = s.rooms.find((r) => r.roomId === roomId)
+      if (!target) return { lastMessageOverride: { ...s.lastMessageOverride, [roomId]: message } }
+      const updated = { ...target, lastMessagePreview: message, lastMessageAt: at ?? new Date().toISOString() }
+      // 최근 메시지가 온 방이 맨 위로 오도록 앞으로 옮긴다
+      return {
+        rooms: [updated, ...s.rooms.filter((r) => r.roomId !== roomId)],
+        lastMessageOverride: { ...s.lastMessageOverride, [roomId]: message },
+      }
+    })
   },
   markRoomRead: (roomId) =>
     set((s) => {
@@ -105,4 +129,10 @@ export const useChatRoomsStore = create<ChatRoomsStore>((set, get) => ({
       return { unreadRoomIds: next }
     }),
   setActiveRoomId: (roomId) => set({ activeRoomId: roomId }),
+  setRoomTradeStatus: (roomId, status) => {
+    invalidateChatRooms()
+    set((s) => ({
+      rooms: s.rooms.map((r) => (r.roomId === roomId ? { ...r, tradeStatus: status } : r)),
+    }))
+  },
 }))

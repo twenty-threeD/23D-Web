@@ -2,13 +2,13 @@ import { FaStar, FaStarHalf, FaRegStar } from "react-icons/fa";
 
 type StarRatingProps = {
   rating: number;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
   interactive?: boolean;
   onChange?: (rating: number) => void;
 };
 
 export default function StarRating({ rating, size = "md", interactive = false, onChange }: StarRatingProps) {
-  const cls = size === "sm" ? "size-3.5" : "size-5";
+  const cls = size === "sm" ? "size-3.5" : size === "lg" ? "size-[22px]" : "size-5";
 
   return (
     <div className="flex" role={interactive ? "radiogroup" : undefined} aria-label={interactive ? "별점 선택" : undefined}>

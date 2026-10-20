@@ -1,4 +1,5 @@
 import { throwApiError } from './apiError'
+import { invalidateMe } from './profile'
 
 function authHeaders(token: string) {
   return {
@@ -42,36 +43,51 @@ export async function getUsername(email: string) {
   return res.json()
 }
 
-// 아이디 재설정
-export async function resetUsername(token: string, username: string) {
-  const res = await fetch(`/api/member/username/reset`, {
-    method: 'POST',
-    headers: authHeaders(token),
-    body: JSON.stringify({ username }),
-  })
-  if (!res.ok) throw new Error('아이디 변경 실패')
-  return res.json()
-}
-
-// 비밀번호 재설정 인증 확인
-export async function checkPasswordReset(email: string, verifyCode: string) {
-  const res = await fetch(`/api/member/password/reset/check`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, verifyCode }),
-  })
-  if (!res.ok) throw new Error('인증 확인 실패')
-  return res.json()
-}
-
-// 비밀번호 재설정
-export async function resetPassword(email: string, newPassword: string) {
+// develop 서버의 공개 재설정 경로는 인증 코드와 계정 연락처를 대조한 뒤 비밀번호를 바꾼다.
+export async function resetPasswordWithoutAuth(data: {
+  username: string
+  email: string
+  verifyCode: string
+  newPassword: string
+}) {
   const res = await fetch(`/api/member/password/reset`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, newPassword }),
+    body: JSON.stringify({
+      username: data.username,
+      email: data.email,
+      verify_code: data.verifyCode,
+      new_password: data.newPassword,
+    }),
   })
-  if (!res.ok) throw new Error('비밀번호 변경 실패')
+  if (!res.ok) await throwApiError(res)
+  return res.json()
+}
+
+// 로그인 상태에서 비밀번호 변경. 이미 로그인했으니 인증번호 대신 기존 비밀번호로 본인 확인한다.
+// 성공하면 서버가 토큰을 지우므로 호출한 쪽에서 재로그인시켜야 한다
+export async function changePassword(token: string, currentPassword: string, newPassword: string) {
+  const res = await fetch(`/api/member/password/reset/check`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  })
+  if (!res.ok) await throwApiError(res)
+  // 내 정보가 바뀌었으니 들고 있던 프로필을 버린다
+  invalidateMe()
+  return res.json()
+}
+
+// 소셜 가입자처럼 비밀번호가 없는 계정의 최초 설정. 변경과 달리 토큰이 유지돼 재로그인이 필요 없다
+export async function setPassword(token: string, newPassword: string) {
+  const res = await fetch(`/api/member/password`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify({ new_password: newPassword }),
+  })
+  if (!res.ok) await throwApiError(res)
+  // 내 정보가 바뀌었으니 들고 있던 프로필을 버린다
+  invalidateMe()
   return res.json()
 }
 
@@ -90,6 +106,8 @@ export async function changeEmail(
     }),
   })
   if (!res.ok) await throwApiError(res)
+  // 내 정보가 바뀌었으니 들고 있던 프로필을 버린다
+  invalidateMe()
   return res.json()
 }
 
@@ -108,6 +126,8 @@ export async function changePhone(
     }),
   })
   if (!res.ok) await throwApiError(res)
+  // 내 정보가 바뀌었으니 들고 있던 프로필을 버린다
+  invalidateMe()
   return res.json()
 }
 
@@ -118,5 +138,7 @@ export async function deleteAccount(token: string) {
     headers: authHeaders(token),
   })
   if (!res.ok) throw new Error('회원 탈퇴 실패')
+  // 내 정보가 바뀌었으니 들고 있던 프로필을 버린다
+  invalidateMe()
   return res.json()
 }

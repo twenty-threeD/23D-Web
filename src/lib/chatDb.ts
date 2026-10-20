@@ -1,18 +1,20 @@
 // 채팅 메시지 로컬 캐시 (IndexedDB)
 //
-// 서버는 최근 3일치 메시지만 갖고 있어서, 그보다 오래된 대화는 여기 캐시에만 남는다.
-// 그래서 서버 응답과 머지할 때 "서버에 없으면 지운다"를 하면 안 된다.
-// 대신 방을 나갔던 시각(clearBefore)을 기준으로만 지운다.
+// 서버가 메시지를 DB 에 영구 저장하므로 여기는 진실 원본이 아니라 "렌더 캐시"다.
+// 방 진입 시 네트워크를 기다리지 않고 바로 그리기 위해서만 쓰며, 언제 지워져도
+// 커서 페이지네이션으로 서버에서 다시 받아오면 된다. "로컬에 없으면 에러" 같은 분기를 만들지 않는다.
 
 const DB_NAME = '23d-chat'
-const DB_VERSION = 1
+// v3: messageId 가 방별 카운터에서 전역 PK 로 바뀌었다.
+// 예전 캐시의 id 를 after/cursor 로 보내면 엉뚱한 구간이 돌아오므로 기존 스토어를 버리고 새로 만든다.
+const DB_VERSION = 3
 const STORE = 'messages'
 const ROOM_INDEX = 'roomId'
 
 // 캐시가 실제로 필요로 하는 최소 형태. 나머지 필드는 그대로 통과시킨다.
 export interface ChatMessageKey {
-  // 서버 메시지 id (없으면 캐시에 넣지 않는다 — 중복 저장을 막을 방법이 없다)
-  messageId: number
+  // 전역 PK. 정렬·중복 제거·after/cursor 기준이다.
+  messageId?: number | null
   roomId: number
   createdAt: string // ISO-8601
 }
@@ -32,11 +34,10 @@ function openDb(): Promise<IDBDatabase> {
 
     req.onupgradeneeded = () => {
       const db = req.result
-      if (!db.objectStoreNames.contains(STORE)) {
-        // roomId 기준으로 정리해야 해서 roomId 인덱스를 둔다
-        const store = db.createObjectStore(STORE, { keyPath: 'messageId' })
-        store.createIndex(ROOM_INDEX, 'roomId', { unique: false })
-      }
+      if (db.objectStoreNames.contains(STORE)) db.deleteObjectStore(STORE)
+      // roomId 기준으로 정리해야 해서 roomId 인덱스를 둔다
+      const store = db.createObjectStore(STORE, { keyPath: 'messageId' })
+      store.createIndex(ROOM_INDEX, 'roomId', { unique: false })
     }
 
     req.onsuccess = () => resolve(req.result)
@@ -52,7 +53,7 @@ function done(tx: IDBTransaction): Promise<void> {
   })
 }
 
-// 방 하나의 캐시된 메시지를 시간순으로 반환
+// 방 하나의 캐시된 메시지를 messageId 오름차순으로 반환
 export async function getCachedMessages(roomId: number): Promise<CachedMessage[]> {
   if (!isAvailable()) return []
 
@@ -67,13 +68,14 @@ export async function getCachedMessages(roomId: number): Promise<CachedMessage[]
       req.onerror = () => reject(req.error)
     })
 
-    return rows.sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
+    // createdAt 은 같은 시각이 겹칠 수 있어 전역 PK 로 정렬한다
+    return rows.sort((a, b) => (a.messageId as number) - (b.messageId as number))
   } finally {
     db.close()
   }
 }
 
-// 서버에서 받은 메시지를 캐시에 넣는다 (id 가 같으면 덮어쓴다)
+// 메시지를 캐시에 upsert 한다 (messageId 가 같으면 덮어쓴다)
 export async function cacheMessages<T extends ChatMessageKey>(messages: T[]): Promise<void> {
   if (!isAvailable() || messages.length === 0) return
 
@@ -82,7 +84,8 @@ export async function cacheMessages<T extends ChatMessageKey>(messages: T[]): Pr
     const tx = db.transaction(STORE, 'readwrite')
     const store = tx.objectStore(STORE)
     for (const message of messages) {
-      if (message?.messageId == null || message.roomId == null) continue
+      // id 없는 메시지는 키를 만들 수 없다. 다음 동기화 때 서버에서 id 와 함께 다시 온다.
+      if (message?.messageId == null) continue
       store.put(message)
     }
     await done(tx)
@@ -174,6 +177,21 @@ export async function deleteRoomCache(roomId: number): Promise<void> {
       cursor.continue()
     }
 
+    await done(tx)
+  } finally {
+    db.close()
+  }
+}
+
+// 모든 방의 캐시를 비운다. DB 가 계정 구분 없이 하나라, 로그아웃·다른 계정 로그인 때 비우지 않으면
+// 공용 PC 에서 다음 사람이 이전 사람의 대화 기록을 읽을 수 있다
+export async function clearAllChatCache(): Promise<void> {
+  if (!isAvailable()) return
+
+  const db = await openDb()
+  try {
+    const tx = db.transaction(STORE, 'readwrite')
+    tx.objectStore(STORE).clear()
     await done(tx)
   } finally {
     db.close()

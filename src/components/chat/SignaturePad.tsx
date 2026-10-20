@@ -68,7 +68,9 @@ export default function SignaturePad({ label, onSave, savedUrl }: SignaturePadPr
       <span className="text-sm font-semibold text-zinc-700">{label} 서명</span>
       {savedUrl ? (
         <div className="flex flex-col gap-2">
-          <div className="border border-zinc-300 rounded-lg overflow-hidden w-full h-32 flex items-center justify-center bg-white">
+          <div className="border border-line rounded-lg overflow-hidden w-full h-32 flex items-center justify-center bg-white">
+            {/* 방금 그린 서명은 data: URL 이라 next/image 로 못 그린다 */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={savedUrl} alt="서명" className="h-full object-contain" />
           </div>
           <button
@@ -80,7 +82,7 @@ export default function SignaturePad({ label, onSave, savedUrl }: SignaturePadPr
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          <div ref={wrapRef} className="relative border border-zinc-300 rounded-lg overflow-hidden bg-white">
+          <div ref={wrapRef} className="relative border border-line rounded-lg overflow-hidden bg-white">
             <SignatureCanvas
               ref={ref}
               canvasProps={{ className: "block touch-none cursor-crosshair" }}
@@ -103,7 +105,7 @@ export default function SignaturePad({ label, onSave, savedUrl }: SignaturePadPr
           <div className="flex gap-2">
             <button
               onClick={handleClear}
-              className="flex-1 py-1.5 text-xs font-semibold border border-zinc-300 rounded-lg text-zinc-600 cursor-pointer hover:border-main hover:text-main transition-colors"
+              className="flex-1 py-1.5 text-xs font-semibold border border-line rounded-lg text-zinc-600 cursor-pointer hover:border-main hover:text-main transition-colors"
             >
               지우기
             </button>

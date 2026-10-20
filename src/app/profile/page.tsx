@@ -3,15 +3,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Header from "@/src/components/Header";
-import Footer from "@/src/components/Footer";
 import NormalCard from "@/src/components/NormalCard";
 import { CiCamera } from "react-icons/ci";
 import { useAuthStore } from "@/src/store/authStore";
 import { useProfileStore } from "@/src/store/profileStore";
 import { useToast } from "@/src/hooks/useToast";
 import { useHandleError } from "@/src/hooks/useHandleError";
-import { uploadFile, toRelativeUrl } from "@/src/lib/file";
+import { uploadFile, toRelativeUrl, toUploadPath } from "@/src/lib/file";
+import { HeifConversionError } from "@/src/lib/imageCompress";
 import { isPayloadTooLarge } from "@/src/lib/apiError";
 import {
   getMyProfile,
@@ -23,11 +22,14 @@ import {
   type JobCategory,
   type Sido,
   type Sigungu,
+  needsPasswordSetup,
 } from "@/src/lib/profile";
-import { resetUsername, deleteAccount } from "@/src/lib/member";
+import { deleteAccount } from "@/src/lib/member";
 import AccountEditModal from "@/src/components/profile/AccountEditModal";
+import PasswordModal from "@/src/components/profile/PasswordModal";
 import { getFavoritePosts, getMyPosts, deletePost, getPostMainImage, type Post } from "@/src/lib/post";
 import { signinPath } from "@/src/lib/navigation"
+import { PAGE_PADDING } from "@/src/lib/layout";
 
 const DISTANCE_OPTIONS: { value: "TEN_KM" | "TWENTY_FIVE_KM" | "FIFTY_KM" | "OVER_HUNDRED_KM"; label: string }[] = [
   { value: "TEN_KM", label: "10km 이내" },
@@ -36,9 +38,31 @@ const DISTANCE_OPTIONS: { value: "TEN_KM" | "TWENTY_FIVE_KM" | "FIFTY_KM" | "OVE
   { value: "OVER_HUNDRED_KM", label: "100km 이상" },
 ];
 
+async function uploadExternalProfileImage(token: string, imageUrl: string) {
+  const response = await fetch(toRelativeUrl(imageUrl));
+  if (!response.ok) throw new Error("프로필 사진을 불러오지 못했습니다.");
+
+  const blob = await response.blob();
+  const mimeType = blob.type.toLowerCase().split(";")[0] ?? "";
+  if (blob.size > 25 * 1024 * 1024) throw new Error("프로필 사진 파일이 너무 큽니다.");
+  const extensionByType: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+  };
+  const extension = extensionByType[mimeType] ?? (mimeType.startsWith("image/") ? "img" : null);
+  if (!extension) throw new Error("지원하지 않는 프로필 사진 형식입니다.");
+
+  const file = new File([blob], `profile-${Date.now()}.${extension}`, { type: mimeType });
+  return uploadFile(token, file);
+}
+
 export default function Page() {
   const router = useRouter();
   const token = useAuthStore((s) => s.accessToken);
+  // 토큰은 만료 직전·탭 복귀 때 재발급된다. 토큰 값에 의존하면 재발급마다 다시 불러와 편집 중인 내용을 덮어써서,
+  // 로그인 여부에만 의존하고 요청에는 그 시점의 최신 토큰을 쓴다
+  const hasToken = !!token;
   const clear = useAuthStore((s) => s.clear);
   const myUsername = useAuthStore((s) => s.username);
   const { addToast } = useToast();
@@ -52,6 +76,7 @@ export default function Page() {
   const [imageUrl, setImageUrl] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [resettingImage, setResettingImage] = useState(false);
   const [shortDescription, setShortDescription] = useState("");
   const [jobCategoryId, setJobCategoryId] = useState<number | "">("");
   const [ctprvnCd, setCtprvnCd] = useState("");
@@ -69,8 +94,10 @@ export default function Page() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [editingField, setEditingField] = useState<"email" | "phone" | null>(null);
   const [verifyingPhone, setVerifyingPhone] = useState(false);
+  const [passwordMode, setPasswordMode] = useState<"set" | "change" | null>(null);
 
   const fetchProfile = useCallback(async () => {
+    const token = useAuthStore.getState().accessToken;
     if (!token) return;
     setLoading(true);
     try {
@@ -82,7 +109,14 @@ export default function Page() {
       setShortDescription(data.shortDescription ?? "");
       setJobCategoryId(data.jobCategoryId ?? "");
       setSigCd(data.sigCd ?? "");
-      setMovableDistance((data.movableDistance as typeof movableDistance) ?? "");
+      // 프로필 응답엔 시/도 코드가 없다. 행정구역 코드는 시군구 코드 앞 2자리가 시/도 코드라서 여기서 복원해야
+      // 수정 화면에서 시/도·시/군/구 선택이 기존 값으로 채워진다
+      setCtprvnCd(data.sigCd ? data.sigCd.slice(0, 2) : "");
+      // 서버가 enum 대신 라벨을 줄 때도 있어 둘 다 맞춰 본다. 못 찾으면 빈 값으로 둬서 select 가 엉뚱한 값을 보여주지 않게 한다
+      const distance = DISTANCE_OPTIONS.find(
+        (o) => o.value === data.movableDistance || o.label === data.movableDistance || o.label === data.movableDistanceLabel,
+      );
+      setMovableDistance(distance?.value ?? "");
       setUsernameInput(data.username ?? "");
       // 프로필 응답에 posts 가 없으면 전체 목록을 훑어 걸러낸다
       if (data.posts) {
@@ -100,14 +134,14 @@ export default function Page() {
     } finally {
       setLoading(false);
     }
-  }, [token, myUsername]);
+  }, [myUsername]);
 
   useEffect(() => {
     if (!token) { router.push(signinPath()); return; }
     fetchProfile();
     getJobCategories().then(setJobCategories).catch(() => {});
-    getSidoList().then(setSidoList).catch(() => {});
-  }, [token]);
+    getSidoList(token).then(setSidoList).catch(() => {});
+  }, [hasToken]);
 
   useEffect(() => {
     if (!token) return;
@@ -134,9 +168,9 @@ export default function Page() {
   }
 
   useEffect(() => {
-    if (!ctprvnCd) { setSigunguList([]); return; }
-    getSigunguList(ctprvnCd).then(setSigunguList).catch(() => setSigunguList([]));
-  }, [ctprvnCd]);
+    if (!ctprvnCd || !token) { setSigunguList([]); return; }
+    getSigunguList(token, ctprvnCd).then(setSigunguList).catch(() => setSigunguList([]));
+  }, [ctprvnCd, token]);
 
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -153,8 +187,11 @@ export default function Page() {
       const { url } = await uploadFile(token, file);
       setImageUrl(url);
     } catch (e) {
+      let message = "이미지 업로드에 실패했습니다.";
+      if (e instanceof HeifConversionError) message = e.message;
+      else if (isPayloadTooLarge(e)) message = "사진은 최대 25MB까지 업로드할 수 있어요.";
       addToast({
-        message: isPayloadTooLarge(e) ? "사진은 최대 25MB까지 업로드할 수 있어요." : "이미지 업로드에 실패했습니다.",
+        message,
         type: "error",
       });
     } finally {
@@ -168,17 +205,47 @@ export default function Page() {
   async function handleSave() {
     if (!token) return;
     setSaving(true);
+    // 아이디 변경은 별도 API 가 없고 프로필 수정에 함께 실린다.
+    // 바뀌지 않았으면 아예 보내지 않는다. 서버는 "값이 있고 현재 아이디와 다를 때"만 변경으로 보는데,
+    // 그 판단을 여기서도 똑같이 해두어야 아래에서 재로그인이 필요한지 알 수 있다.
+    const nextUsername = usernameInput.trim();
+    const usernameChanged = !!nextUsername && nextUsername !== profile?.username;
     try {
-      if (usernameInput.trim() && usernameInput.trim() !== profile?.username) {
-        await resetUsername(token, usernameInput.trim());
+      let nextImageUrl = toUploadPath(imageUrl);
+      if (imageUrl && !nextImageUrl) {
+        try {
+          // 서버는 외부 소셜 사진 주소를 거부하고 사진 생략 시 기본 이미지로 바꾸므로 먼저 업로드 경로로 옮긴다.
+          const { url } = await uploadExternalProfileImage(token, imageUrl);
+          nextImageUrl = toUploadPath(url);
+          if (!nextImageUrl) throw new Error("업로드된 프로필 사진 경로가 올바르지 않습니다.");
+        } catch {
+          addToast({
+            message: "현재 프로필 사진을 보관하지 못했습니다. 사진을 새로 선택한 뒤 다시 저장해주세요.",
+            type: "error",
+          });
+          return;
+        }
       }
+
       await updateMyProfile(token, {
-        imageUrl: imageUrl || undefined,
+        username: usernameChanged ? nextUsername : undefined,
+        // 이 값을 빼면 서버가 사진을 기본 이미지로 초기화하므로 다른 항목만 고칠 때도 현재 사진을 함께 보낸다.
+        imageUrl: nextImageUrl ?? undefined,
         sigCd: sigCd || undefined,
         movableDistance: movableDistance || undefined,
-        shortDescription: shortDescription || undefined,
+        // 비운 값도 보내야 지워진다. undefined 로 빼면 서버가 '변경 없음'으로 보고 기존 소개를 남긴다
+        shortDescription: shortDescription.trim(),
         jobCategoryId: jobCategoryId === "" ? undefined : Number(jobCategoryId),
       });
+      // 아이디가 바뀌면 서버가 응답 직전에 토큰을 지운다. 응답은 200 이고 문구만 달라서 상태 코드로는 구분할 수 없다.
+      // 지금 들고 있는 토큰은 옛 아이디로 발급돼 다음 요청부터 실패하므로, 비밀번호 변경과 같이 로그인부터 다시 시킨다.
+      if (usernameChanged) {
+        addToast({ message: "아이디가 변경되었습니다. 다시 로그인해주세요.", type: "success" });
+        clear();
+        useProfileStore.getState().reset();
+        router.replace(signinPath());
+        return;
+      }
       addToast({ message: "프로필이 저장되었습니다.", type: "success" });
       setEditing(false);
       await fetchProfile();
@@ -186,6 +253,30 @@ export default function Page() {
       handleError(e);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleResetImage() {
+    if (!token) return;
+    if (!confirm("프로필 사진을 지우고 기본 프로필을 사용할까요?")) return;
+    setResettingImage(true);
+    try {
+      await updateMyProfile(token, { imageUrl: null });
+      // 보낸 값이 아니라 서버에 실제로 남은 값으로 화면을 맞춘다. 헤더도 같은 스토어를 보고 있어 함께 바뀐다
+      const { data } = await getMyProfile(token);
+      setProfile(data);
+      setImageUrl(data.imageUrl ?? "");
+      useProfileStore.getState().setImageUrl(data.imageUrl ?? null);
+      if (data.imageUrl) {
+        // 요청은 성공했는데 이미지가 남아 있으면 서버가 null 을 "변경 없음"으로 받은 것이다. 바뀐 척하지 않고 알린다
+        addToast({ message: "프로필 사진을 지우지 못했습니다. 잠시 후 다시 시도해주세요.", type: "error" });
+        return;
+      }
+      addToast({ message: "기본 프로필로 변경했습니다.", type: "success" });
+    } catch (e) {
+      handleError(e);
+    } finally {
+      setResettingImage(false);
     }
   }
 
@@ -206,40 +297,50 @@ export default function Page() {
   if (loading || !profile) {
     return (
       <div>
-        <Header />
         <p className="text-center py-20 text-zinc-400">불러오는 중...</p>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div>
-      <Header />
-      <main className="flex flex-col gap-10 px-20 py-10 mx-auto">
+      <main className={`flex flex-col gap-10 ${PAGE_PADDING}`}>
         <h1 className="text-2xl font-bold">프로필</h1>
 
-        <div className="flex flex-col gap-6 border border-zinc-200 rounded-lg p-8">
+        <div className="flex flex-col gap-6 border border-line rounded-lg p-5 md:p-8">
           <div className="flex items-center gap-6">
-            <div className="relative w-24 h-24 rounded-full overflow-hidden border border-zinc-300 bg-zinc-100 shrink-0">
-              <Image
-                src={imagePreview ?? (imageUrl ? toRelativeUrl(imageUrl) : "/profile.png")}
-                alt="프로필 이미지"
-                width={96}
-                height={96}
-                className="w-full h-full object-cover"
-                unoptimized={!!imagePreview}
-              />
-              {uploadingImage && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                  <div className="w-6 h-6 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                </div>
-              )}
-              {editing && !uploadingImage && (
-                <label className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
-                  <CiCamera className="text-white text-3xl" />
-                  <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-                </label>
+            <div className="flex flex-col items-center gap-2 shrink-0">
+              <div className="relative w-24 h-24 rounded-full overflow-hidden border border-line bg-zinc-100 shrink-0">
+                <Image
+                  src={imagePreview ?? (imageUrl ? toRelativeUrl(imageUrl) : "/profile.webp")}
+                  alt="프로필 이미지"
+                  width={96}
+                  height={96}
+                  className="w-full h-full object-cover"
+                  unoptimized={!!imagePreview}
+                />
+                {uploadingImage && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                    <div className="w-6 h-6 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                  </div>
+                )}
+                {editing && !uploadingImage && (
+                  <label className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
+                    <CiCamera className="text-white text-3xl" />
+                    <input type="file" accept="image/*,.heic,.heif" className="hidden" onChange={handleImageChange} />
+                  </label>
+                )}
+              </div>
+              {/* 저장된 사진이 있을 때만 보여준다. 이미 기본 프로필이면 되돌릴 게 없다 */}
+              {profile.imageUrl && (
+                <button
+                  type="button"
+                  onClick={handleResetImage}
+                  disabled={resettingImage || uploadingImage}
+                  className="px-3 py-1.5 rounded-lg border border-line text-xs font-semibold text-zinc-600 hover:bg-zinc-100 disabled:opacity-50 cursor-pointer"
+                >
+                  {resettingImage ? "변경 중..." : "기본 프로필 사용하기"}
+                </button>
               )}
             </div>
             <div className="flex flex-col gap-1">
@@ -259,7 +360,7 @@ export default function Page() {
               <div className="flex justify-end">
                 <button
                   onClick={() => setEditing(true)}
-                  className="px-4 py-2 rounded-lg border border-zinc-300 text-sm font-semibold hover:bg-zinc-100 cursor-pointer"
+                  className="px-4 py-2 rounded-lg border border-line text-sm font-semibold hover:bg-zinc-100 cursor-pointer"
                 >
                   프로필 수정
                 </button>
@@ -272,7 +373,7 @@ export default function Page() {
                 <input
                   value={usernameInput}
                   onChange={(e) => setUsernameInput(e.target.value)}
-                  className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
+                  className="border border-line rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
                 />
               </div>
 
@@ -283,7 +384,7 @@ export default function Page() {
                   onChange={(e) => setShortDescription(e.target.value.slice(0, 100))}
                   maxLength={100}
                   rows={3}
-                  className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500 resize-none"
+                  className="border border-line rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500 resize-none"
                 />
                 <span className="text-xs text-zinc-400 self-end">{shortDescription.length} / 100</span>
               </div>
@@ -293,7 +394,7 @@ export default function Page() {
                 <select
                   value={jobCategoryId}
                   onChange={(e) => setJobCategoryId(e.target.value ? Number(e.target.value) : "")}
-                  className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
+                  className="border border-line rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
                 >
                   <option value="">선택 안 함</option>
                   {jobCategories.map((c) => (
@@ -308,7 +409,7 @@ export default function Page() {
                   <select
                     value={ctprvnCd}
                     onChange={(e) => { setCtprvnCd(e.target.value); setSigCd(""); }}
-                    className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
+                    className="border border-line rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
                   >
                     <option value="">선택</option>
                     {sidoList.map((s) => (
@@ -322,7 +423,7 @@ export default function Page() {
                     value={sigCd}
                     onChange={(e) => setSigCd(e.target.value)}
                     disabled={!ctprvnCd}
-                    className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
+                    className="border border-line rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
                   >
                     <option value="">선택</option>
                     {sigunguList.map((s) => (
@@ -337,7 +438,7 @@ export default function Page() {
                 <select
                   value={movableDistance}
                   onChange={(e) => setMovableDistance(e.target.value as typeof movableDistance)}
-                  className="border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
+                  className="border border-line rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
                 >
                   <option value="">선택 안 함</option>
                   {DISTANCE_OPTIONS.map((o) => (
@@ -349,7 +450,7 @@ export default function Page() {
               <div className="flex justify-end gap-2">
                 <button
                   onClick={() => { setEditing(false); fetchProfile(); }}
-                  className="px-4 py-2 rounded-lg border border-zinc-300 text-sm font-semibold hover:bg-zinc-100 cursor-pointer"
+                  className="px-4 py-2 rounded-lg border border-line text-sm font-semibold hover:bg-zinc-100 cursor-pointer"
                 >
                   취소
                 </button>
@@ -368,22 +469,22 @@ export default function Page() {
         {/* 계정 정보 */}
         <div className="flex flex-col gap-4">
           <h2 className="text-xl font-bold">계정 정보</h2>
-          <div className="border border-zinc-200 rounded-lg divide-y divide-zinc-200">
-            <div className="flex items-center justify-between px-4 py-3">
-              <span className="text-sm text-zinc-500">이메일</span>
-              <div className="flex items-center gap-3">
-                <span className="text-sm">
+          <div className="border border-line rounded-lg divide-y divide-line">
+            <div className="flex items-center justify-between gap-4 px-4 py-3">
+              <span className="text-sm text-zinc-500 shrink-0">이메일</span>
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-sm break-all">
                   {profile?.email ?? <span className="text-zinc-400">등록된 정보가 없습니다</span>}
                 </span>
                 <button
                   onClick={() => setEditingField("email")}
-                  className="text-xs text-zinc-500 underline underline-offset-2 hover:text-main transition-colors cursor-pointer"
+                  className="shrink-0 whitespace-nowrap text-xs text-zinc-500 underline underline-offset-2 hover:text-main transition-colors cursor-pointer"
                 >
                   변경
                 </button>
               </div>
             </div>
-            <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center justify-between gap-4 px-4 py-3">
               <span className="text-sm text-zinc-500">전화번호</span>
               <div className="flex items-center gap-3">
                 {profile?.phone && (
@@ -403,13 +504,47 @@ export default function Page() {
                 </span>
                 <button
                   onClick={() => setEditingField("phone")}
-                  className="text-xs text-zinc-500 underline underline-offset-2 hover:text-main transition-colors cursor-pointer"
+                  className="shrink-0 whitespace-nowrap text-xs text-zinc-500 underline underline-offset-2 hover:text-main transition-colors cursor-pointer"
                 >
                   변경
                 </button>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* 비밀번호 */}
+        <div className="flex flex-col gap-4">
+          <h2 className="text-xl font-bold">비밀번호</h2>
+          {needsPasswordSetup(profile) ? (
+            <div className="flex items-center justify-between gap-4 border border-main rounded-lg px-4 py-3">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-semibold text-main">비밀번호가 설정되지 않았어요</span>
+                <span className="text-xs text-zinc-500">비밀번호를 설정하면 이메일과 비밀번호로도 로그인할 수 있어요.</span>
+              </div>
+              <button
+                onClick={() => setPasswordMode("set")}
+                className="shrink-0 px-4 py-2 rounded-xl bg-main text-white text-sm font-semibold transition-colors hover:bg-orange-600 cursor-pointer"
+              >
+                비밀번호 설정
+              </button>
+            </div>
+          ) : (
+            <div className="border border-line rounded-lg">
+              <div className="flex items-center justify-between gap-4 px-4 py-3">
+                <span className="text-sm text-zinc-500">비밀번호</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm tracking-widest">••••••••</span>
+                  <button
+                    onClick={() => setPasswordMode("change")}
+                    className="shrink-0 whitespace-nowrap text-xs text-zinc-500 underline underline-offset-2 hover:text-main transition-colors cursor-pointer"
+                  >
+                    재설정
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 내가 올린 게시글 */}
@@ -420,21 +555,21 @@ export default function Page() {
           ) : myPosts.length === 0 ? (
             <p className="text-zinc-400 text-sm">등록한 게시글이 없습니다.</p>
           ) : (
-            <div className="flex flex-wrap gap-4">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:flex sm:flex-wrap sm:gap-4">
               {myPosts.map((p) => (
                 <div key={p.id} className="flex flex-col">
-                  <NormalCard id={p.id} title={p.title} content={p.content} fileUrl={getPostMainImage(p.fileUrls)} />
+                  <NormalCard id={p.id} title={p.title} content={p.content} fileUrl={getPostMainImage(p.fileUrls)} inGrid />
                   <div className="flex gap-2 px-3">
                     <button
                       onClick={() => router.push(`/upload/${p.id}`)}
-                      className="flex-1 py-1.5 rounded-lg border border-zinc-300 text-xs font-semibold text-zinc-600 hover:border-main hover:text-main transition-colors cursor-pointer"
+                      className="flex-1 py-1.5 rounded-lg border border-line text-xs font-semibold text-zinc-600 hover:border-main hover:text-main transition-colors cursor-pointer"
                     >
                       수정
                     </button>
                     <button
                       onClick={() => handleDeletePost(p.id)}
                       disabled={deletingId === p.id}
-                      className="flex-1 py-1.5 rounded-lg border border-zinc-300 text-xs font-semibold text-red-500 hover:border-red-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      className="flex-1 py-1.5 rounded-lg border border-line text-xs font-semibold text-red-500 hover:border-red-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                     >
                       {deletingId === p.id ? "삭제 중..." : "삭제"}
                     </button>
@@ -452,9 +587,9 @@ export default function Page() {
           ) : favorites.length === 0 ? (
             <p className="text-zinc-400 text-sm">찜한 항목이 없습니다.</p>
           ) : (
-            <div className="flex flex-wrap gap-4">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:flex sm:flex-wrap sm:gap-4">
               {favorites.map((p) => (
-                  <NormalCard key={p.id} title={p.title} content={p.content} fileUrl={getPostMainImage(p.fileUrls)} id={p.id} category={p.category} />
+                  <NormalCard key={p.id} title={p.title} content={p.content} fileUrl={getPostMainImage(p.fileUrls)} id={p.id} category={p.category} inGrid />
               ))}
             </div>
           )}
@@ -479,6 +614,25 @@ export default function Page() {
         />
       )}
 
+      {passwordMode && token && (
+        <PasswordModal
+          mode={passwordMode}
+          token={token}
+          onClose={() => setPasswordMode(null)}
+          onDone={() => {
+            // 변경 API는 성공 시 서버에서 토큰을 지워서, 그대로 두면 다음 요청부터 401이 난다
+            if (passwordMode === "change") {
+              clear();
+              useProfileStore.getState().reset();
+              router.push(signinPath());
+              return;
+            }
+            setPasswordMode(null);
+            fetchProfile();
+          }}
+        />
+      )}
+
       {editingField && token && (
         <AccountEditModal
           field={editingField}
@@ -487,7 +641,6 @@ export default function Page() {
           onDone={() => { setEditingField(null); fetchProfile(); }}
         />
       )}
-      <Footer />
     </div>
   );
 }

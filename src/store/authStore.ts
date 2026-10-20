@@ -1,15 +1,22 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { clearCache } from '@/src/lib/cache'
+import { clearAllChatCache } from '@/src/lib/chatDb'
 
+// JWT 는 base64url('-','_', 패딩 없음)이라 atob 에 바로 넣으면 그 문자가 섞인 토큰에서 실패한다.
+// 또 atob 는 바이트를 latin1 로 돌려줘서 한글 같은 값이 깨지므로 UTF-8 로 다시 읽는다
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
-    return JSON.parse(atob(token.split('.')[1]))
+    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4)
+    const bytes = Uint8Array.from(atob(padded), (c) => c.charCodeAt(0))
+    return JSON.parse(new TextDecoder().decode(bytes))
   } catch {
     return null
   }
 }
 
-function decodeJwtUsername(token: string): string | null {
+export function decodeJwtUsername(token: string): string | null {
   const payload = decodeJwtPayload(token)
   if (!payload) return null
   return (payload.username as string) ?? (payload.sub as string) ?? null
@@ -49,6 +56,12 @@ const EXPIRED = 'Thu, 01 Jan 1970 00:00:00 GMT'
 // ensureAccessToken 이 clear() 로 이 쿠키까지 걷어내므로 남아도 문제되지 않는다.
 const SESSION_COOKIE_MAX_AGE = 60 * 60 * 24 * 30
 const WS_COOKIE_PATH = '/ws-stomp'
+const COOKIE_DOMAIN = 'idta.store'
+
+function isServiceHost() {
+  const host = window.location.hostname
+  return host === COOKIE_DOMAIN || host.endsWith(`.${COOKIE_DOMAIN}`)
+}
 
 export function setSessionCookie(active: boolean) {
   if (typeof document === 'undefined') return
@@ -69,11 +82,27 @@ export function setSessionCookie(active: boolean) {
 // path 를 /ws-stomp 로 좁히는 게 핵심이다. 이러면 이 쿠키는 웹소켓 요청에만 실려서,
 // /api/* 호출에서 백엔드의 동명 httpOnly 쿠키와 겹치지 않는다.
 // (예전에 path=/ 로 심었다가 동명 쿠키가 2개씩 쌓였던 문제를 피한다.)
+//
+// 배포 환경에서는 웹소켓이 api.idta.store 로 직접 붙으므로(wsStompUrl 참고)
+// Domain 을 .idta.store 로 넓혀야 그 요청에도 실린다. localhost 에서는 Domain 을 붙이면 저장되지 않는다.
 export function setWsAuthCookie(token: string | null) {
   if (typeof document === 'undefined') return
+  const domain = isServiceHost() ? `; Domain=${COOKIE_DOMAIN}` : ''
   document.cookie = token
-    ? `accessToken=${token}; path=${WS_COOKIE_PATH}; SameSite=Lax`
-    : `accessToken=; path=${WS_COOKIE_PATH}; expires=${EXPIRED}`
+    ? `accessToken=${token}; path=${WS_COOKIE_PATH}${domain}; SameSite=Lax`
+    : `accessToken=; path=${WS_COOKIE_PATH}${domain}; expires=${EXPIRED}`
+}
+
+// SockJS 접속 주소.
+//
+// Vercel rewrite 는 WebSocket 업그레이드를 프록시하지 못해서, 같은 오리진(/ws-stomp)으로 붙으면
+// 웹소켓이 실패하고 SockJS 가 xhr 폴링으로 내려간다. 그래서 배포 환경에서는 백엔드로 직접 붙는다.
+// 로컬은 Domain=.idta.store 쿠키를 쓸 수 없어 기존처럼 같은 오리진 프록시를 탄다.
+export function wsStompUrl() {
+  if (isServiceHost()) {
+    return `${process.env.NEXT_PUBLIC_API_URL ?? 'https://api.idta.store'}/ws-stomp`
+  }
+  return `${window.location.protocol}//${window.location.host}/ws-stomp`
 }
 
 interface AuthStore {
@@ -91,7 +120,7 @@ interface AuthStore {
 
 export const useAuthStore = create<AuthStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       accessToken: null,
       username: null,
       role: null,
@@ -101,9 +130,16 @@ export const useAuthStore = create<AuthStore>()(
       setToken: (token) => {
         setSessionCookie(true)
         setWsAuthCookie(token)
+        const username = decodeJwtUsername(token)
+        // 토큰 재발급은 같은 사람이라 캐시를 살리고, 다른 계정으로 들어왔을 때만 이전 사람의 데이터를 비운다
+        if (username !== get().username) {
+          clearCache()
+          // 이전 계정이 남긴 채팅 캐시도 지운다. 실패해도 로그인은 막지 않는다
+          void clearAllChatCache().catch(() => {})
+        }
         set({
           accessToken: token,
-          username: decodeJwtUsername(token),
+          username,
           role: decodeJwtRole(token),
           hasSession: true,
         })
@@ -111,6 +147,8 @@ export const useAuthStore = create<AuthStore>()(
       clear: () => {
         setSessionCookie(false)
         setWsAuthCookie(null)
+        clearCache()
+        void clearAllChatCache().catch(() => {})
         set({ accessToken: null, username: null, role: null, hasSession: false })
       },
     }),

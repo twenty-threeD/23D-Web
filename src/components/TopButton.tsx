@@ -14,7 +14,7 @@ export default function TopButton() {
     <button
       type="button"
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      className={isTop ? "hidden" : "fixed bottom-6 right-6 z-20 flex items-center justify-center rounded-full bg-main p-3 text-white shadow-lg hover:bg-orange-600"}
+      className={isTop ? "hidden" : "fixed bottom-20 right-4 md:bottom-6 md:right-6 z-20 flex items-center justify-center rounded-full bg-main p-3 text-white shadow-lg hover:bg-orange-600"}
       aria-label="맨위로 이동"
     >
       <IoIosArrowUp className="text-2xl" />

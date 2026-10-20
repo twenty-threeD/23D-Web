@@ -1,8 +1,8 @@
 "use client"
 
+import PostImage from "@/src/components/PostImage"
 import Link from "next/link"
 import { IoChatbubbleOutline, IoChevronForward, IoImageOutline } from "react-icons/io5"
-import { toRelativeUrl } from "@/src/lib/file"
 
 interface ChatStartCardProps {
   postId?: number | null
@@ -35,19 +35,19 @@ export default function ChatStartCard({
   const formattedPrice = formatPrice(price)
 
   return (
-    <div className="animate-chat-card mx-auto w-full max-w-md overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-      <div className="flex items-center gap-2 border-b border-zinc-100 bg-zinc-50 px-4 py-2.5">
+    <div className="animate-chat-card mx-auto w-full max-w-md overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
+      <div className="flex items-center gap-2 border-b border-line bg-zinc-50 px-4 py-2.5">
         <IoChatbubbleOutline className="shrink-0 text-sm text-zinc-400" />
         <span className="text-[11.5px] font-medium tracking-wide text-zinc-400">잇다 시스템 안내</span>
       </div>
 
       <div className="flex gap-4 px-4 py-4.5">
         {imageUrl ? (
-          <div className="size-22 shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200">
-            <img src={toRelativeUrl(imageUrl)} alt="" className="size-full object-cover" />
+          <div className="relative size-22 shrink-0 overflow-hidden rounded-xl border border-line bg-zinc-200">
+            <PostImage src={imageUrl} alt="" fill sizes="88px" className="object-cover" />
           </div>
         ) : (
-          <div className="flex size-22 shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-zinc-300 bg-zinc-100">
+          <div className="flex size-22 shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-line bg-zinc-100">
             <IoImageOutline className="text-xl text-zinc-300" />
             <span className="text-[10px] text-zinc-400">이미지 없음</span>
           </div>
@@ -62,7 +62,7 @@ export default function ChatStartCard({
 
           <div className="flex flex-wrap items-center gap-2">
             {planName && (
-              <span className="max-w-full truncate rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-0.5 text-[11.5px] font-medium text-zinc-600">
+              <span className="max-w-full truncate rounded-full border border-line bg-zinc-100 px-2.5 py-0.5 text-[11.5px] font-medium text-zinc-600">
                 {planName}
               </span>
             )}
@@ -76,7 +76,7 @@ export default function ChatStartCard({
       {postId ? (
         <Link
           href={`/item/${postId}`}
-          className="flex items-center justify-center gap-1.5 border-t border-zinc-100 py-3.5 text-[13px] font-semibold text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-main"
+          className="flex items-center justify-center gap-1.5 border-t border-line py-3.5 text-[13px] font-semibold text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-main"
         >
           상품상세 보기
           <IoChevronForward className="text-sm" />

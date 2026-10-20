@@ -1,4 +1,6 @@
 import { throwApiError } from './apiError'
+import { cached, invalidate } from './cache'
+import { ME_KEY } from './profile'
 import {
   cacheMessages,
   clearMessagesBefore,
@@ -7,6 +9,7 @@ import {
   deleteRoomCache,
 } from './chatDb'
 import type { CachedMessage } from './chatDb'
+import type { TradeStatus } from '@/src/store/chatRoomsStore'
 
 // 채팅방 나가기는 서버에서 소프트 삭제라 roomId 가 그대로 유지된다.
 // 나갔다가 같은 상대·같은 포스트로 다시 방을 만들면 서버는 같은 roomId 를 돌려주는데,
@@ -27,7 +30,7 @@ function authHeaders(token?: string | null) {
 }
 
 // 응답이 { data: ... } 로 감싸져 오는 경우와 아닌 경우를 모두 받아준다
-function unwrap<T>(json: unknown): T {
+export function unwrap<T>(json: unknown): T {
   const body = json as { data?: T }
   return (body && typeof body === 'object' && 'data' in body ? body.data : json) as T
 }
@@ -40,18 +43,29 @@ function toMessageList(json: unknown): CachedMessage[] {
   return paged?.content ?? []
 }
 
-export async function getChatRooms(token: string) {
-  const res = await fetch(`/api/chat/rooms`, {
-    headers: authHeaders(token),
+// 방 목록 캐시 키. 목록이 바뀌는 일(방 생성·나가기·거래 상태·실시간 메시지)이 생기면 invalidateChatRooms() 로 지운다
+const CHAT_ROOMS_KEY = `${ME_KEY}chat-rooms`
+// 채팅 페이지는 방을 바꿀 때마다 새로 떠서 매번 목록을 다시 받는다. 방을 연달아 옮길 때만 재사용할 만큼 짧게 둔다
+const CHAT_ROOMS_TTL = 10_000
+
+export function invalidateChatRooms() {
+  invalidate(CHAT_ROOMS_KEY)
+}
+
+export function getChatRooms(token: string) {
+  return cached(CHAT_ROOMS_KEY, CHAT_ROOMS_TTL, async () => {
+    const res = await fetch(`/api/chat/rooms`, {
+      headers: authHeaders(token),
+    })
+    if (!res.ok) await throwApiError(res)
+    const json = await res.json()
+
+    // 목록을 받은 김에 나갔던 방들의 로컬 캐시를 한 번에 정리한다
+    const rooms = unwrap<ChatRoom[]>(json)
+    if (Array.isArray(rooms)) await clearRoomsBefore(rooms)
+
+    return json
   })
-  if (!res.ok) await throwApiError(res)
-  const json = await res.json()
-
-  // 목록을 받은 김에 나갔던 방들의 로컬 캐시를 한 번에 정리한다
-  const rooms = unwrap<ChatRoom[]>(json)
-  if (Array.isArray(rooms)) await clearRoomsBefore(rooms)
-
-  return json
 }
 
 export async function createChatRoom(token: string, username: string, postId: number) {
@@ -61,6 +75,7 @@ export async function createChatRoom(token: string, username: string, postId: nu
     body: JSON.stringify({ username, postId }),
   })
   if (!res.ok) await throwApiError(res)
+  invalidateChatRooms()
   const json = await res.json()
 
   // 방 재입장 시점이라 여기서 안 지우면 화면에 옛 대화가 그대로 남는다
@@ -72,29 +87,130 @@ export async function createChatRoom(token: string, username: string, postId: nu
   return json
 }
 
-export async function getChatMessages(token: string, roomId: number) {
-  const res = await fetch(`/api/chat/rooms/${roomId}/messages`, {
+// 문의하기로 방을 연다. 서버는 같은 상대·같은 post 면 항상 기존 방을 돌려준다.
+// 거래가 끝난 방이어도 그대로 이어 쓴다(이전 대화와 거래 카드를 남겨야 하므로 나갔다 다시 만들지 않는다).
+// 다만 새 문의라 [채팅 시작] 카드는 다시 보내야 해서, 끝난 거래 방은 새 방처럼 알린다.
+// 상태는 새 계약서가 등록될 때 서버가 IN_PROGRESS 로 되돌린다
+export async function openChatRoomForPost(token: string, username: string, postId: number) {
+  const json = await createChatRoom(token, username, postId)
+  const room = unwrap<{ roomId?: number | null; existingRoom?: boolean; tradeStatus?: TradeStatus | null }>(json)
+  if (!room?.existingRoom || !room.tradeStatus || room.tradeStatus === 'IN_PROGRESS') return json
+
+  const data = unwrap<Record<string, unknown>>(json)
+  return { ...(json as object), data: { ...data, existingRoom: false } }
+}
+
+// 진행 중인 거래를 취소한다. 서버는 CANCELED 만 받는다(완료는 결제로만 생긴다).
+// 이미 끝난 거래면 409 TRADE_NOT_CANCELABLE 이다. 완료된 거래는 결제 취소로 되돌려야 한다
+export async function cancelTrade(token: string, roomId: number) {
+  const res = await fetch(`/api/chat/rooms/${roomId}/trade-status`, {
+    method: 'PATCH',
+    headers: authHeaders(token),
+    body: JSON.stringify({ status: 'CANCELED' }),
+  })
+  if (!res.ok) await throwApiError(res)
+  invalidateChatRooms()
+  const json = await res.json()
+  return unwrap<{ roomId: number; tradeStatus: TradeStatus }>(json)
+}
+
+export const MESSAGE_PAGE_SIZE = 50
+
+// 서버는 모든 응답을 오래된 → 최신 순으로 준다.
+// after: 이 id 보다 새 메시지 (델타 동기화), cursor: 이 id 보다 오래된 메시지 (위로 스크롤).
+// offset/page 파라미터는 없으니 반드시 커서로만 요청한다.
+export async function getChatMessages(
+  token: string,
+  roomId: number,
+  params: { after?: number; cursor?: number; size?: number } = {}
+) {
+  const query = new URLSearchParams()
+  if (params.after != null) query.set('after', String(params.after))
+  if (params.cursor != null) query.set('cursor', String(params.cursor))
+  if (params.size != null) query.set('size', String(params.size))
+  const qs = query.toString()
+
+  const res = await fetch(`/api/chat/rooms/${roomId}/messages${qs ? `?${qs}` : ''}`, {
     headers: authHeaders(token),
   })
   if (!res.ok) await throwApiError(res)
   return res.json()
 }
 
-// 서버 메시지와 로컬 캐시를 합쳐서 화면에 뿌릴 목록을 만든다.
-//
-// 서버는 최근 3일치만 갖고 있어서 "서버에 없으면 지운다" 식 머지를 하면
-// 정상적인 과거 메시지까지 날아간다. 삭제 기준은 clearBefore 하나뿐이다.
-export async function loadChatMessages(
-  token: string,
+// messageId 기준으로 합치고 정렬한다.
+// 델타 동기화와 소켓 수신이 겹치면 같은 메시지가 두 번 들어오기 때문이다.
+// id 없는 메시지(드물게 소켓에서 오는 경우)는 버리지 않고 뒤에 둔다.
+export function mergeMessages<T extends { messageId?: number | null }>(prev: T[], incoming: T[]): T[] {
+  const byId = new Map<number, T>()
+  const noId: T[] = []
+  for (const m of [...prev, ...incoming]) {
+    if (m?.messageId == null) noId.push(m)
+    else byId.set(m.messageId, m)
+  }
+  const sorted = [...byId.values()].sort((a, b) => (a.messageId as number) - (b.messageId as number))
+  return [...sorted, ...noId]
+}
+
+function maxMessageId(list: CachedMessage[]): number | null {
+  let max: number | null = null
+  for (const m of list) if (m.messageId != null && (max == null || m.messageId > max)) max = m.messageId
+  return max
+}
+
+// 방 진입 직후 네트워크 없이 바로 그릴 캐시. 나갔던 방이면 clearBefore 이전은 먼저 걷어낸다.
+export async function loadCachedChatMessages(
   roomId: number,
   clearBefore: string | null = null
 ): Promise<CachedMessage[]> {
-  await clearMessagesBefore(roomId, clearBefore)
+  try {
+    await clearMessagesBefore(roomId, clearBefore)
+    return await getCachedMessages(roomId)
+  } catch {
+    // 캐시는 렌더 보조일 뿐이라 실패해도 서버 동기화로 채우면 된다
+    return []
+  }
+}
 
-  const json = await getChatMessages(token, roomId)
-  await cacheMessages(toMessageList(json))
+// 캐시 이후로 새로 생긴 메시지를 받아온다.
+// 캐시가 비었으면 파라미터 없이 최신 50개, 있으면 after=<캐시 최대 id> 로 시작해
+// 한 페이지가 꽉 차 있는 동안은 남은 게 있다고 보고 이어서 요청한다.
+export async function syncChatMessages(
+  token: string,
+  roomId: number,
+  cached: CachedMessage[]
+): Promise<CachedMessage[]> {
+  let after = maxMessageId(cached)
+  const received: CachedMessage[] = []
 
-  return getCachedMessages(roomId)
+  for (;;) {
+    const json =
+      after == null
+        ? await getChatMessages(token, roomId)
+        : await getChatMessages(token, roomId, { after, size: MESSAGE_PAGE_SIZE })
+    const page = toMessageList(json)
+    received.push(...page)
+
+    // 최초 로드(after 없음)는 최신 50개면 충분하다. 그 이전은 위로 스크롤할 때 cursor 로 받는다.
+    if (after == null || page.length < MESSAGE_PAGE_SIZE) break
+    const last = maxMessageId(page)
+    if (last == null || last <= after) break
+    after = last
+  }
+
+  void cacheMessages(received).catch(() => {})
+  return received
+}
+
+// 위로 스크롤할 때 현재 가진 것 중 가장 오래된 id 이전 페이지를 받는다. 빈 배열이면 끝이다.
+export async function loadOlderChatMessages(
+  token: string,
+  roomId: number,
+  cursor: number
+): Promise<CachedMessage[]> {
+  const json = await getChatMessages(token, roomId, { cursor, size: MESSAGE_PAGE_SIZE })
+  const page = toMessageList(json)
+  void cacheMessages(page).catch(() => {})
+  return page
 }
 
 export async function deleteChatRoom(token: string, roomId: number) {
@@ -103,6 +219,7 @@ export async function deleteChatRoom(token: string, roomId: number) {
     headers: authHeaders(token),
   })
   if (!res.ok) await throwApiError(res)
+  invalidateChatRooms()
 
   // 나간 방의 캐시는 통째로 비운다
   await deleteRoomCache(roomId)

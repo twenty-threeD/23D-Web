@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, Suspense } from "react";
+import { useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/src/hooks/useToast";
 import { confirmPayment } from "@/src/lib/payment";
@@ -12,13 +12,19 @@ function SuccessContent() {
   const searchParams = useSearchParams();
   const { addToast } = useToast();
   const token = useAuthStore((s) => s.accessToken);
+  const hydrated = useAuthStore((s) => s.hydrated);
+  // 승인은 한 번만 보내야 한다. 개발 모드 StrictMode 가 effect 를 두 번 돌려 승인이 중복 요청되면
+  // 두 번째가 "이미 처리된 결제"로 실패해 성공한 결제에도 에러 토스트가 뜬다.
+  const startedRef = useRef(false);
 
   useEffect(() => {
+    // 토스에서 돌아오면 페이지가 새로 로드되므로, 저장된 로그인 정보를 불러오기 전에 돌면 토큰이 비어 실패한다
+    if (!hydrated || startedRef.current) return;
+    startedRef.current = true;
     const postId = searchParams.get("postId");
     const paymentKey = searchParams.get("paymentKey");
     const orderId = searchParams.get("orderId");
     const amount = searchParams.get("amount");
-    const estimateId = searchParams.get("estimateId");
     const roomId = searchParams.get("roomId");
     // 채팅에서 넘어온 결제는 그 방으로 돌려보낸다. 결제 완료 메시지를 보내야 하고,
     // 사용자도 대화 맥락에서 결과를 확인하는 게 자연스럽다.
@@ -35,8 +41,6 @@ function SuccessContent() {
           paymentKey,
           orderId,
           amount: Number(amount),
-          // 견적서 결제인 경우에만 함께 보낸다 (승인 후 해당 견적서가 결제완료로 잠긴다)
-          ...(estimateId ? { estimateId: Number(estimateId) } : {}),
         });
         addToast({ message: "결제가 완료되었습니다.", type: "success" });
 
@@ -44,6 +48,8 @@ function SuccessContent() {
         // 계약서와 같은 방식으로 프론트가 채팅에 알린다 —
         // 여기서는 STOMP 연결이 없으므로 대기열에 넣어두고, 채팅 페이지가 연결되면 보낸다.
         if (roomId) {
+          // 서버가 승인과 함께 이 방을 거래 완료로 바꿔둔다. 방 목록을 다시 받기 전에도 채팅방에 바로 보이도록 맞춰둔다
+          useChatRoomsStore.getState().setRoomTradeStatus(Number(roomId), "COMPLETED");
           const paid = res?.data?.payment;
           useChatRoomsStore.getState().setPendingPayment(Number(roomId), {
             orderId: paid?.orderId ?? orderId,
@@ -59,7 +65,9 @@ function SuccessContent() {
       }
     }
     run();
-  }, []);
+    // searchParams·router·addToast 는 바뀌어도 다시 승인하면 안 되므로 로그인 정보 복원만 기다린다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
 
   return (
     <div className="flex items-center justify-center h-screen">

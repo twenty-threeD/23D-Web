@@ -1,3 +1,6 @@
+import { throwApiError } from './apiError'
+import { invalidateMe } from './profile'
+
 // 인증코드 전송
 export async function sendVerifyCode(email: string) {
   const res = await fetch(`/api/email/code/send`, {
@@ -5,7 +8,8 @@ export async function sendVerifyCode(email: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
   })
-  if (!res.ok) throw new Error('인증코드 전송 실패')
+  // 발송 한도 초과·메일 서버 장애를 구분해 안내해야 해서 서버 에러 코드를 살려 던진다
+  if (!res.ok) await throwApiError(res)
   return res.json()
 }
 
@@ -27,7 +31,7 @@ export async function sendEmailChangeCode(email: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
   })
-  if (!res.ok) throw new Error('인증코드 전송 실패')
+  if (!res.ok) await throwApiError(res)
   return res.json()
 }
 
@@ -50,6 +54,8 @@ export async function checkPhoneVerifyCode(phone: string, code: string) {
     body: JSON.stringify({ recipientNumber: phone, code }),
   })
   if (!res.ok) throw new Error('인증코드 불일치')
+  // 내 정보가 바뀌었으니 들고 있던 프로필을 버린다
+  invalidateMe()
   return res.json()
 }
 
@@ -72,10 +78,8 @@ export async function signup(
       ...(phone ? { phone } : {}),
     }),
   })
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err?.error?.message ?? '회원가입에 실패했습니다.')
-  }
+  // 이메일 미인증(EMAIL_NOT_VERIFIED)을 화면에서 구분해 인증 단계로 돌려보내야 해서 코드를 살려 던진다
+  if (!res.ok) await throwApiError(res)
   return res.json()
 }
 
@@ -86,8 +90,9 @@ export async function login(email: string, password: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   })
+  // 게이트웨이 오류처럼 본문이 JSON 이 아니면 파싱 에러 문구가 그대로 토스트에 떴다
   if (!res.ok) {
-    const err = await res.json()
+    const err = await res.json().catch(() => null)
     throw new Error(err?.error?.message ?? '로그인에 실패했습니다.')
   }
   const json = await res.json()
@@ -105,6 +110,23 @@ export async function reissueToken() {
   const json = await res.json()
   const accessToken = json?.data?.accessToken
   if (!accessToken) throw new Error('토큰 재발급에 실패했습니다.')
+  return accessToken as string
+}
+
+// localhost 처럼 .idta.store 밖에서 시작한 소셜 로그인은 쿠키를 바로 못 받아, 백엔드가 60초짜리 1회용 코드를 준다.
+// 이 코드를 프록시(같은 오리진)로 교환해야 토큰과 쿠키가 이 오리진에 심긴다
+export async function exchangeOAuthCode(code: string) {
+  const res = await fetch(`/api/auth/oauth/exchange`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ code }),
+  })
+  if (!res.ok) await throwApiError(res)
+  const json = await res.json().catch(() => null)
+  const accessToken = json?.data?.accessToken
+  // 교환 응답이 토큰을 쿠키로만 줄 때도 있어, 본문에 없으면 방금 심긴 리프레시 쿠키로 재발급해 받는다
+  if (!accessToken) return reissueToken()
   return accessToken as string
 }
 

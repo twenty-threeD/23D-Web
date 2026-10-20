@@ -46,38 +46,33 @@ export default function Page() {
     }
   };
 
+  // 로그인이 끝나면 시작한 오리진으로 돌아오게 한다. 백엔드가 허용한 오리진(배포·localhost:3000)만 받고 나머지는 배포로 보낸다
   const OAuth = (index: number) => () => {
-    switch (index) {
-      case 0:
-        window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/google`;
-        break;
-      case 1:
-        window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/kakao`;
-        break;
-      case 2:
-        window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/naver`;
-        break;
-      default:
-        break;
-    }
+    const provider = ["google", "kakao", "naver"][index];
+    if (!provider) return;
+    const redirectUri = encodeURIComponent(`${window.location.origin}/oauth/success`);
+    // 다른 API 호출과 같은 기본값을 둔다. 환경 변수가 없는 빌드에서 'undefined/oauth2/...' 로 이동하던 문제를 막는다
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "https://api.idta.store";
+    window.location.href = `${apiUrl}/oauth2/authorization/${provider}?redirect_uri=${redirectUri}`;
   };
 
-  const enterLogin = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && canLogin) {
-      handleLogin();
-    }
+  // 입력칸을 form 으로 묶어야 브라우저가 로그인 폼으로 알아보고 비밀번호 저장을 제안한다. 엔터 제출도 form 이 맡는다
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    handleLogin();
   };
 
   return (
-    <div className="flex justify-center items-center bg-zinc-100 h-full">
+    <div className="flex justify-center items-center bg-zinc-100 flex-1 px-4 py-18.25">
       <div className="flex fixed left-4 top-4 px-4 py-4">
         <BackButton />
       </div>
-      <div className="w-200 h-150 rounded-3xl flex items-center mt-18.25 mb-18.25 shadow-lg">
-        <div className="w-100 h-150 rounded-l-3xl flex items-center justify-center overflow-hidden">
-          <img src="/login1.png" alt="" />
+      {/* 휴대폰·패드에서는 그림 패널을 빼고 입력 패널만 화면 폭에 맞춰 띄운다 */}
+      <div className="w-full max-w-100 lg:max-w-none lg:w-200 h-150 rounded-3xl flex items-center shadow-lg">
+        <div className="hidden lg:flex w-100 h-150 rounded-l-3xl items-center justify-center overflow-hidden">
+          <Image src="/login1.webp" alt="" width={800} height={1200} priority className="h-auto w-full" />
         </div>
-        <div className="w-100 h-150 bg-white rounded-r-3xl flex flex-col gap-3 items-center justify-center">
+        <div className="w-full lg:w-100 h-150 bg-white rounded-3xl lg:rounded-l-none lg:rounded-r-3xl flex flex-col gap-3 items-center justify-center">
           <Link href="/main">
             <Image
               src="/icon.png"
@@ -88,15 +83,19 @@ export default function Page() {
             />
           </Link>
 
+          {/* contents 로 두어 form 이 끼어도 부모 flex 의 간격·정렬이 그대로 적용되게 한다 */}
+          <form onSubmit={handleSubmit} className="contents">
           {/* 인풋 필드 영역 */}
           <div className="mt-13">
             <InputField
               label="이메일 입력"
               placeholder="이메일을 입력해주세요"
+              type="email"
               isEssential={true}
               value={formData.email}
               onChange={(e) => handleChange("email", e.target.value)}
-              onKeyDown={enterLogin}
+              name="email"
+              autoComplete="username"
             />
             <InputField
               label="비밀번호 입력"
@@ -106,13 +105,14 @@ export default function Page() {
               isEssential={true}
               value={formData.password}
               onChange={(e) => handleChange("password", e.target.value)}
-              onKeyDown={enterLogin}
+              name="password"
+              autoComplete="current-password"
             />
           </div>
 
           {/* 로그인 버튼: 조건에 따라 스타일과 활성화 상태 변경 */}
           <button
-            onClick={handleLogin}
+            type="submit"
             disabled={!canLogin}
             className={`w-75 h-10 rounded-lg text-lg font-bold transition-colors cursor-pointer
             ${
@@ -123,9 +123,10 @@ export default function Page() {
           >
             로그인
           </button>
+          </form>
 
           <div className="flex justify-between w-75">
-            <Link href="#" className="text-[10px] text-zinc-500 underline underline-offset-2  hover:text-main transition-colors duration-100">
+            <Link href="/login/reset-password" className="text-[10px] text-zinc-500 underline underline-offset-2  hover:text-main transition-colors duration-100">
               비밀번호를 잊으셨나요?
             </Link>
             <div className="flex gap-1 text-[10px] text-zinc-500">
@@ -145,15 +146,10 @@ export default function Page() {
             ].map((social, index) => (
               <button
                 key={index}
-                className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-zinc-300 hover:border-main transition-colors"
+                className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-line hover:border-main transition-colors"
                 onClick={OAuth(index)}
               >
-                <img
-                  src={social.src}
-                  alt={social.alt}
-                  width={20}
-                  height={20}
-                />
+                <Image src={social.src} alt={social.alt} width={20} height={20} />
               </button>
             ))}
           </div>

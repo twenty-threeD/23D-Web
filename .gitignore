@@ -41,3 +41,6 @@ yarn-error.log*
 next-env.d.ts
 
 .idea
+
+# Playwright 브라우저 확인 기록. 입력값·로그인 후 화면 내용이 그대로 남을 수 있어 올리지 않는다
+.playwright-mcp/

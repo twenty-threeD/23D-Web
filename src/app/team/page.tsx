@@ -1,0 +1,81 @@
+import { FaGithub } from "react-icons/fa";
+import { PAGE_PADDING } from "@/src/lib/layout";
+
+// github 은 각자 프로필 주소를 채워 넣는다. 빈 문자열이면 버튼을 렌더하지 않는다.
+const members = [
+  { name: "김경윤", role: "PM / FullStack / BlockChain", github: "https://github.com/L98293" },
+  { name: "권민기", role: "BackEnd", github: "https://github.com/gnlandkmg" },
+  { name: "김승우", role: "PM / BackEnd", github: "https://github.com/Ze-rith" },
+  { name: "김준현", role: "FullStack / DBA", github: "https://github.com/abcb-s" },
+  { name: "이도건", role: "FrontEnd / Design", github: "https://github.com/16bit-16" },
+  { name: "안재민", role: "FrontEnd / Design", github: "https://github.com/Mercel4" },
+  { name: "이재원", role: "3D Modeling", github: "https://github.com/amguangum" },
+];
+
+export default function Page() {
+  return (
+    <div className="flex flex-1 flex-col bg-zinc-50">
+      <main className={`flex-1 ${PAGE_PADDING}`}>
+        <div className="w-full">
+          <header className="border-b border-line pb-8 lg:pb-10">
+            <p className="pb-3 text-sm font-bold tracking-wide text-main">
+              MEET THE TEAM
+            </p>
+            <h1 className="text-3xl font-bold tracking-tight text-zinc-900 lg:text-4xl">
+              팀원 소개
+            </h1>
+            <p className="max-w-2xl pt-4 text-sm leading-6 text-zinc-500 lg:text-base">
+              잇다를 함께 만들고 있는 팀원들을 소개합니다.
+            </p>
+          </header>
+
+          <section
+            aria-label="잇다 팀원 목록"
+            className="grid gap-x-8 gap-y-10 py-10 sm:grid-cols-2 lg:grid-cols-3 lg:gap-x-16 lg:gap-y-14 lg:py-16"
+          >
+            {members.map((member, index) => (
+              <article
+                key={member.name}
+                className={`flex min-h-28 flex-col justify-center border-b-2 border-zinc-900 pb-5 ${
+                  index === 0
+                    ? "sm:col-span-2 sm:mx-auto sm:w-1/2 lg:col-start-2 lg:col-span-1 lg:w-full lg:row-start-1"
+                    : index === 1
+                      ? "lg:col-start-1 lg:row-start-2"
+                      : index === 2
+                        ? "lg:col-start-2 lg:row-start-2"
+                        : index === 3
+                          ? "lg:col-start-3 lg:row-start-2"
+                          : index === 4
+                            ? "lg:col-start-1 lg:row-start-3"
+                            : index === 5
+                              ? "lg:col-start-2 lg:row-start-3"
+                              : "lg:col-start-3 lg:row-start-3"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-2xl font-bold tracking-tight text-zinc-900 lg:text-3xl">
+                    {member.name}
+                  </p>
+                  {member.github && (
+                    <a
+                      href={member.github}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      aria-label={`${member.name} GitHub`}
+                      className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line text-zinc-600 transition-colors hover:border-main hover:text-main"
+                    >
+                      <FaGithub className="size-4.5" />
+                    </a>
+                  )}
+                </div>
+                <p className="pt-2 text-sm text-zinc-600 lg:text-base">
+                  {member.role}
+                </p>
+              </article>
+            ))}
+          </section>
+        </div>
+      </main>
+    </div>
+  );
+}

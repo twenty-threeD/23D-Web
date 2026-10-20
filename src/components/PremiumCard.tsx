@@ -1,3 +1,4 @@
+import Image from "next/image"
 import Link from "next/link";
 import { toRelativeUrl } from "@/src/lib/file"
 
@@ -31,12 +32,18 @@ export default function PremiumCard({ id, title, content, fileUrls }: PremiumCar
           <div className="w-full h-full bg-zinc-200" />
         ) : (
           images.map((url, i) => (
-            <img
+            <div
               key={i}
-              src={toRelativeUrl(url)}
-              alt={title}
-              className={`h-full object-cover ${images.length === 1 ? "w-full" : "w-1/2"}`}
-            />
+              className={`relative h-full ${images.length === 1 ? "w-full" : "w-1/2"}`}
+            >
+              <Image
+                src={toRelativeUrl(url)}
+                alt={title}
+                fill
+                sizes="(max-width: 768px) 50vw, 300px"
+                className="object-cover"
+              />
+            </div>
           ))
         )}
       </div>

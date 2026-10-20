@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import Header from "@/src/components/Header";
-import BackButton from "@/src/components/BackButton";
+import { LuChevronLeft } from "react-icons/lu";
 import UploadFile from "@/src/components/write/UploadPicture";
 import WriteSection from "@/src/components/write/WriteSection";
 import Preview from "@/src/components/write/Preview";
@@ -14,12 +13,16 @@ import { useHandleError } from "@/src/hooks/useHandleError";
 import { useToast } from "@/src/hooks/useToast";
 import { type PriceCardPlan, DEFAULT_PLAN, parsePostContent, serializePostContent } from "@/src/types/priceCard";
 import { signinPath } from "@/src/lib/navigation"
+import { PAGE_PADDING } from "@/src/lib/layout";
 
 export default function Page() {
   const router = useRouter();
   const params = useParams();
   const postId = params.id ? Number(Array.isArray(params.id) ? params.id[0] : params.id) : null;
   const token = useAuthStore((s) => s.accessToken);
+  // 토큰은 만료 직전·탭 복귀 때 재발급된다. 토큰 값에 의존하면 재발급마다 다시 불러와 편집 중인 내용을 덮어써서,
+  // 로그인 여부에만 의존하고 요청에는 그 시점의 최신 토큰을 쓴다
+  const hasToken = !!token;
   const myUsername = useAuthStore((s) => s.username);
   const handleError = useHandleError();
   const { addToast } = useToast();
@@ -46,7 +49,7 @@ export default function Page() {
 
     async function fetchExisting() {
       try {
-        const res = await getPost(postId!, token);
+        const res = await getPost(postId!, useAuthStore.getState().accessToken);
         if (cancelled) return;
         const post = res.data;
         if (post.member?.username && myUsername && post.member.username !== myUsername) {
@@ -72,7 +75,7 @@ export default function Page() {
 
     fetchExisting();
     return () => { cancelled = true; };
-  }, [postId, token, myUsername]);
+  }, [postId, hasToken, myUsername]);
 
   async function handleSubmit() {
     if (!token) { router.push(signinPath()); return; }
@@ -102,7 +105,7 @@ export default function Page() {
     // 서버가 본문을 2000자로 제한한다. 본문에는 플랜 정보까지 함께 직렬화되므로
     // 화면에 보이는 설명 글자 수보다 길어진다.
     if (content.length > 2000) {
-      addToast({ message: "본문과 가격 정보가 너무 깁니다. 내용을 줄여주세요.", type: "warning" });
+      addToast({ message: "본문은 2000자 이하여야 합니다.", type: "warning" });
       return;
     }
 
@@ -127,46 +130,51 @@ export default function Page() {
   if (loading) {
     return (
       <div>
-        <Header />
         <p className="text-center py-20 text-zinc-400">불러오는 중...</p>
       </div>
     );
   }
 
   return (
-    <div>
-      <Header />
-      <div className="px-20 py-4">
-        <BackButton />
-      </div>
-      <main className="flex gap-8 px-20 pb-12 items-start">
-        <div className="flex-1 flex flex-col gap-8 min-w-0">
-          <div className="flex gap-8">
-            <UploadFile initialImages={imageUrls} onUpload={setImageUrls} />
-            <WriteSection
-              title={title}
-              onTitleChange={setTitle}
-              description={description}
-              onDescriptionChange={setDescription}
-              price={price}
-              onPriceChange={setPrice}
-              categoryId={categoryId}
-              onCategoryChange={setCategoryId}
-              categories={categories}
-            />
+    <div className={`flex flex-col gap-9 ${PAGE_PADDING}`}>
+      <button
+        type="button"
+        onClick={() => router.back()}
+        className="flex w-fit items-center gap-1 text-sm font-medium text-ink-hint cursor-pointer transition-colors hover:text-main"
+      >
+        <LuChevronLeft className="size-6" />
+        뒤로가기
+      </button>
+      {/* 미리보기까지 세 칸이 나란히 들어가는 건 넓은 화면뿐이다. 그보다 좁으면 미리보기를 입력란 아래로 내린다 */}
+      <main className="flex flex-col xl:flex-row gap-12 xl:gap-16 xl:items-start">
+        <div className="flex-1 flex flex-col gap-6 min-w-0">
+          <div className="flex flex-col gap-12">
+            <div className="flex flex-col md:flex-row gap-9">
+              <UploadFile initialImages={imageUrls} onUpload={setImageUrls} />
+              <WriteSection
+                title={title}
+                onTitleChange={setTitle}
+                description={description}
+                onDescriptionChange={setDescription}
+                price={price}
+                onPriceChange={setPrice}
+                categoryId={categoryId}
+                onCategoryChange={setCategoryId}
+                categories={categories}
+              />
+            </div>
+            <PriceCardEditor plans={plans} onChange={setPlans} />
           </div>
-          <PriceCardEditor plans={plans} onChange={setPlans} />
 
           <button
+            type="button"
             onClick={isWaiting ? undefined : handleSubmit}
             disabled={isWaiting}
-            className="w-32 h-10 bg-main text-white text-sm rounded-xl font-semibold self-end transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
+            className="w-30 h-[38px] bg-main text-white text-sm rounded-xl font-semibold self-end transition-colors hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-main disabled:cursor-not-allowed cursor-pointer"
           >
             {isWaiting ? "등록 중..." : "등록하기"}
           </button>
         </div>
-
-        <div className="w-px self-stretch bg-zinc-300" />
 
         <Preview
           imageUrl={imageUrls[1] ?? imageUrls[0]}

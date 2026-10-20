@@ -10,13 +10,14 @@ import {
   IoLockClosedOutline,
 } from "react-icons/io5"
 import { toRelativeUrl } from "@/src/lib/file"
+import { calculatePaymentFee } from "@/src/lib/paymentFee"
 
 // 계약 카드 전용 브라운 팔레트(#452B24 계열). 전역 --color-contract(계약서 본문 남색)와는 별개로 시안을 따른다.
 
 interface ContractCardBase {
   /** 내가 보낸 메시지인지 (보낸 쪽/받은 쪽 문구가 달라진다) */
   isSent: boolean
-  price?: string | number | null
+  price?: number | null
 }
 
 interface ProposeCardProps extends ContractCardBase {
@@ -39,15 +40,22 @@ interface CompletedCardProps extends ContractCardBase {
   signedAt?: string | null
   /** 결제는 계약을 등록한 갑이 한다 */
   onPay?: () => void
+  /** 이 체결 이후에 결제 완료 메시지가 있으면 true. 결제 버튼을 걷어 중복 결제 진입을 막는다 */
+  paid?: boolean
 }
 
 type ContractCardProps = ProposeCardProps | CompletedCardProps
 
-function formatPrice(price?: string | number | null) {
+function formatPrice(price?: number | null) {
   if (price === null || price === undefined) return null
-  const digits = String(price).replace(/[^0-9]/g, "")
-  if (!digits) return null
-  return `${Number(digits).toLocaleString()}원`
+  if (!Number.isFinite(price)) return null
+  return `${price.toLocaleString()}원`
+}
+
+function getPaymentFee(price?: number | null) {
+  if (price === null || price === undefined) return null
+  if (!Number.isSafeInteger(price) || price <= 0) return null
+  return calculatePaymentFee(price)
 }
 
 function toDate(value?: string | null) {
@@ -68,7 +76,7 @@ function formatDateTime(value?: string | null) {
   return `${formatDate(value)} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
 }
 
-const cardClass = "animate-chat-card w-72 overflow-hidden rounded-2xl bg-white"
+const cardClass = "animate-chat-card w-[min(16rem,68vw)] lg:w-72 overflow-hidden rounded-2xl bg-white"
 
 // 금액 라벨 + 큰 숫자. 제안 카드는 왼쪽, 체결 카드는 가운데 정렬.
 function PriceBlock({ value, center }: { value: string; center?: boolean }) {
@@ -87,6 +95,7 @@ function PriceBlock({ value, center }: { value: string; center?: boolean }) {
 // 계약서 제안 / 체결 완료 메시지를 말풍선 대신 카드로 보여준다.
 export default function ContractCard(props: ContractCardProps) {
   const formattedPrice = formatPrice(props.price)
+  const paymentFee = getPaymentFee(props.price)
 
   if (props.kind === "completed") {
     const signedDate = formatDate(props.signedAt)
@@ -108,6 +117,21 @@ export default function ContractCard(props: ContractCardProps) {
         <div className="flex flex-col gap-3 px-3.5 pt-4 pb-3.5">
           {formattedPrice && <PriceBlock value={formattedPrice} center />}
 
+          {/* 체결 완료 메시지는 갑이 보내므로 수신자인 을에게만 결제 전 정산액을 안내한다. */}
+          {!props.isSent && !props.paid && paymentFee && (
+            <div className="flex flex-col gap-1 rounded-[10px] border border-[#EADCD6] bg-[#FAF3F0] px-2.5 py-2.5">
+              <span className="text-[10.5px] font-semibold text-[#6E4A40]">
+                을 정산 예정 금액
+              </span>
+              <span className="text-[18px] font-bold leading-tight text-[#452B24]">
+                {paymentFee.settlement.toLocaleString()}원
+              </span>
+              <span className="text-[10.5px] leading-snug text-[#6E4A40]">
+                결제 완료 후 플랫폼 수수료 {paymentFee.rate}% ({paymentFee.fee.toLocaleString()}원)를 차감한 금액이 정산됩니다.
+              </span>
+            </div>
+          )}
+
           <div className="flex items-center gap-2 rounded-[10px] bg-[#FAF3F0] px-2.5 py-2.5">
             <IoLockClosedOutline className="shrink-0 text-sm text-[#9A7A70]" />
             <span className="text-[11.5px] leading-snug text-[#6E4A40]">
@@ -115,7 +139,25 @@ export default function ContractCard(props: ContractCardProps) {
             </span>
           </div>
 
-          {props.onPay ? (
+          {props.paid ? (
+            // 결제까지 끝난 계약: 결제 페이지로 다시 들어가지 않도록 버튼 대신 완료 표시만 둔다
+            <div className="flex gap-2">
+              {props.contractUrl && (
+                <a
+                  href={toRelativeUrl(props.contractUrl)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex h-11 basis-2/5 items-center justify-center rounded-xl border border-line text-[13px] font-semibold text-zinc-700 transition-colors hover:border-zinc-400 hover:bg-zinc-50"
+                >
+                  계약서 보기
+                </a>
+              )}
+              <div className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50">
+                <IoCheckmark className="text-[15px] text-emerald-700" />
+                <span className="text-[13.5px] font-semibold text-emerald-800">결제 완료</span>
+              </div>
+            </div>
+          ) : props.onPay ? (
             // 갑: 계약서 확인 + 결제
             <div className="flex gap-2">
               {props.contractUrl && (
@@ -123,7 +165,7 @@ export default function ContractCard(props: ContractCardProps) {
                   href={toRelativeUrl(props.contractUrl)}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex h-11 basis-2/5 items-center justify-center rounded-xl border border-zinc-300 text-[13px] font-semibold text-zinc-700 transition-colors hover:border-zinc-400 hover:bg-zinc-50"
+                  className="flex h-11 basis-2/5 items-center justify-center rounded-xl border border-line text-[13px] font-semibold text-zinc-700 transition-colors hover:border-zinc-400 hover:bg-zinc-50"
                 >
                   계약서 보기
                 </a>
@@ -164,7 +206,7 @@ export default function ContractCard(props: ContractCardProps) {
   const sentAt = formatDateTime(props.sentAt)
 
   return (
-    <div className={`${cardClass} border border-zinc-200 shadow-[0_1px_3px_rgba(69,43,36,.08)]`}>
+    <div className={`${cardClass} border border-line shadow-[0_1px_3px_rgba(69,43,36,.08)]`}>
       {props.isSent || props.settled ? (
         // 을(보낸 쪽), 또는 이미 체결돼서 더 할 일이 없는 카드: 톤을 낮춘 헤더
         <div className="flex items-center gap-2.5 border-b border-[#EADCD6] bg-[#F8F0ED] px-3.5 py-3">
@@ -209,7 +251,7 @@ export default function ContractCard(props: ContractCardProps) {
                 </div>
               )}
               {props.serviceContent && (
-                <div className="flex gap-2 rounded-[10px] border border-zinc-100 bg-zinc-50 px-2.5 py-2.5">
+                <div className="flex gap-2 rounded-[10px] border border-line bg-zinc-50 px-2.5 py-2.5">
                   <IoListOutline className="mt-0.5 shrink-0 text-sm text-zinc-400" />
                   <span className="line-clamp-2 text-xs leading-relaxed text-zinc-600">
                     {props.serviceContent}
@@ -236,7 +278,7 @@ export default function ContractCard(props: ContractCardProps) {
             <IoChevronForward className="text-[15px] text-white" />
           </button>
         ) : (
-          <div className="flex flex-col gap-2 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2.75">
+          <div className="flex flex-col gap-2 rounded-xl border border-dashed border-line bg-zinc-50 px-3 py-2.75">
             <div className="flex items-center gap-2">
               <span className="flex items-center gap-[3px]">
                 <span className="animate-contract-dot size-[5px] rounded-full bg-[#452B24]" />

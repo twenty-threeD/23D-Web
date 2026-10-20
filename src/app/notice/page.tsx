@@ -3,8 +3,7 @@
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { IoConstructOutline } from "react-icons/io5";
-import Header from "@/src/components/Header";
-import Footer from "@/src/components/Footer";
+import { PAGE_PADDING } from "@/src/lib/layout";
 
 function NoticeContent() {
   const router = useRouter();
@@ -28,12 +27,10 @@ function NoticeContent() {
 
 export default function Page() {
   return (
-    <div>
-      <Header />
+    <div className={PAGE_PADDING}>
       <Suspense fallback={null}>
         <NoticeContent />
       </Suspense>
-      <Footer />
     </div>
   );
 }

@@ -53,7 +53,7 @@ export default function Modal({
         className={`bg-white w-full ${WIDTH_CLASS[width]} max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-modal-panel`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 shrink-0">
+        <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-line shrink-0">
           <h2 className="text-lg font-bold">{title}</h2>
           <button
             onClick={onClose}
@@ -64,7 +64,8 @@ export default function Modal({
           </button>
         </div>
 
-        <div className={bare ? "flex flex-1 overflow-hidden" : "flex flex-col gap-4 px-6 py-5 overflow-y-auto"}>
+        {/* bare 모달은 두 칸(계약서 미리보기 + 입력)을 나란히 둔다. 휴대폰 폭에선 위아래로 쌓고 모달 전체를 스크롤한다 */}
+        <div className={bare ? "flex flex-col md:flex-row flex-1 overflow-y-auto md:overflow-hidden" : "flex flex-col gap-4 px-6 py-5 overflow-y-auto"}>
           {children}
         </div>
       </div>

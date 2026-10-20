@@ -7,12 +7,25 @@ interface CommentProps {
   createdAt: string
   profileImage?: string
   edited?: boolean
+  // 답글이 남은 원댓글을 지우면 자리만 남으므로 흐리게 보이고 손댈 수 없게 한다
+  deleted?: boolean
   isOwner?: boolean
+  onReply?: () => void
+  // 답글에 답한 경우 본문 앞에 붙는 대상 이름. onClick 이 없으면 대상이 사라져 이동할 수 없다
+  mention?: { name: string; onClick?: () => void }
+  // 멘션 칩으로 찾아올 수 있게 DOM id 를 단다
+  domId?: string
+  highlighted?: boolean
+  // 답글 들여쓰기를 바깥 컨테이너가 아니라 이 박스 안쪽 패딩으로 준다.
+  // 그래야 멘션으로 이동했을 때 강조 배경이 들여쓴 자리부터가 아니라 댓글 영역 끝에서 끝까지 칠해진다
+  indented?: boolean
+  // 강조 배경을 댓글 박스 밖으로 얼마나 넓힐지. 댓글 목록을 감싼 카드의 좌우 패딩만큼 넓혀야 카드 테두리 끝까지 닿는다
+  highlightBleedClassName?: string
   onEdit?: (content: string) => Promise<void> | void
   onDelete?: () => Promise<void> | void
 }
 
-export default function Comment({ authorName, content, createdAt, profileImage, edited, isOwner, onEdit, onDelete }: CommentProps) {
+export default function Comment({ authorName, content, createdAt, profileImage, edited, deleted, isOwner, onReply, mention, domId, highlighted, indented, highlightBleedClassName = "inset-x-0", onEdit, onDelete }: CommentProps) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(content)
   const [submitting, setSubmitting] = useState(false)
@@ -29,10 +42,12 @@ export default function Comment({ authorName, content, createdAt, profileImage, 
   }
 
   return (
-    <div className="flex gap-2 py-2">
-      <div className="w-12 h-12 bg-zinc-400 rounded-full overflow-hidden border border-zinc-300 shrink-0">
+    <div id={domId} className={`relative isolate flex gap-2 py-2 ${indented ? "pl-14" : ""}`}>
+      {/* 마진 없이 박스 밖까지 칠하려고 절대 위치 레이어를 깐다. isolate 로 이 박스 안에서만 내용 뒤로 보낸다 */}
+      {highlighted && <span aria-hidden className={`absolute inset-y-0 -z-10 animate-comment-highlight ${highlightBleedClassName}`} />}
+      <div className="w-12 h-12 bg-zinc-400 rounded-full overflow-hidden border border-line shrink-0">
         <Image
-          src={profileImage ?? "/profile.png"}
+          src={(!deleted && profileImage) || "/profile.webp"}
           alt="프로필사진"
           className="object-cover"
           width={48}
@@ -41,8 +56,8 @@ export default function Comment({ authorName, content, createdAt, profileImage, 
       </div>
       <div className="flex flex-col gap-1 flex-1">
         <div className="flex items-center justify-between">
-          <h3 className="text-md font-bold">{authorName}</h3>
-          {isOwner && !editing && (
+          {!deleted && <h3 className="text-md font-bold">{authorName}</h3>}
+          {isOwner && !deleted && !editing && (
             <div className="flex gap-2">
               <button onClick={() => { setDraft(content); setEditing(true) }} className="text-xs text-zinc-400 hover:text-zinc-600 cursor-pointer">수정</button>
               <button onClick={() => onDelete?.()} className="text-xs text-red-400 hover:text-red-600 cursor-pointer">삭제</button>
@@ -61,7 +76,7 @@ export default function Comment({ authorName, content, createdAt, profileImage, 
                   handleSave()
                 }
               }}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500 resize-none"
+              className="w-full border border-line rounded-lg px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-main hover:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500 resize-none"
               rows={2}
             />
             <div className="flex gap-2 self-end">
@@ -72,14 +87,28 @@ export default function Comment({ authorName, content, createdAt, profileImage, 
             </div>
           </div>
         ) : (
-          <p className="text-sm font-medium">{content}</p>
+          <p className={`text-sm font-medium ${deleted ? "text-zinc-400" : ""}`}>
+            {mention && !deleted && (
+              mention.onClick ? (
+                <button onClick={mention.onClick} className="text-main font-semibold cursor-pointer hover:underline">@{mention.name}</button>
+              ) : (
+                <span className="text-main font-semibold">@{mention.name}</span>
+              )
+            )}
+            {mention && !deleted && " "}
+            {content}
+          </p>
         )}
 
-        <div className="flex gap-2">
-          <span className="text-sm font-medium text-zinc-400">{createdAt}</span>
-          {edited && <span className="text-xs text-zinc-400">(수정됨)</span>}
-          <span className="text-sm font-medium text-zinc-400 cursor-pointer hover:text-zinc-600">답글 쓰기</span>
-        </div>
+        {!deleted && (
+          <div className="flex gap-2">
+            <span className="text-sm font-medium text-zinc-400">{createdAt}</span>
+            {edited && <span className="text-xs text-zinc-400">(수정됨)</span>}
+            {onReply && (
+              <button onClick={onReply} className="text-sm font-medium text-zinc-400 cursor-pointer hover:text-zinc-600">답글 쓰기</button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

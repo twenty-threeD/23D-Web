@@ -1,17 +1,38 @@
 @import "tailwindcss";
 
 @theme {
-	--color-main: #FE6A4C;
-	--color-contract: #1A2747;
+  --color-main: #fe6a4c;
+  --color-contract: #1a2747;
+  /* 새 메인 시안의 본문 텍스트 3단계. 카드·섹션 제목에 반복돼 토큰으로 올렸다 */
+  --color-ink: #363636;
+  --color-ink-sub: #666666;
+  --color-ink-muted: #a1a1a1;
+  /* 모든 회색 테두리·구분선의 공통색. 화면마다 zinc-200·300·#d8d8d8·#a3a3a3 등으로 갈려 있어 하나로 맞췄다.
+     진하게 보여야 하는 외곽선 버튼('○○ 관련 더보기' 등)만 ink-muted·ink-hint 를 따로 쓴다 */
+  --color-line: #d4d4d8;
+  --color-ink-hint: #838383;
+  /* 멘션으로 이동한 댓글 강조. 브랜드 오렌지는 버튼·칩에 이미 써서 배경까지 칠하면 경고처럼 보인다 */
+  --color-highlight: #e6f0ff;
+  /* 랜딩의 어두운 섹션 바탕(첫 화면·통화·문제). 갈색이 섞인 검정은 꾸민 티가 나서 무채색 검정으로 둔다 */
+  --color-night: #111111;
+  /* 프로젝트 폰트는 Pretendard 로 통일한다. 기본 sans 를 덮어써서 클래스 없이도 전역에 적용되게 한다 */
+  --font-sans: var(--font-pretendard-local), system-ui, sans-serif;
 }
 
-html,
-body {
-	height: 100%;
-}
+/* body 높이를 고정하면 sticky 헤더가 첫 화면 높이 안에 갇혀 스크롤 시 사라진다 */
+html { height: 100%; }
+body { min-height: 100%; }
+body { margin: 0; }
 
-body {
-	margin: 0;
+/* iPhone 사파리는 글자가 16px 보다 작은 입력칸을 누르면 화면을 확대하고, 다 쓰고 나서도 되돌리지 않아
+   채팅 입력줄 같은 화면이 옆으로 밀린 채로 남는다. 휴대폰 폭에서만 작은 글자 입력칸을 16px 로 올린다.
+   레이어 밖 규칙이라 Tailwind 의 text-sm/xs 보다 우선한다 */
+@media (max-width: 767px) {
+	input.text-sm, input.text-xs,
+	textarea.text-sm, textarea.text-xs,
+	select.text-sm, select.text-xs {
+		font-size: 16px;
+	}
 }
 
 @keyframes bell-ring {
@@ -60,7 +81,7 @@ body {
 }
 
 .animate-contract-dot {
-	animation: contract-dot 1.2s ease-in-out infinite;
+  	animation: contract-dot 1.2s ease-in-out infinite;
 }
 
 @keyframes contract-sweep {
@@ -69,5 +90,78 @@ body {
 }
 
 .animate-contract-sweep {
-	animation: contract-sweep 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  	animation: contract-sweep 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* 멘션 칩으로 이동한 댓글이 어느 것인지 알아보도록 연한 파란색으로 잠깐 칠했다가 서서히 걷어낸다 */
+@keyframes comment-highlight {
+	0%, 40% { background-color: var(--color-highlight); }
+	100% { background-color: transparent; }
+}
+
+.animate-comment-highlight {
+	animation: comment-highlight 1.6s ease-out;
+}
+
+/* 통화 화면에서 프로필 뒤로 퍼지는 벨 파동 */
+@keyframes call-pulse {
+	0% { opacity: 0.5; transform: scale(1); }
+	100% { opacity: 0; transform: scale(1.9); }
+}
+
+.animate-call-pulse {
+	animation: call-pulse 1.6s ease-out infinite;
+}
+
+@keyframes block-height-rise {
+	from {
+		opacity: 0;
+		transform: translateY(100%);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+.block-height-rise {
+  	animation: block-height-rise 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 랜딩의 휴대폰이 제자리에서 천천히 떠오르고 가라앉는다. 그림자는 휴대폰이 뜰 때 작고 옅어져 거리감을 만든다 */
+@keyframes phone-float {
+	0%, 100% { transform: translateY(0); }
+	50% { transform: translateY(-3%); }
+}
+
+@keyframes phone-float-shadow {
+	0%, 100% { transform: scale(1); opacity: 1; }
+	50% { transform: scale(0.86); opacity: 0.6; }
+}
+
+.animate-phone-float {
+	animation: phone-float 5s ease-in-out infinite;
+}
+
+.animate-phone-float-shadow {
+	animation: phone-float-shadow 5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.block-height-rise,
+	.animate-call-pulse,
+	.animate-phone-float,
+	.animate-phone-float-shadow {
+		animation: none;
+	}
+}
+
+/* 가로 중앙 정렬은 Tailwind v4의 translate 속성이 맡으므로 transform 은 세로만 건드린다.
+   여기서 translateX(-50%) 를 또 주면 두 값이 더해져 열리는 순간 위치가 튄다. */
+@keyframes help-tooltip-in {
+	from { opacity: 0; transform: translateY(-4px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-help-tooltip {
+	animation: help-tooltip-in 0.16s ease-out;
 }
