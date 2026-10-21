@@ -2,25 +2,13 @@
 import Image from "next/image"
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { LETTERBOX_EVENT, type LetterboxDetail } from "@/src/lib/letterbox";
 
 export default function LandingHeader() {
-  // 첫 화면 구간에는 위아래 검은 레터박스만 두고 헤더를 숨긴다. 시퀀스가 끝났다는 신호를 받으면 나온다
-  const [visible, setVisible] = useState(false);
+  // 첫 접속 때 바로 메뉴를 쓸 수 있어야 하므로 기본은 보인다.
+  // 예전에는 첫 화면(이미지 시퀀스) 구간 내내 숨겼는데, 그 구간으로 돌아오면 헤더를 꺼낼 방법이 없어 걷어 냈다
+  const [visible, setVisible] = useState(true);
   const lastY = useRef(0);
   const ticking = useRef(false);
-  // 아직 첫 화면(이미지 시퀀스) 구간인지. 그동안에는 스크롤 방향과 상관없이 숨겨 둔다
-  const hero = useRef(true);
-
-  useEffect(() => {
-    const handleLetterbox = (event: Event) => {
-      const { active } = (event as CustomEvent<LetterboxDetail>).detail;
-      hero.current = active;
-      setVisible(!active);
-    };
-    window.addEventListener(LETTERBOX_EVENT, handleLetterbox);
-    return () => window.removeEventListener(LETTERBOX_EVENT, handleLetterbox);
-  }, []);
 
   useEffect(() => {
     lastY.current = window.scrollY;
@@ -30,8 +18,9 @@ export default function LandingHeader() {
       ticking.current = true
       requestAnimationFrame(() => {
         const y = window.scrollY
-        // 첫 화면이 끝난 뒤에는 아래로 내릴 때 숨고, 위로 올릴 때 다시 나온다
-        setVisible(!hero.current && y < lastY.current)
+        // 아래로 내릴 때 숨고 위로 올릴 때 나온다. 맨 위에서는 iOS 바운스로 y 가 흔들려도 항상 보이게 한다
+        if (y <= 0) setVisible(true)
+        else if (y !== lastY.current) setVisible(y < lastY.current)
         lastY.current = y
         ticking.current = false
       })
