@@ -18,7 +18,8 @@ export function AdCardSkeleton() {
   );
 }
 
-export default function AdCard({ post }: { post: Post }) {
+// eager 는 첫 화면에 보이는 카드에만 준다. 전부 주면 화면 밖 카드까지 먼저 받아 정작 첫 화면이 느려진다
+export default function AdCard({ post, eager = false }: { post: Post; eager?: boolean }) {
   const image = getPostMainImage(post.fileUrls);
   const description = parsePostContent(post.content).description || post.content;
 
@@ -29,7 +30,7 @@ export default function AdCard({ post }: { post: Post }) {
     >
       <div className="relative h-40 bg-zinc-200">
         {image && (
-          <PostImage src={image} alt={post.title} fill sizes="360px" className="object-cover" />
+          <PostImage src={image} alt={post.title} fill sizes="360px" loading={eager ? "eager" : "lazy"} className="object-cover" />
         )}
       </div>
       <div className="flex flex-col gap-2 p-4">
