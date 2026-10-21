@@ -22,8 +22,8 @@ description: 이 저장소에서 이슈 생성 → 이슈 연결 브랜치 생�
 
 ## 언어 규칙
 
-- **커밋 메시지와 PR 제목은 `<영어 타입>: <한국어 설명>`**으로 쓴다(예: `feat: 하네스 추가`).
-- 이슈 제목·PR 본문·이슈 본문도 한국어로 쓴다. 접두사(`[Feature]` 등)는 그대로 둔다.
+- **이슈 제목, 커밋 메시지, PR 제목은 모두 영어로 쓴다**(예: `[Feature] Add agent harness`, `feat: add harness`).
+- 이슈 본문·PR 본문은 템플릿 구조를 유지하고 한국어로 채운다. 커밋 본문은 영어.
 - 브랜치 설명은 영어 kebab-case.
 - 템플릿(이슈: `.github/ISSUE_TEMPLATE/`, PR: `.github/pull_request-template.md`)이 있으면 그 구조를 쓰고, 헤더·체크리스트 문구는 원문 그대로 유지한다.
 
@@ -45,7 +45,7 @@ description: 이 저장소에서 이슈 생성 → 이슈 연결 브랜치 생�
 | 수정 | 수정-요구서.md | `[Fix]` | (없음) | `fix` |
 
 ```bash
-gh issue create --title "[Feature] <한국어 요약>" --label enhancement --body "<템플릿 형식 본문>"
+gh issue create --title "[Feature] <English summary>" --label enhancement --body "<템플릿 형식 본문>"
 ```
 
 본문은 템플릿의 체크리스트(`- [ ] ...`)를 유지하고 한국어로 채운다. 원인 분석이 있으면 `## 현상 / ## 원인 / ## 수정 방향 / ## 재현`으로 덧붙여도 된다. 생성 후 이슈 번호를 알린다.
@@ -67,7 +67,7 @@ gh issue develop <이슈번호> --base release --name <이슈번호>-<타입>-<�
 
 1. `git status`, `git diff`로 변경을 확인하고 이번 이슈와 무관한 파일은 제외한다.
 2. 코드 변경이 있으면 `npm run lint`(필요 시 `npm run build`)를 먼저 확인한다.
-3. 메시지 형식: `<타입>: <한국어 설명>` — 구분자는 **콜론 하나**만 쓴다(`::` 금지). 한 줄 요약, 필요하면 빈 줄 후 한국어 본문.
+3. 메시지 형식: `<타입>: <English description>` — 구분자는 **콜론 하나**만 쓴다(`::` 금지). 소문자로 시작하는 영어 한 줄 요약, 필요하면 빈 줄 후 영어 본문.
    - 타입: `feat`, `fix`, `refactor`, `docs`, `chore`, `style`
 4. 논리 단위가 다르면 커밋을 나눈다.
 5. 현재 브랜치가 `main`/`release`면 커밋하지 말고 2단계로 돌아가라고 알린다.
@@ -75,7 +75,7 @@ gh issue develop <이슈번호> --base release --name <이슈번호>-<타입>-<�
 
 ```bash
 git add <파일...>
-git commit -m "feat: 하네스 추가"
+git commit -m "feat: add harness"
 ```
 
 ## 4. 푸시
@@ -88,10 +88,10 @@ git push -u origin <현재 브랜치>
 
 ## 5. Pull Request (base: release)
 
-PR 제목은 대표 커밋 메시지와 같은 형식(`feat: 하네스 추가`)으로 쓴다.
+PR 제목은 대표 커밋 메시지와 같은 형식(`feat: add harness`)으로 쓴다.
 
 ```bash
-gh pr create --base release --head <현재 브랜치> --title "<타입>: <한국어 요약>" --body "$(cat <<'BODY'
+gh pr create --base release --head <현재 브랜치> --title "<타입>: <English summary>" --body "$(cat <<'BODY'
 ## 작업내용
 - [x] <커밋 기반 작업 1>
 - [x] <작업 2>
