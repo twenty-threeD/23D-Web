@@ -101,6 +101,7 @@ export default function Page() {
   const [search, setSearch] = useState("")
   const [message, setMessage] = useState("")
   const [showAttach, setShowAttach] = useState(false)
+  const [menuRoomId, setMenuRoomId] = useState<number | null>(null)
   const [contractModalState, setContractModalState] = useState<{ mode: "propose" | "review"; initial: Partial<ContractData> } | null>(null)
   const [contractBusy, setContractBusy] = useState(false)
   const [phoneVerified, setPhoneVerified] = useState<boolean | undefined>(undefined)
@@ -415,8 +416,44 @@ export default function Page() {
     return () => { cancelled = true }
   }, [selectedPostId, token])
 
+  // 메뉴 밖을 누르면 닫는다. 메뉴 안 클릭은 각 항목이 stopPropagation 하므로 여기까지 오지 않는다
+  useEffect(() => {
+    if (menuRoomId === null) return
+    const close = () => setMenuRoomId(null)
+    document.addEventListener("click", close)
+    return () => document.removeEventListener("click", close)
+  }, [menuRoomId])
+
+  // 분쟁 신고 창구가 따로 없어 운영 메일로 바로 보낸다. 운영자가 어느 방인지 찾을 수 있게 방 번호·상대를 미리 채운다
+  function handleReportRoom(e: React.MouseEvent, room: ChatRoom) {
+    e.stopPropagation()
+    setMenuRoomId(null)
+    const subject = `[신고] 채팅방 #${room.roomId} (${room.participantName})`
+    // 메뉴는 선택된 방에만 뜨므로 selectedPost 가 이 방의 글이다. 갑/을은 글 작성자 기준으로만 판단한다
+    const post = selectedPost?.id === room.postId ? selectedPost : null
+    const myRole = post && myUsername ? (post.member?.username === myUsername ? "을 (용역 제공)" : "갑 (대금 지급)") : "확인 불가"
+    const statusLabel = { IN_PROGRESS: "진행 중", COMPLETED: "완료된 거래", CANCELED: "취소된 거래" }[tradeStatusOf(room)]
+    const body = [
+      "[채팅방 정보]",
+      `채팅방 번호: ${room.roomId}`,
+      `서비스: ${post ? `${post.title} (#${post.id})` : room.postId ? `#${room.postId}` : "없음"}`,
+      `거래 상태: ${statusLabel}`,
+      `신고자: ${myUsername ?? "알 수 없음"} / ${myRole}`,
+      `상대방: ${room.participantName} (${room.participantUsername})`,
+      `마지막 대화: ${room.lastMessageAt ? new Date(room.lastMessageAt).toLocaleString("ko-KR") : "없음"}`,
+      `신고 시각: ${new Date().toLocaleString("ko-KR")}`,
+      "",
+      "[신고 사유]",
+      "",
+      "",
+      "※ 대화 캡처 등 증빙 자료를 첨부해 주시면 처리가 빨라집니다.",
+    ].join("\n")
+    window.location.assign(`mailto:itda23d@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`)
+  }
+
   async function handleDeleteRoom(e: React.MouseEvent, roomId: number) {
     e.stopPropagation()
+    setMenuRoomId(null)
     if (!token) return
     if (!confirm("채팅방을 삭제하시겠습니까?")) return
     try {
@@ -911,13 +948,25 @@ export default function Page() {
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     <span className="text-xs text-zinc-400">{room.lastMessageAt ? formatTime(room.lastMessageAt) : ""}</span>
                     {room.roomId === selectedId && (
-                      <button
-                        onClick={(e) => handleDeleteRoom(e, room.roomId)}
-                        className="text-zinc-400 hover:text-red-500 text-base cursor-pointer"
-                        aria-label="채팅방 삭제"
-                      >
-                        <HiDotsHorizontal />
-                      </button>
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setMenuRoomId(menuRoomId === room.roomId ? null : room.roomId)
+                          }}
+                          className="text-zinc-400 hover:text-zinc-700 text-base cursor-pointer"
+                          aria-label="채팅방 메뉴"
+                          aria-expanded={menuRoomId === room.roomId}
+                        >
+                          <HiDotsHorizontal />
+                        </button>
+                        {menuRoomId === room.roomId && (
+                          <div className="absolute right-0 top-6 w-32 bg-white border border-line rounded-lg shadow-lg overflow-hidden z-50">
+                            <button onClick={(e) => handleReportRoom(e, room)} className="w-full flex items-center px-4 py-3 text-sm text-zinc-700 hover:bg-zinc-50 cursor-pointer">신고하기</button>
+                            <button onClick={(e) => handleDeleteRoom(e, room.roomId)} className="w-full flex items-center px-4 py-3 text-sm text-red-500 hover:bg-zinc-50 cursor-pointer">대화 삭제</button>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
