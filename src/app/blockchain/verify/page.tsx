@@ -97,20 +97,22 @@ const ROW_LIMIT = 5
  * 조회 전이거나 결과가 모자랄 때 남는 자리를 빈 행으로 채운다.
  * 폴링 결과가 도착할 때마다 카드 높이가 튀는 것을 막는다.
  */
-function padRows(rows: Cells[]): Cells[] {
-    const empty: Cells = [EMPTY, EMPTY, EMPTY]
+function padRows(rows: Cells[], loading = false): Cells[] {
+    // 로딩 중에는 '-' 대신 공백으로 자리만 잡아, "불러오는 중"만 보이게 한다
+    const filler = loading ? "\u00a0" : EMPTY
+    const empty: Cells = [filler, filler, filler]
     return [...rows, ...Array<Cells>(Math.max(0, ROW_LIMIT - rows.length)).fill(empty)]
 }
 
 /**
- * 첫 조회 전에는 '-' 행 위에 회전하는 로딩 표시를 덮는다.
+ * 첫 조회 전에는 빈 행 위에 회전하는 로딩 표시를 덮는다.
  * '-'만 있으면 "값이 없음"으로 읽혀 불러오는 중인지 구분되지 않았다.
- * 행은 invisible로 남겨 두어 로딩 전후로 카드 높이가 바뀌지 않게 한다.
+ * 빈 행은 그대로 두어 로딩 전후로 카드 높이가 바뀌지 않게 한다.
  */
 function LoadingRows({loading, children}: {loading: boolean; children: ReactNode}) {
     return (
         <div className="relative" aria-busy={loading}>
-            <div className={`flex flex-col gap-4 ${loading ? "invisible" : ""}`}>{children}</div>
+            <div className="flex flex-col gap-4">{children}</div>
             {loading && (
                 <div role="status" className="absolute inset-0 flex items-center justify-center gap-2 text-sm text-[#aaa]">
                     <span aria-hidden className="size-5 animate-spin rounded-full border-2 border-[#eee] border-t-main"/>
@@ -266,7 +268,7 @@ export default function Page() {
                                     </Link>,
                                     <RelativeTime key={block.height} iso={block.time} now={now}/>,
                                     `${block.txCount} tx`,
-                                ])).map((cells, index) => (
+                                ]), isActivityLoading).map((cells, index) => (
                                     <TableRow key={blocks[index]?.height ?? `empty-${index}`} cells={cells}/>
                                 ))}
                             </LoadingRows>
@@ -293,7 +295,7 @@ export default function Page() {
                                     </Link>,
                                     display(truncateAddress(transaction.signer)),
                                     display(truncatePaymentId(transaction.paymentId)),
-                                ])).map((cells, index) => (
+                                ]), isActivityLoading).map((cells, index) => (
                                     <TableRow key={transactions[index]?.hash ?? `empty-${index}`} hideMiddleOnMobile cells={cells}/>
                                 ))}
                             </LoadingRows>
