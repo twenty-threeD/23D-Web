@@ -124,7 +124,7 @@ function MainContent() {
           {loading
             ? Array.from({ length: 3 }).map((_, i) => <AdCardSkeleton key={i} />)
             : adPosts.length > 0
-              ? adPosts.map((post) => <AdCard key={post.id} post={post} />)
+              ? adPosts.map((post, i) => <AdCard key={post.id} post={post} eager={i < 3} />)
               : <Empty />}
         </CardRow>
       </section>
