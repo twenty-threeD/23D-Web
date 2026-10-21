@@ -97,9 +97,17 @@ const ROW_LIMIT = 5
  * 조회 전이거나 결과가 모자랄 때 남는 자리를 빈 행으로 채운다.
  * 폴링 결과가 도착할 때마다 카드 높이가 튀는 것을 막는다.
  */
-function padRows(rows: Cells[]): Cells[] {
-    const empty: Cells = [EMPTY, EMPTY, EMPTY]
+function padRows(rows: Cells[], loading = false): Cells[] {
+    const empty: Cells = loading ? [<Skeleton key="0"/>, <Skeleton key="1"/>, <Skeleton key="2"/>] : [EMPTY, EMPTY, EMPTY]
     return [...rows, ...Array<Cells>(Math.max(0, ROW_LIMIT - rows.length)).fill(empty)]
+}
+
+/**
+ * 첫 조회 전에는 '-' 대신 깜빡이는 막대를 보여준다.
+ * '-'는 "값이 없음"으로 읽혀, 아직 불러오는 중인지 구분되지 않았다.
+ */
+function Skeleton() {
+    return <span aria-hidden className="inline-block h-4 w-full max-w-20 animate-pulse rounded bg-[#eee] align-middle"/>
 }
 
 /** 기록된 시각을 "1일 전"으로 보여주고, 마우스를 올리면 정확한 시각을 보여준다. */
@@ -120,6 +128,8 @@ export default function Page() {
     const [error, setError] = useState<string | null>(null)
     const [networkInfo, setNetworkInfo] = useState<NetworkInfo | null>(null)
     const [activity, setActivity] = useState<RecentActivity | null>(null)
+    // 실패해도 로딩은 끝난 것으로 보고 '-'로 돌려, 스켈레톤이 영원히 남지 않게 한다
+    const [isActivityLoading, setIsActivityLoading] = useState<boolean>(true)
 
     useEffect(() => {
         const unsubscribe = subscribeBlockHeight({
@@ -148,8 +158,14 @@ export default function Page() {
 
     useEffect(() => {
         const unsubscribe = subscribeRecentActivity({
-            onActivity: setActivity,
-            onError: () => setActivity(null),
+            onActivity: (next) => {
+                setActivity(next)
+                setIsActivityLoading(false)
+            },
+            onError: () => {
+                setActivity(null)
+                setIsActivityLoading(false)
+            },
         })
 
         return unsubscribe
@@ -238,7 +254,7 @@ export default function Page() {
                                 </Link>,
                                 <RelativeTime key={block.height} iso={block.time} now={now}/>,
                                 `${block.txCount} tx`,
-                            ])).map((cells, index) => (
+                            ]), isActivityLoading).map((cells, index) => (
                                 <TableRow key={blocks[index]?.height ?? `empty-${index}`} cells={cells}/>
                             ))}
                         </div>
@@ -263,7 +279,7 @@ export default function Page() {
                                 </Link>,
                                 display(truncateAddress(transaction.signer)),
                                 display(truncatePaymentId(transaction.paymentId)),
-                            ])).map((cells, index) => (
+                            ]), isActivityLoading).map((cells, index) => (
                                 <TableRow key={transactions[index]?.hash ?? `empty-${index}`} hideMiddleOnMobile cells={cells}/>
                             ))}
                         </div>
