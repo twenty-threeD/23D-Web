@@ -12,6 +12,7 @@ import { useHandleError } from "@/src/hooks/useHandleError"
 import { signinPath } from "@/src/lib/navigation"
 import { useMyLocation } from "@/src/hooks/useMyLocation"
 import { PAGE_PADDING } from "@/src/lib/layout";
+import Skeleton from "@/src/components/ui/Skeleton"
 
 const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false })
 
@@ -130,13 +131,7 @@ export default function Page() {
   const isReady = title.trim().length > 0 && content.trim().length > 0 && !!category
     && (category !== "NEIGHBORHOOD" || !!location)
 
-  if (loading) {
-    return (
-      <div>
-        <p className="text-center py-20 text-zinc-400">불러오는 중...</p>
-      </div>
-    )
-  }
+  if (loading) return <WriteSkeleton />
 
   return (
     <div>
@@ -232,6 +227,51 @@ export default function Page() {
                 className="hidden"
                 onChange={handleFileChange}
               />
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  )
+}
+
+// 수정할 글을 받아오는 동안 실제 글쓰기 틀(제목 줄·에디터·카테고리·이미지 삽입 줄)을 그대로 잡아둬,
+// 내용이 들어올 때 화면이 튀지 않게 한다. 사이드 메뉴는 불러올 데이터가 없어 실제 것을 그대로 쓴다
+function WriteSkeleton() {
+  return (
+    <div>
+      <div className={`flex flex-col md:flex-row md:items-start justify-between ${PAGE_PADDING} gap-6 md:gap-8`}>
+        <CommunityMenu />
+
+        <main className="flex flex-col gap-4 w-full">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-7 w-20 rounded-md" />
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-9 w-16 rounded-lg" />
+              <Skeleton className="h-9 w-16 rounded-xl" />
+            </div>
+          </div>
+
+          <div className="flex flex-col w-full border border-line rounded-lg overflow-hidden">
+            <div className="flex items-center gap-3 px-6 py-4 border-b border-line">
+              <Skeleton className="h-7 flex-1 max-w-80 rounded-md" />
+            </div>
+
+            {/* 에디터 높이(480px)와 같게 둔다 */}
+            <div className="flex flex-col gap-3 h-[480px] px-6 py-5">
+              <Skeleton className="h-4 w-full rounded-md" />
+              <Skeleton className="h-4 w-11/12 rounded-md" />
+              <Skeleton className="h-4 w-3/4 rounded-md" />
+              <Skeleton className="h-4 w-5/6 rounded-md" />
+            </div>
+
+            <div className="flex flex-col gap-1 px-6 py-4 border-t border-line">
+              <Skeleton className="h-7 w-24 rounded-md" />
+              <Skeleton className="h-10 w-full rounded-lg" />
+            </div>
+
+            <div className="flex items-center gap-3 px-6 py-3 border-t border-line bg-zinc-50">
+              <Skeleton className="h-9 w-28 rounded-lg" />
             </div>
           </div>
         </main>

@@ -18,6 +18,7 @@ import { signinPath } from "@/src/lib/navigation";
 import type { ChatRoom } from "@/src/store/chatRoomsStore";
 import { calculatePaymentFee } from "@/src/lib/paymentFee";
 import { PAGE_PADDING } from "@/src/lib/layout";
+import Skeleton from "@/src/components/ui/Skeleton";
 
 type Contract = Awaited<ReturnType<typeof getContract>>;
 
@@ -119,11 +120,7 @@ const PayContent = () => {
 
   // 검증을 통과하기 전에는 아무것도 그리지 않는다 (금액·버튼이 잠깐이라도 보이지 않게)
   if (!post || !contract || !contractId) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-zinc-400">결제 정보를 확인하는 중...</p>
-      </div>
-    );
+    return <PaySkeleton />;
   }
 
   // 수수료 구간과 비율은 안내용이며, 최종 금액·수수료·정산액은 서버 prepare 응답과 대조한다.
@@ -213,6 +210,45 @@ const PayContent = () => {
   );
 };
 
+// 검증 전에는 금액·버튼 같은 실제 값을 보여주면 안 되지만, 빈 화면이나 한 줄 문구는 푸터만 떠 보여서
+// 값 없는 자리표시로 실제 화면과 같은 틀(계약서 미리보기 + 오른쪽 항목·결제 칸)을 먼저 잡아둔다
+function PaySkeleton() {
+  return (
+    <main className={`flex flex-col items-center ${PAGE_PADDING}`}>
+      <div className="flex w-full max-w-320 flex-col gap-9">
+        <Skeleton className="h-6 w-24 rounded-md" />
+
+        <div className="flex flex-col gap-12">
+          <Skeleton className="h-7 w-28 rounded-md" />
+
+          <div className="flex flex-col xl:flex-row xl:items-start gap-8 xl:gap-12">
+            <Skeleton className="w-full xl:flex-1 xl:min-w-0 h-[70vh] md:h-250" />
+
+            <div className="flex w-full xl:w-109.25 xl:shrink-0 flex-col gap-14 xl:pt-5">
+              <div className="flex flex-col gap-6">
+                {Array.from({ length: 6 }, (_, i) => (
+                  <div key={i} className="flex flex-col gap-3.5">
+                    <Skeleton className="h-6 w-20 rounded-md" />
+                    <Skeleton className="h-9.5 w-full rounded-[10px]" />
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-2">
+                  <Skeleton className="h-5 w-24 rounded-md" />
+                  <Skeleton className="h-9 w-40 rounded-md" />
+                </div>
+                <Skeleton className="h-11 w-full rounded-xl" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
 function Notice({ children }: { children: ReactNode }) {
   return (
     <p className="flex items-center gap-2 text-[12px] font-medium text-ink-hint">
@@ -242,7 +278,7 @@ function formatDate(value: string | null | undefined) {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen"><p className="text-zinc-400">불러오는 중...</p></div>}>
+    <Suspense fallback={<PaySkeleton />}>
       <PayContent />
     </Suspense>
   );

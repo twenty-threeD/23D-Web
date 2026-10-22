@@ -40,6 +40,7 @@ import { useHandleError } from "@/src/hooks/useHandleError"
 import TopButton from "@/src/components/TopButton"
 import { signinPath } from "@/src/lib/navigation"
 import { PAGE_PADDING } from "@/src/lib/layout";
+import Skeleton from "@/src/components/ui/Skeleton"
 
 interface Post {
   id: number
@@ -82,6 +83,67 @@ interface ReplyTarget {
 const HIGHLIGHT_MS = 1600
 
 const commentDomId = (id: number) => `comment-${id}`
+
+// 불러온 뒤의 화면과 같은 틀(사이드 메뉴 + 테두리 카드, 같은 여백·간격)로 자리를 잡아, 글이 들어와도 레이아웃이 튀지 않게 한다.
+// 사이드 메뉴는 글과 상관없는 고정 메뉴라 그대로 보여준다
+function PostDetailSkeleton() {
+  return (
+    <div>
+      <div className={`flex flex-col md:flex-row md:items-start justify-between ${PAGE_PADDING} gap-6 md:gap-8`}>
+        <CommunityMenu />
+
+        <main className="flex flex-col gap-8 w-full">
+          <div className="flex flex-col gap-4 w-full border-line border rounded-lg p-5 md:p-8">
+            {/* 헤더: 제목(text-2xl 줄 높이 32px) + 프로필·작성 정보 */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center h-8">
+                <Skeleton className="h-6 w-2/3 max-w-80 rounded-md" />
+              </div>
+              <div className="flex gap-2">
+                <Skeleton className="size-12 rounded-full shrink-0" />
+                <div className="flex flex-col justify-center gap-2 w-full">
+                  <Skeleton className="h-4 w-24 rounded-md" />
+                  <Skeleton className="h-4 w-40 rounded-md" />
+                </div>
+              </div>
+            </div>
+
+            <hr className="text-zinc-300" />
+
+            {/* 본문 몇 줄 + 좋아요·댓글 줄 */}
+            <div className="flex flex-col gap-8 py-2">
+              <div className="flex flex-col gap-3">
+                <Skeleton className="h-4 w-full rounded-md" />
+                <Skeleton className="h-4 w-full rounded-md" />
+                <Skeleton className="h-4 w-5/6 rounded-md" />
+                <Skeleton className="h-4 w-1/2 rounded-md" />
+              </div>
+              <div className="flex gap-4">
+                <Skeleton className="h-6 w-20 rounded-md" />
+                <Skeleton className="h-6 w-16 rounded-md" />
+              </div>
+            </div>
+
+            <hr className="text-zinc-300" />
+
+            {/* 댓글 두어 개 */}
+            <div className="flex flex-col gap-6 py-2">
+              {[0, 1].map((i) => (
+                <div key={i} className="flex gap-2">
+                  <Skeleton className="size-12 rounded-full shrink-0" />
+                  <div className="flex flex-col gap-2 w-full">
+                    <Skeleton className="h-4 w-24 rounded-md" />
+                    <Skeleton className="h-4 w-3/4 rounded-md" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  )
+}
 
 export default function Page() {
   const params = useParams()
@@ -374,7 +436,7 @@ export default function Page() {
   // 주소로 직접 들어와도 다른 시·도의 동네 주민 글은 내용을 보여주지 않는다
   if (!loading && post && !canViewPost(post, myCtprvnCd, myUsername)) {
     return (
-      <div>
+      <div className="flex flex-1 flex-col justify-center">
         <p className="text-center py-20 text-zinc-400">
           {location ? "같은 지역 주민만 볼 수 있는 글입니다." : "프로필에서 지역을 설정하면 같은 지역 주민의 글을 볼 수 있습니다."}
         </p>
@@ -388,11 +450,7 @@ export default function Page() {
     .filter((p) => p.id !== postId)
 
   if (loading || !post) {
-    return (
-      <div>
-        <p className="text-center py-20 text-zinc-400">불러오는 중...</p>
-      </div>
-    )
+    return <PostDetailSkeleton />
   }
 
   const dateStr = post.updatedAt
