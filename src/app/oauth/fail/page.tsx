@@ -42,7 +42,8 @@ function OAuthFailContent() {
 
 export default function Page() {
   return (
-    <div>
+    // 본문 영역이 첫 화면 높이를 채우므로, 안쪽 내용이 그 높이를 받아 가운데에 오도록 flex 로 이어준다
+    <div className='flex flex-1 flex-col'>
       <Suspense fallback={null}>
         <OAuthFailContent />
       </Suspense>

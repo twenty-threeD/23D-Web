@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import NormalCard from "@/src/components/NormalCard";
+import Skeleton from "@/src/components/ui/Skeleton";
 import { CiCamera } from "react-icons/ci";
 import { useAuthStore } from "@/src/store/authStore";
 import { useProfileStore } from "@/src/store/profileStore";
@@ -294,13 +295,7 @@ export default function Page() {
     }
   }
 
-  if (loading || !profile) {
-    return (
-      <div>
-        <p className="text-center py-20 text-zinc-400">불러오는 중...</p>
-      </div>
-    );
-  }
+  if (loading || !profile) return <ProfileSkeleton />;
 
   return (
     <div>
@@ -641,6 +636,54 @@ export default function Page() {
           onDone={() => { setEditingField(null); fetchProfile(); }}
         />
       )}
+    </div>
+  );
+}
+
+// 불러온 화면과 같은 여백·카드 틀을 먼저 그려 두어, 데이터가 들어올 때 프로필 카드·계정 정보가 제자리에서 채워지게 한다.
+// 제목은 데이터와 상관없는 고정 문구라 실제 글자로 둔다
+function ProfileSkeleton() {
+  const row = (label: string, value: string) => (
+    <div className="flex items-center justify-between gap-4 px-4 py-3">
+      <div className="flex items-center h-5"><Skeleton className={`h-4 rounded ${label}`} /></div>
+      <div className="flex items-center h-5"><Skeleton className={`h-4 rounded ${value}`} /></div>
+    </div>
+  );
+
+  return (
+    <div>
+      <main className={`flex flex-col gap-10 ${PAGE_PADDING}`}>
+        <h1 className="text-2xl font-bold">프로필</h1>
+
+        <div className="flex flex-col gap-6 border border-line rounded-lg p-5 md:p-8">
+          <div className="flex items-center gap-6">
+            <Skeleton className="w-24 h-24 rounded-full shrink-0" />
+            <div className="flex flex-col gap-1 min-w-0 flex-1">
+              <div className="flex items-center h-7"><Skeleton className="h-5 w-32 max-w-full rounded" /></div>
+              <div className="flex items-center h-5"><Skeleton className="h-4 w-48 max-w-full rounded" /></div>
+            </div>
+          </div>
+          <div className="flex items-center h-6"><Skeleton className="h-4 w-2/3 rounded" /></div>
+          <div className="flex justify-end">
+            <Skeleton className="h-9 w-24 rounded-lg" />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <h2 className="text-xl font-bold">계정 정보</h2>
+          <div className="border border-line rounded-lg divide-y divide-line">
+            {row("w-12", "w-40")}
+            {row("w-14", "w-32")}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <h2 className="text-xl font-bold">비밀번호</h2>
+          <div className="border border-line rounded-lg">
+            {row("w-20", "w-12")}
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

@@ -24,6 +24,7 @@ import ReviewAnalysis from "@/src/components/item/ReviewAnalysis"
 import { createReview, getReviews, getReviewableContracts, summarizePostReviews, type Review as ReviewData, type ReviewableContract } from "@/src/lib/review"
 import { signinPath } from "@/src/lib/navigation"
 import { PAGE_Y } from "@/src/lib/layout";
+import Skeleton from "@/src/components/ui/Skeleton";
 
 export default function Page() {
   const params = useParams();
@@ -180,19 +181,13 @@ export default function Page() {
   // id 없이 들어오면 불러올 글이 없어 loading 이 영영 끝나지 않으므로 바로 안내로 넘긴다
   if (!postId || notFound) {
     return (
-      <div>
+      <div className="flex flex-1 flex-col justify-center">
         <p className="text-center py-20 text-ink-muted">존재하지 않는 서비스입니다.</p>
       </div>
     );
   }
 
-  if (loading) {
-    return (
-      <div>
-        <p className="text-center py-20 text-ink-muted">불러오는 중...</p>
-      </div>
-    );
-  }
+  if (loading) return <ItemDetailSkeleton />;
 
   return (
     <div className={`flex flex-col gap-20 lg:gap-40 ${PAGE_Y} overflow-x-clip`}>
@@ -408,6 +403,44 @@ export default function Page() {
         <ServiceSection title={["이웃들이", "많이 찾아요"]} loading={loading} posts={popularPosts} />
       </div>
       <TopButton />
+    </div>
+  );
+}
+
+// 불러온 뒤 화면과 같은 틀(헤더 이미지 → 본문 + 가격 카드)에 자리를 잡아, 데이터가 들어와도 레이아웃이 튀지 않게 한다
+function ItemDetailSkeleton() {
+  return (
+    <div className={`flex flex-col ${PAGE_Y}`}>
+      <div className={`flex flex-col gap-[52px] w-full ${SECTION_INSET}`}>
+        <Skeleton className="w-full h-[180px] md:h-[260px] rounded-2xl" />
+
+        <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-stretch lg:items-start">
+          <div className="order-2 lg:order-1 flex flex-1 flex-col gap-12 lg:gap-[82px] min-w-0">
+            {/* 제목 · 작성자 */}
+            <div className="flex flex-col gap-2.5">
+              <Skeleton className="h-6 md:h-8 w-2/3 rounded-md" />
+              <Skeleton className="h-6 w-24 rounded-md" />
+            </div>
+
+            {/* 서비스 설명 */}
+            <div className="flex flex-col gap-6">
+              <Skeleton className="h-8 w-32 rounded-md" />
+              <div className="flex flex-col gap-3">
+                <Skeleton className="h-5 w-full rounded-md" />
+                <Skeleton className="h-5 w-full rounded-md" />
+                <Skeleton className="h-5 w-5/6 rounded-md" />
+                <Skeleton className="h-5 w-2/3 rounded-md" />
+              </div>
+            </div>
+          </div>
+
+          {/* 가격 카드 · 안내 박스 */}
+          <div className="order-1 lg:order-2 flex flex-col gap-2 w-full lg:w-[340px] xl:w-[380px] shrink-0">
+            <Skeleton className="h-[260px] w-full rounded-xl" />
+            <Skeleton className="h-[88px] w-full rounded-lg" />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
