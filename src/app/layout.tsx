@@ -17,7 +17,8 @@ const pretendard = localFont({
 });
 
 // 사이트 소유 확인 코드는 서치 콘솔·서치어드바이저에서 발급받아 배포 환경 변수에 넣는다. 없으면 태그를 넣지 않는다
-const naverVerification = process.env.NAVER_SITE_VERIFICATION
+// 네이버 코드는 페이지 HTML 에 그대로 노출되는 공개값이라 비밀이 아니다. 배포 환경 변수 설정 없이도 소유확인이 유지되도록 기본값으로 둔다
+const naverVerification = process.env.NAVER_SITE_VERIFICATION ?? "27142b65de1611acaa2d727b3f2adb10b2a1539e"
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
